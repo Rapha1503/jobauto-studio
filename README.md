@@ -151,9 +151,10 @@ uv run jobauto audit-release dist\jobauto-0.1.0-py3-none-any.whl
 ```
 
 The audit checks every distributable text member, extractable PDF text and metadata,
-and PNG text metadata for configured deny terms, non-example emails, phone numbers,
-user-specific Windows paths, private keys, and API-secret patterns. Visual PNG pixels
-remain covered by the checked synthetic evidence review rather than an OCR claim.
+PNG text/EXIF metadata, and JPEG EXIF/XMP/comment metadata for configured deny terms,
+non-example emails, phone numbers, user-specific Windows paths, private keys, and
+API-secret patterns. Visual image pixels remain covered by the checked synthetic
+evidence review rather than an OCR claim.
 
 ## Verification
 

@@ -32,7 +32,7 @@ application is submitted.
 | 1:28-1:48 | Five-package batch | Scroll through all five cards. Emphasize that one non-IT profile produced five independently reviewed applications rather than one reusable generic document. |
 | 1:48-2:08 | Product setup | Open **Create my profile**. Show `.tex`, PDF and no-file entry points plus the four runtime checks. Explain that the user owns facts, adaptation permissions, search preferences and submission policy. |
 | 2:08-2:30 | How Codex built it | "Codex audited my earlier personal workflow, extracted a generic candidate boundary, implemented Studio and the plugin contract, then tested the real PDFs, browser handoffs and public package. GPT-5.6 is also the runtime for search, strategy, writing, review and repair." |
-| 2:30-2:47 | Chrome receipt | Open one saved `sandbox_verified` receipt, or run one prepared sandbox packet with the installed JobAuto and Chrome plugins. Show the exact approved-file boundary. |
+| 2:30-2:47 | Chrome receipt | Show the prepared video-safe receipt capture with its neutral target alias. Explain that the unchanged receipt and hashes remain in the public evidence pack. Do not open that historical receipt during the recording because it retains the captured target label. |
 | 2:47-2:57 | Close | "One configurable candidate boundary, one observable pipeline, and no hidden claim that a sandbox receipt is an employer submission." |
 
 ## What the recording must make obvious

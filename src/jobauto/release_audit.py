@@ -8,6 +8,7 @@ import tarfile
 import zipfile
 import zlib
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 from pypdf import PdfReader
@@ -129,7 +130,7 @@ def _audit_payload(
     if suffix == ".png":
         return _audit_png_metadata(source, payload, deny_terms=deny_terms)
     if suffix in {".jpeg", ".jpg"}:
-        return _audit_text(source, payload, deny_terms=deny_terms)
+        return _audit_jpeg_metadata(source, payload, deny_terms=deny_terms)
     return _audit_text(source, payload, deny_terms=deny_terms)
 
 
@@ -150,16 +151,30 @@ def _audit_png_metadata(
         return [ReleaseLeak(source, "unreadable_png", "invalid signature")]
     cursor = 8
     text_parts: list[str] = []
+    saw_header = False
+    saw_end = False
     try:
         while cursor + 12 <= len(payload):
             length = struct.unpack(">I", payload[cursor : cursor + 4])[0]
             kind = payload[cursor + 4 : cursor + 8]
+            chunk_end = cursor + 12 + length
+            if chunk_end > len(payload):
+                raise ValueError("truncated chunk")
             data = payload[cursor + 8 : cursor + 8 + length]
-            cursor += 12 + length
+            expected_crc = struct.unpack(">I", payload[cursor + 8 + length : chunk_end])[0]
+            if zlib.crc32(kind + data) & 0xFFFFFFFF != expected_crc:
+                raise ValueError("invalid chunk CRC")
+            cursor = chunk_end
+            if not saw_header:
+                if kind != b"IHDR":
+                    raise ValueError("missing IHDR")
+                saw_header = True
             if kind == b"tEXt":
                 text_parts.append(data.decode("latin-1", errors="replace"))
             elif kind == b"zTXt":
                 keyword, compressed = data.split(b"\x00", 1)
+                if not compressed or compressed[0] != 0:
+                    raise ValueError("invalid zTXt compression method")
                 text_parts.append(keyword.decode("latin-1", errors="replace"))
                 text_parts.append(
                     zlib.decompress(compressed[1:]).decode("latin-1", errors="replace")
@@ -170,15 +185,81 @@ def _audit_png_metadata(
                     keyword, compressed_flag, _method, language, translated, content = fields
                     if compressed_flag == b"\x01":
                         content = zlib.decompress(content)
+                    elif compressed_flag != b"\x00":
+                        raise ValueError("invalid iTXt compression flag")
                     text_parts.extend(
                         item.decode("utf-8", errors="replace")
                         for item in (keyword, language, translated, content)
                     )
+            elif kind == b"eXIf":
+                text_parts.extend(_metadata_text_variants(data))
             if kind == b"IEND":
+                if length != 0 or cursor != len(payload):
+                    raise ValueError("invalid IEND")
+                saw_end = True
                 break
     except (ValueError, struct.error, zlib.error) as exc:
         return [ReleaseLeak(source, "unreadable_png", type(exc).__name__)]
+    if not saw_header or not saw_end:
+        return [ReleaseLeak(source, "unreadable_png", "incomplete structure")]
     return _audit_text(source, "\n".join(text_parts).encode("utf-8"), deny_terms=deny_terms)
+
+
+def _audit_jpeg_metadata(
+    source: str, payload: bytes, *, deny_terms: tuple[str, ...]
+) -> list[ReleaseLeak]:
+    if not payload.startswith(b"\xff\xd8"):
+        return [ReleaseLeak(source, "unreadable_jpeg", "invalid signature")]
+    cursor = 2
+    text_parts: list[str] = []
+    saw_end = False
+    try:
+        while cursor < len(payload):
+            if payload[cursor] != 0xFF:
+                raise ValueError("invalid marker")
+            while cursor < len(payload) and payload[cursor] == 0xFF:
+                cursor += 1
+            if cursor >= len(payload):
+                raise ValueError("truncated marker")
+            marker = payload[cursor]
+            cursor += 1
+            if marker == 0xD9:
+                saw_end = True
+                break
+            if marker == 0xDA:
+                saw_end = payload.rfind(b"\xff\xd9", cursor) >= cursor
+                break
+            if marker == 0x01 or 0xD0 <= marker <= 0xD8:
+                continue
+            if cursor + 2 > len(payload):
+                raise ValueError("truncated segment")
+            length = struct.unpack(">H", payload[cursor : cursor + 2])[0]
+            if length < 2 or cursor + length > len(payload):
+                raise ValueError("invalid segment length")
+            data = payload[cursor + 2 : cursor + length]
+            cursor += length
+            if marker in {0xE1, 0xED, 0xFE}:
+                text_parts.extend(_metadata_text_variants(data))
+    except (ValueError, struct.error) as exc:
+        return [ReleaseLeak(source, "unreadable_jpeg", type(exc).__name__)]
+    if not saw_end:
+        return [ReleaseLeak(source, "unreadable_jpeg", "missing EOI")]
+    return _audit_text(source, "\n".join(text_parts).encode("utf-8"), deny_terms=deny_terms)
+
+
+def _metadata_text_variants(payload: bytes) -> list[str]:
+    variants = [
+        payload.decode("utf-8", errors="ignore"),
+        payload.decode("latin-1", errors="ignore"),
+    ]
+    for offset in (0, 1):
+        even_payload = payload[offset : len(payload) - ((len(payload) - offset) % 2)]
+        if even_payload:
+            variants.extend(
+                even_payload.decode(encoding, errors="ignore")
+                for encoding in ("utf-16-le", "utf-16-be")
+            )
+    return variants
 
 
 def _audit_text(source: str, payload: bytes, *, deny_terms: tuple[str, ...]) -> list[ReleaseLeak]:
@@ -204,6 +285,10 @@ def _looks_like_version_or_date(value: str) -> bool:
     if "0000" in digits:
         return True
     if re.fullmatch(r"(?:19|20)\d{12}", digits):
+        try:
+            datetime.strptime(digits, "%Y%m%d%H%M%S")
+        except ValueError:
+            return False
         return True
     return bool(
         re.fullmatch(r"(?:19|20)\d{2}[-./](?:0?[1-9]|1[0-2])[-./](?:0?[1-9]|[12]\d|3[01])", compact)

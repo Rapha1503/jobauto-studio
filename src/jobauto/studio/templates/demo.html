@@ -75,7 +75,7 @@
 
   {% if demo.not_selected %}
   <section class="panel demo-not-selected">
-    <div><p class="panel-kicker">Full batch</p><h2>Four offers kept outside this campaign</h2><p>The campaign selected the five strongest matches; the remaining eligible signals stay visible instead of disappearing from the replay.</p></div>
+    <div><p class="panel-kicker">Full batch</p><h2>{{ demo.not_selected|length }} offers kept outside this campaign</h2><p>The campaign selected the five strongest matches; the remaining eligible signals stay visible instead of disappearing from the replay.</p></div>
     <div class="demo-not-selected-list">
       {% for item in demo.not_selected %}
       <article><div><strong>{{ item.role }}</strong><small>{{ item.display_company }} · fit {{ item.fit_score }}</small></div><p>{{ item.selection_reason }}</p></article>
