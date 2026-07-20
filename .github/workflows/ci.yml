@@ -22,6 +22,7 @@ jobs:
           sudo apt-get install --yes --no-install-recommends \
             poppler-utils \
             texlive-fonts-recommended \
+            texlive-lang-french \
             texlive-latex-base \
             texlive-latex-extra \
             texlive-latex-recommended

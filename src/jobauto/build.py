@@ -20,19 +20,27 @@ def is_valid_pdf_file(path: Path | None) -> bool:
         return stream.read(5) == b"%PDF-"
 
 
+def _pdflatex_command(tex_path: Path, build_dir: Path) -> list[str]:
+    command = ["pdflatex"]
+    if shutil.which("initexmf") is not None:
+        command.append("--disable-installer")
+    command.extend(
+        [
+            "-interaction=nonstopmode",
+            "-halt-on-error",
+            "-file-line-error",
+            f"-output-directory={build_dir}",
+            str(tex_path.resolve()),
+        ]
+    )
+    return command
+
+
 def compile_latex(
     tex_path: Path, build_dir: Path, *, timeout_seconds: int = 60
 ) -> tuple[Path, Path]:
     build_dir.mkdir(parents=True, exist_ok=True)
-    command = [
-        "pdflatex",
-        "--disable-installer",
-        "-interaction=nonstopmode",
-        "-halt-on-error",
-        "-file-line-error",
-        f"-output-directory={build_dir}",
-        str(tex_path.resolve()),
-    ]
+    command = _pdflatex_command(tex_path, build_dir)
     for attempt in range(2):
         try:
             completed = subprocess.run(
