@@ -4,6 +4,8 @@ JobAuto is a local application for configuring and running an AI-assisted job ap
 
 Import a LaTeX or PDF CV, or build one block by block, then review the candidate profile, define what may change, discover relevant roles, generate tailored documents, inspect the real PDFs, and prepare a traceable Chrome submission handoff.
 
+[Watch the 2:53 Build Week demo on YouTube](https://youtu.be/wq0uEt9Gfak).
+
 ## What works
 
 - candidate-owned `.tex` import with exact source preservation;

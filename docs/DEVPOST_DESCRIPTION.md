@@ -92,5 +92,5 @@ boundary.
 ## Submission links
 
 - Repository: `https://github.com/Rapha1503/jobauto-studio`
-- Demo video: `<public YouTube URL>`
+- Demo video: `https://youtu.be/wq0uEt9Gfak`
 - Codex `/feedback` Session ID: `<session ID>`
