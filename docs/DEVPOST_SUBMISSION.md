@@ -11,7 +11,7 @@ an individual job seeker's recurring workflow.
 
 ## Required assets
 
-- [ ] public code repository with the MIT license;
+- [x] [public code repository](https://github.com/Rapha1503/jobauto-studio) with the MIT license;
 - [x] project description and selected track;
 - [ ] public YouTube video, strictly under three minutes, with English audio;
 - [x] README explaining Codex and GPT-5.6 usage;
@@ -19,8 +19,8 @@ an individual job seeker's recurring workflow.
 - [x] screenshots or short clips of the real workflow.
 
 Use [`DEVPOST_DESCRIPTION.md`](DEVPOST_DESCRIPTION.md) as the ready-to-paste
-English description. Replace its three submission-link placeholders only after
-the repository, video and `/feedback` ID exist.
+English description. Replace its two remaining placeholders after the video and
+`/feedback` ID exist.
 
 The repository may instead be private only if it is shared with both addresses
 listed in the official rules. The planned public repository with an MIT license
@@ -79,6 +79,7 @@ uv run ruff format --check .
 uv build
 uv run jobauto audit-release .
 uv run jobauto audit-release dist\jobauto-0.1.0-py3-none-any.whl
+uv run jobauto audit-release dist\jobauto-0.1.0.tar.gz
 ```
 
 Also install the wheel in a fresh virtual environment and run `jobauto studio --no-open-browser` before recording the final demo.
