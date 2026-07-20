@@ -142,6 +142,8 @@ def test_source_preserving_renderer_keeps_exact_preamble_and_compiles_adapted_cv
     assert mapping is not None
     rendered_source = rendered.source_path.read_bytes()
     assert rendered_source[: mapping.preamble_end_byte] == source[: mapping.preamble_end_byte]
+    assert rendered_source.count(b"% JOBAUTO_PDF_TEXT_MAPPING") == 1
+    assert b"\\pdfgentounicode=1" in rendered_source
     assert rendered.page_count == 1
     assert "pipelines Python et SQL fiables" in rendered.extracted_text
     assert "camille.martin@example.test" in rendered.extracted_text

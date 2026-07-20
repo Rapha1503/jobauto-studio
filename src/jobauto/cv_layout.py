@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from jobauto.adaptation_policy import CvLayoutPolicy
 
 _LAYOUT_MARKER = "% JOBAUTO_LAYOUT"
+_PDF_TEXT_MAPPING_MARKER = "% JOBAUTO_PDF_TEXT_MAPPING"
 _SECTION_SPACING_MARKER = "% JOBAUTO_SECTION_SPACING"
 _LINE_COMMAND_PATTERN = re.compile(
     r"^(?P<indent>[ \t]*)(?P<command>\\(?P<name>[A-Za-z@]+)\*?"
@@ -83,6 +84,10 @@ def apply_cv_layout(tex: str | bytes, choice: CvLayoutChoice) -> str | bytes:
     newline = "\r\n" if "\r\n" in text else "\n"
     override = newline.join(
         [
+            _PDF_TEXT_MAPPING_MARKER,
+            r"\ifdefined\pdfgentounicode",
+            r"\IfFileExists{glyphtounicode.tex}{\input{glyphtounicode}\pdfgentounicode=1}{}",
+            r"\fi",
             _LAYOUT_MARKER,
             rf"\fontsize{{{choice.font_size_pt:g}}}{{{choice.baseline_skip_pt:g}}}\selectfont",
         ]
