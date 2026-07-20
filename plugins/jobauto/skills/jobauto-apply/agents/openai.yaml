@@ -1,0 +1,4 @@
+interface:
+  display_name: "JobAuto Apply"
+  short_description: "Submit ready JobAuto application packets with Chrome"
+  default_prompt: "Use JobAuto Studio's ready queue and my Chrome session to submit applications and record receipts."

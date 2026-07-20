@@ -1,0 +1,7 @@
+minimum_group_overlap: 0.5
+verified:
+  Regulatory Affairs: [EU MDR, technical documentation, regulatory submissions, change control]
+  Quality Systems: [ISO 13485, CAPA, internal audits, document control]
+  Clinical & Safety: [clinical evaluation, post-market surveillance, vigilance, risk management]
+  Delivery: [cross-functional coordination, gap analysis, technical writing, stakeholder communication]
+transferable: {}

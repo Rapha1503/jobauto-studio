@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Checked demo | JobAuto Studio{% endblock %}
+{% block content %}
+<section class="demo-replay-shell">
+  <div class="workflow-nav"><a class="back" href="/">&larr; Home</a><a href="/setup">Try with my own CV</a></div>
+  <header class="demo-replay-hero">
+    <div>
+      <p class="eyebrow">Verified non-technical replay</p>
+      <h1>Maya Laurent's application campaign</h1>
+      <p>A synthetic cultural-production profile processed by {{ demo.campaign.agent_model }}. This page replays the captured artifacts without spending tokens or contacting an employer.</p>
+    </div>
+    <span class="demo-verified-badge">Checked artifacts</span>
+  </header>
+
+  <section class="dashboard-metrics" aria-label="Demo campaign summary">
+    <article><strong>{{ demo.campaign.discovered }}</strong><span>offers evaluated</span></article>
+    <article><strong>{{ demo.campaign.selected }}</strong><span>offers selected</span></article>
+    <article><strong>{{ demo.campaign.completed }}</strong><span>document packs</span></article>
+    <article><strong>{{ demo.receipts.receipts|length }}</strong><span>Chrome sandbox receipts</span></article>
+  </section>
+
+  {% if demo.source_cv_url and demo.applications %}
+  <section class="demo-document-comparison">
+    <article class="panel demo-document-panel">
+      <header><div><p class="panel-kicker">Before</p><h2>Candidate-owned source CV</h2></div><a href="{{ demo.source_cv_url }}" target="_blank">Open PDF &nearr;</a></header>
+      <img src="/demo/files/visuals/source-cv.png" alt="Maya Laurent source CV before adaptation">
+    </article>
+    <article class="panel demo-document-panel">
+      <header><div><p class="panel-kicker">After</p><h2>Tailored CV for {{ demo.applications[0].role }}</h2></div><a href="{{ demo.applications[0].cv_url }}" target="_blank">Open PDF &nearr;</a></header>
+      <img src="/demo/files/visuals/tailored-cv.png" alt="Maya Laurent tailored CV after adaptation">
+    </article>
+  </section>
+  {% endif %}
+
+  <section class="demo-application-list">
+    <div class="applications-heading">
+      <div><p class="eyebrow">Application batch</p><h2>Five reviewed document packs</h2><p>Each row exposes the real one-page PDFs, final supervisor scores, model trace and exact hashes.</p></div>
+    </div>
+    {% for item in demo.applications %}
+    <article class="panel demo-application-card">
+      <div class="demo-application-title">
+        <span>{{ '%02d'|format(loop.index) }}</span>
+        <div><strong>{{ item.role }}</strong><small>{{ item.company }}</small></div>
+      </div>
+      <div class="demo-score-grid">
+        <div><small>Role/profile fit</small><strong>{{ item.fit_score }}</strong></div>
+        <div><small>Final review</small><strong>{{ item.final_review.score }}</strong></div>
+        <div><small>ATS readiness</small><strong>{{ item.final_review.ats_score }}</strong></div>
+        <div><small>Adaptation</small><strong>{{ item.final_review.adaptation_score }}</strong></div>
+      </div>
+      <div class="demo-artifact-links">
+        <a class="compare-action" href="{{ item.cv_url }}" target="_blank">CV PDF</a>
+        <a href="{{ item.letter_url }}" target="_blank">Letter PDF</a>
+        <a href="{{ item.review_url }}" target="_blank">Review JSON</a>
+        <a href="{{ item.trace_url }}" target="_blank">Agent trace</a>
+      </div>
+      <div class="demo-proof-line">
+        <span>{{ item.agent_trace.executions }} agent executions</span>
+        <span>~{{ (item.agent_trace.estimated_tokens / 1000)|round|int }}k tokens</span>
+        <span>{{ item.cv.pages }}-page CV</span>
+        <span>{{ item.letter.pages }}-page letter</span>
+        {% if item.receipt %}<span class="status-pill status-sandbox_verified">{{ item.receipt.status|replace('_', ' ') }}</span>{% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </section>
+
+  <section class="panel demo-boundary">
+    <div><p class="panel-kicker">Chrome proof</p><h2>Exact files, hashes and receipts</h2><p>The checked Chrome Extension run filled the synthetic form, uploaded the approved PDFs and persisted five hash-verified sandbox receipts. It did not submit to a real employer.</p></div>
+    <div class="demo-artifact-links"><a href="/demo/files/receipts-summary.json" target="_blank">Open receipt manifest</a><a href="/demo/files/visuals/five-tailored-cvs.png" target="_blank">View all tailored CVs</a><a href="/demo/files/visuals/five-tailored-letters.png" target="_blank">View all letters</a></div>
+  </section>
+</section>
+{% endblock %}

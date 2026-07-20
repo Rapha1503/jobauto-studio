@@ -1,0 +1,73 @@
+{
+  "candidate": "synthetic-alex-morgan",
+  "discovery": {
+    "id": "alex-morgan-069654650557",
+    "model": "gpt-5.6-sol",
+    "candidate_count": 7,
+    "latency_ms": 109320,
+    "estimated_tokens": 5445
+  },
+  "campaign": {
+    "id": "alex-morgan-8855422e44f7",
+    "status": "completed",
+    "approved_packages": 3,
+    "initial_blocked_packages": 3
+  },
+  "applications": [
+    {
+      "run_id": "alex-morgan-c5c11f9ab20f",
+      "company": "SFEIR",
+      "role": "Cloud & Data Engineer",
+      "official_url": "https://jobs.lever.co/sfeir/f9d756ca-f8c3-453b-a83d-0016bd9749aa",
+      "campaign_score": 71,
+      "final_score": 93,
+      "ats_score": 97,
+      "codex_calls": 8,
+      "estimated_tokens": 74864,
+      "cv_pages": 1,
+      "letter_pages": 1,
+      "cv_sha256": "d3294398500b8e47779eef420965f79cd7437e8536a401a9589698f5e8654419",
+      "letter_sha256": "0e3ec7657508e2c6f469e69b47d3d77bd3fb856a599588778b35f73c201cf212",
+      "handoff_id": "handoff-e496047655e24b13",
+      "handoff_status": "sandbox_verified"
+    },
+    {
+      "run_id": "alex-morgan-0241163f522e",
+      "company": "SFEIR",
+      "role": "Data Engineer - augmented expert",
+      "official_url": "https://jobs.lever.co/sfeir/7f08daf4-1e51-46bd-96f0-dfa87e642683",
+      "campaign_score": 65,
+      "final_score": 92,
+      "ats_score": 94,
+      "codex_calls": 6,
+      "estimated_tokens": 63910,
+      "cv_pages": 1,
+      "letter_pages": 1,
+      "cv_sha256": "26f314202d448307947410dff370f28248884fb32794b692a3e23efb4b2889dc",
+      "letter_sha256": "29ea4e030c58e66ca5015f830a98d9b65a697c3ad768e1ae98c3c5a169cb0c18",
+      "handoff_id": "handoff-4a0df0f077464015",
+      "handoff_status": "sandbox_verified"
+    },
+    {
+      "run_id": "alex-morgan-4b39eb40f912",
+      "company": "Expleo",
+      "role": "Data Engineer H/F",
+      "official_url": "https://expleo-jobs-fr-fr.icims.com/jobs/52671/data-engineer-h-f/job?in_iframe=1",
+      "campaign_score": 74,
+      "final_score": 91,
+      "ats_score": 92,
+      "codex_calls": 8,
+      "estimated_tokens": 81836,
+      "cv_pages": 1,
+      "letter_pages": 1,
+      "cv_sha256": "7ecabe17cac24106f2032d3612c3b23dd8b1b30a80860420885f713efc59828d",
+      "letter_sha256": "62dca704ef28131987e008bed93290ae1f830a8fc664827244fcbcb9abcad51e",
+      "handoff_id": "handoff-9f320a25415c4707",
+      "handoff_status": "sandbox_verified"
+    }
+  ],
+  "live_submission": {
+    "status": "not_run",
+    "reason": "Dedicated non-personal Gmail identity required before Codex Chrome Extension proof"
+  }
+}

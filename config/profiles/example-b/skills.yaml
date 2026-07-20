@@ -1,0 +1,9 @@
+minimum_group_overlap: 0.75
+
+verified:
+  Machine Learning: [Python, PyTorch, scikit-learn, classification, segmentation]
+  Vision & NLP: [computer vision, Transformers, traitement d'images, embeddings]
+  MLOps & Déploiement: [MLflow, FastAPI, Docker, Evidently, tests automatisés]
+  Data & Applications: [SQL, pandas, FAISS, Streamlit, Git, CI/CD]
+
+transferable: {}

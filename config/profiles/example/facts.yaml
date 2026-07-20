@@ -1,0 +1,26 @@
+facts:
+  - fact_id: identity.current
+    claim: "Data engineer with two years of experience building cloud data pipelines and analytics products."
+    status: verified
+    role_tags: [data_engineer, analytics_engineer]
+    keywords: [Python, SQL, data pipelines, analytics]
+  - fact_id: experience.northwind.pipelines
+    claim: "Built and operated Python, SQL and Airflow pipelines integrating operational data into BigQuery."
+    status: verified
+    role_tags: [data_engineer]
+    keywords: [Python, SQL, Airflow, BigQuery, pipelines]
+  - fact_id: experience.northwind.quality
+    claim: "Developed dbt transformation models, automated data-quality controls and monitoring for daily datasets."
+    status: verified
+    role_tags: [data_engineer, analytics_engineer]
+    keywords: [dbt, data quality, monitoring]
+  - fact_id: experience.northwind.stakeholders
+    claim: "Worked with operations and finance teams to define KPIs and deliver Looker reporting products."
+    status: verified
+    role_tags: [data_engineer, analytics_engineer]
+    keywords: [Looker, KPIs, stakeholders]
+  - fact_id: experience.urbanflow.analytics
+    claim: "Prepared reusable SQL datasets, pandas analyses, documented metrics and dashboard validation checks for mobility reporting."
+    status: verified
+    role_tags: [data_engineer, analytics_engineer]
+    keywords: [SQL, pandas, dashboards, mobility]

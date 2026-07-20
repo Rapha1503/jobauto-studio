@@ -1,0 +1,17 @@
+schema_version: 1
+roles:
+  preferred: [Machine Learning Engineer, Applied AI Engineer]
+announcement_keywords:
+  preferred: [model evaluation, production ML]
+technical_stacks:
+  preferred: [Python, PyTorch, MLflow]
+max_experience_years: 3
+locations:
+  preferred: [Lyon, France]
+remote: preferred
+contracts:
+  required: [permanent]
+max_age_days: 60
+excluded_companies: []
+excluded_titles: [Senior, Lead, Principal]
+freeform: Prefer applied machine-learning roles with explicit evaluation and production ownership.

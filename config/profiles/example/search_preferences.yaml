@@ -1,0 +1,17 @@
+schema_version: 1
+roles:
+  preferred: [Data Engineer, Analytics Engineer]
+announcement_keywords:
+  preferred: [data platform, analytics]
+technical_stacks:
+  preferred: [Python, SQL, BigQuery]
+max_experience_years: 3
+locations:
+  preferred: [Toulouse, France]
+remote: preferred
+contracts:
+  required: [permanent]
+max_age_days: 60
+excluded_companies: []
+excluded_titles: [Senior, Lead, Principal]
+freeform: Prefer roles that combine reliable data products with measurable operational use.

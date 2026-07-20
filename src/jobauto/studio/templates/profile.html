@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}{{ item.profile.identity.first_name }} {{ item.profile.identity.last_name }} · JobAuto Studio{% endblock %}
+{% block content %}
+<section class="workspace-head">
+  <div>
+    <a class="back" href="/">← Home</a>
+    <p class="eyebrow">My JobAuto</p>
+    <h1>{{ item.profile.identity.first_name }} {{ item.profile.identity.last_name }}</h1>
+    <p>{{ item.source.headline }}</p>
+  </div>
+  <div class="workspace-head-actions">
+    <a class="profile-dashboard-link" href="/profiles/{{ item.profile.candidate_id }}/applications">Applications</a>
+    {% if source_draft_url %}<a class="profile-edit-primary" href="{{ source_draft_url }}">Edit profile &amp; preferences</a>{% endif %}
+    <a href="/setup">Create another profile</a>
+    <button class="quiet-danger" id="start-over-profile" type="button">Archive and start over</button>
+    <button class="quiet-danger" id="archive-profile" type="button">Archive profile</button>
+    <div class="ready-state"><span>Ready</span><small>CV and preferences saved</small></div>
+  </div>
+</section>
+
+<section class="workspace-grid simple-workspace-grid">
+    <article class="panel offer-panel discovery-panel">
+      <header><div><p class="panel-kicker">Next campaign</p><h2>Find matching jobs</h2><p class="contract-note">JobAuto uses your saved preferences, avoids duplicates and keeps the best verified offers.</p></div></header>
+      <form id="discovery-form">
+        <div class="form-row">
+          <label>How many new offers?<input name="requested_count" type="number" min="1" max="100" value="5" required></label>
+        </div>
+        <div class="form-action"><button type="submit">Find jobs and prepare applications</button><span id="discovery-message" role="status"></span></div>
+      </form>
+    </article>
+
+    {% if recent_discoveries %}
+    <article class="panel offer-panel campaign-history">
+      <header><div><p class="panel-kicker">Search activity</p><h2>Searches to resume</h2><p class="contract-note">A search keeps running in the background. Reopen it to follow progress or read the blocker.</p></div></header>
+      <div class="contract-list">
+        {% for discovery in recent_discoveries %}
+        <a class="contract-row campaign-history-row" href="/discoveries/{{ discovery.discovery_id }}">
+          <div><strong>{{ discovery.status|replace('_', ' ')|title }}</strong><small>{{ discovery.requested_count }} requested offers · {{ discovery.updated_at }}</small></div>
+          <span class="decision decision-{{ discovery.status }}">Open</span>
+        </a>
+        {% endfor %}
+      </div>
+    </article>
+    {% endif %}
+
+    <article class="panel preview-panel">
+      <header><div><p class="panel-kicker">My source CV</p><h2>Current PDF</h2></div><a href="/profiles/{{ item.profile.candidate_id }}/preview.pdf" target="_blank">Open PDF ↗</a></header>
+      <iframe title="Rendered CV preview" src="/profiles/{{ item.profile.candidate_id }}/preview.pdf#toolbar=0&navpanes=0"></iframe>
+    </article>
+
+    {% if recent_campaigns %}
+    <article class="panel offer-panel campaign-history">
+      <header><div><p class="panel-kicker">Activity</p><h2>Recent campaigns</h2><p class="contract-note">Reopen a campaign to inspect every selected, blocked or failed offer.</p></div></header>
+      <div class="contract-list">
+        {% for campaign in recent_campaigns %}
+        <a class="contract-row campaign-history-row" href="/campaigns/{{ campaign.campaign_id }}">
+          <div><strong>{{ campaign.status|replace('_', ' ')|title }}</strong><small>{{ campaign.selected_count }} selected offers · {{ campaign.updated_at }}</small></div>
+          <span class="decision decision-{{ campaign.status }}">Open</span>
+        </a>
+        {% endfor %}
+      </div>
+    </article>
+    {% endif %}
+
+    <details class="panel offer-panel workspace-option">
+      <summary><strong>I already have an offer</strong><span>Paste it and generate the tailored CV and letter</span></summary>
+      <form id="run-form">
+        <div class="form-row">
+          <label>Company<input name="company" required placeholder="Target company"></label>
+          <label>Role<input name="role" required placeholder="Target role"></label>
+          <label>Offer URL<input name="offer_url" type="url" placeholder="https://..."></label>
+        </div>
+        <label>Complete offer<textarea name="offer_text" required minlength="20" rows="10" placeholder="Paste the complete job offer here"></textarea></label>
+        <div class="form-action"><button type="submit">Prepare my documents</button><span id="run-message" role="status"></span></div>
+      </form>
+    </details>
+
+    <details class="panel workspace-option technical-option">
+      <summary><strong>Advanced and technical details</strong><span>CV source, adaptation rules and manual offer import</span></summary>
+      <details class="technical-subsection"><summary>Extracted CV source</summary><pre>{{ item.raw_source }}</pre></details>
+      {% if cv_policy %}<details class="technical-subsection"><summary>Section adaptation rules</summary><div class="contract-list">
+        {% for section_id in cv_policy.section_order %}{% set rule = cv_policy.sections[section_id] %}
+        <div class="contract-row"><div><strong>{{ section_id|replace('_', ' ')|title }}</strong><small>{% if rule.target_lines %}Target {{ rule.target_lines }} lines{% else %}Structure controlled{% endif %}</small></div><div class="policy-values"><span class="fidelity fidelity-{{ rule.fidelity.value }}">{{ rule.fidelity.value|replace('_', ' ') }}</span><span class="policy-meta">{{ "Required" if rule.required else "Optional" }}</span></div></div>
+        {% endfor %}
+      </div></details>{% endif %}
+      <details class="technical-subsection"><summary>Import structured offers manually</summary>
+      <form id="campaign-form">
+        <div class="form-row">
+          <label>Maximum selected offers<input name="limit" type="number" min="1" max="20" value="5"></label>
+        </div>
+        <label>Offers JSON<textarea name="candidates" required rows="14" placeholder='[{"company":"Example","role":"Target role","url":"https://...","description":"Complete offer text..."}]'></textarea></label>
+        <div class="form-action"><button type="submit">Start campaign</button><span id="campaign-message" role="status"></span></div>
+      </form>
+      </details>
+    </details>
+</section>
+<script>
+  document.querySelector('#start-over-profile').addEventListener('click', async event => {
+    if (!window.confirm('Archive this profile and start a new setup? Existing applications and receipts remain available from Home.')) return;
+    const button = event.currentTarget;
+    button.disabled = true;
+    const response = await fetch('/profiles/{{ item.profile.candidate_id }}/archive', {method: 'POST'});
+    const body = await response.json();
+    if (!response.ok) {
+      button.disabled = false;
+      button.textContent = body.detail || 'Reset failed';
+      return;
+    }
+    window.location.assign('/setup');
+  });
+  document.querySelector('#archive-profile').addEventListener('click', async event => {
+    if (!window.confirm('Archive this profile? Existing applications and receipts remain available and the profile can be restored from Home.')) return;
+    const button = event.currentTarget;
+    button.disabled = true;
+    const response = await fetch('/profiles/{{ item.profile.candidate_id }}/archive', {method: 'POST'});
+    const body = await response.json();
+    if (!response.ok) {
+      button.disabled = false;
+      button.textContent = body.detail || 'Archive failed';
+      return;
+    }
+    window.location.assign(body.page_url);
+  });
+  const discoveryForm = document.querySelector('#discovery-form');
+  const discoveryMessage = document.querySelector('#discovery-message');
+  discoveryForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const data = new FormData(discoveryForm);
+    discoveryMessage.textContent = 'Starting Codex web search...';
+    const response = await fetch('/profiles/{{ item.profile.candidate_id }}/discoveries', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        tracker_path: data.get('tracker_path'),
+        requested_count: Number(data.get('requested_count')),
+        conversation_url: data.get('conversation_url') || null
+      })
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      discoveryMessage.textContent = error.detail || 'Discovery could not be prepared.';
+      return;
+    }
+    const discovery = await response.json();
+    window.location.assign(discovery.page_url);
+  });
+
+  const form = document.querySelector('#run-form');
+  const message = document.querySelector('#run-message');
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const data = new FormData(form);
+    message.textContent = 'Starting tracked run…';
+    const response = await fetch('/profiles/{{ item.profile.candidate_id }}/runs', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(Object.fromEntries(data.entries()))
+    });
+    if (!response.ok) {
+      message.textContent = 'Run could not start.';
+      return;
+    }
+    const run = await response.json();
+    window.location.assign(run.page_url);
+  });
+
+  const campaignForm = document.querySelector('#campaign-form');
+  const campaignMessage = document.querySelector('#campaign-message');
+  campaignForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const data = new FormData(campaignForm);
+    campaignMessage.textContent = 'Validating and importing offers...';
+    let candidates;
+    try {
+      const parsed = JSON.parse(data.get('candidates'));
+      candidates = Array.isArray(parsed) ? parsed : (parsed.offers || parsed.candidates || []);
+    } catch (_error) {
+      campaignMessage.textContent = 'Offers JSON is invalid.';
+      return;
+    }
+    const response = await fetch('/profiles/{{ item.profile.candidate_id }}/campaigns', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        tracker_path: data.get('tracker_path'),
+        limit: Number(data.get('limit')),
+        candidates
+      })
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      campaignMessage.textContent = error.detail || 'Campaign could not start.';
+      return;
+    }
+    const campaign = await response.json();
+    window.location.assign(campaign.page_url);
+  });
+</script>
+{% endblock %}

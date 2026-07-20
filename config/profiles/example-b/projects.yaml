@@ -1,0 +1,40 @@
+projects:
+  - id: medical_image_triage
+    title: Medical image triage
+    status: verified_public
+    visibility: cv_project
+    role_fit: [machine_learning_engineer, data_scientist]
+    keywords: [Python, computer vision, model evaluation]
+    verified_stack: [Python, PyTorch, scikit-learn, MLflow]
+    default_stack_line: Python, PyTorch, scikit-learn, MLflow
+    cv_bullets:
+      - Conçu un workflow de classification d'images avec expériences reproductibles, calibration et analyse d'erreurs.
+      - Documenté les métriques par sous-groupe et les cas limites afin de guider les itérations avec les experts métier.
+    letter_angles:
+      - Connect model evaluation and error analysis to reliable applied machine learning.
+  - id: clinical_multimodal_search
+    title: Recherche multimodale clinique
+    status: verified_public
+    visibility: cv_project
+    role_fit: [machine_learning_engineer, ai_engineer]
+    keywords: [semantic search, embeddings, multimodal, traceability]
+    verified_stack: [Python, Transformers, FAISS, FastAPI]
+    default_stack_line: Python, Transformers, FAISS, FastAPI
+    cv_bullets:
+      - Développé une recherche sémantique sur comptes rendus et métadonnées d'imagerie avec réponses traçables.
+      - Évalué la pertinence du retrieval sur un jeu de requêtes métier et exposé le service via une API documentée.
+    letter_angles:
+      - Demonstrate applied AI delivery across unstructured text and imaging metadata.
+  - id: imaging_model_monitoring
+    title: Monitoring de modèles d'imagerie
+    status: verified_public
+    visibility: cv_project
+    role_fit: [machine_learning_engineer, data_scientist]
+    keywords: [model monitoring, drift, data quality, dashboards]
+    verified_stack: [Evidently, MLflow, Docker, Streamlit]
+    default_stack_line: Evidently, MLflow, Docker, Streamlit
+    cv_bullets:
+      - Suivi la dérive des données, la stabilité des prédictions et les alertes qualité dans un tableau de bord dédié.
+      - Défini des seuils de vigilance et un protocole d'analyse pour distinguer dérive, incident de données et régression modèle.
+    letter_angles:
+      - Connect model quality to observable production behaviour and actionable alerts.

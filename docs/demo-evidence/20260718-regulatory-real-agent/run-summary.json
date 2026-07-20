@@ -1,0 +1,98 @@
+{
+  "schema_version": 3,
+  "proof_type": "real_codex_cross_domain_document_acceptance",
+  "base_commit": "914459324f9392c9a1410619d2db995a326698d7",
+  "source_state": "base commit plus the generic letter-argument review patch included with this evidence",
+  "run_id": "sofia-martin-9853cbec3c61",
+  "synthetic_profile": "tests/fixtures/cross_domain_profiles/regulatory/profile.yaml",
+  "synthetic_offer": "tests/fixtures/offers/regulatory_affairs_specialist_en.txt",
+  "model": "gpt-5.6-sol",
+  "status": "completed",
+  "run_wall_seconds": 181.311,
+  "agent_calls": 6,
+  "total_latency_ms": 160961,
+  "total_tokens_estimate": 60413,
+  "phases": [
+    "offer_analysis",
+    "brief_review",
+    "cv_writer",
+    "cv_latex_writer",
+    "letter_writer",
+    "final_review"
+  ],
+  "strategy": {
+    "role_family": "Regulatory Affairs",
+    "normalized_role": "Regulatory Affairs Specialist",
+    "seniority": "unspecified",
+    "project_decision": "none",
+    "project_slots": 0,
+    "skill_categories": [
+      "Regulatory Affairs",
+      "Quality Systems",
+      "Clinical & Safety",
+      "Professional Methods"
+    ]
+  },
+  "artifacts": {
+    "cv": {
+      "file": "regulatory-cv.pdf",
+      "sha256": "b40f15131517fa3eec6d45f16b905523322dc4e77300fc7ede447e965c797f2e",
+      "page_count": 1,
+      "extracted_text_characters": 2664,
+      "vertical_coverage_ratio": 0.8826,
+      "bottom_whitespace_ratio": 0.0568,
+      "font_size_pt": 12.0,
+      "line_height_ratio": 1.4
+    },
+    "letter": {
+      "file": "regulatory-letter.pdf",
+      "sha256": "e1a176f0e796879e7b8dc7c06c99a5b0ab65b6ef70516ba16dd85a0a799f6676",
+      "page_count": 1,
+      "extracted_text_characters": 1321,
+      "vertical_coverage_ratio": 0.3209,
+      "bottom_whitespace_ratio": 0.592
+    }
+  },
+  "review": {
+    "approved": true,
+    "score": 96,
+    "ats_score": 98,
+    "editorial_score": 95,
+    "adaptation_score": 97,
+    "letter_argument": {
+      "target_specificity": "pass",
+      "evidence_to_missions": "pass",
+      "candidate_contribution": "pass",
+      "motivation_credibility": "pass",
+      "tone_and_naturalness": "pass"
+    },
+    "repair_actions": []
+  },
+  "review_controls": {
+    "negative": {
+      "source_run_id": "sofia-martin-507679787d43",
+      "approved": false,
+      "score": 86,
+      "target_specificity": "repair",
+      "motivation_credibility": "repair",
+      "letter_repair_requested": true
+    },
+    "positive": {
+      "source_run_id": "sofia-martin-04d1247fe29a",
+      "approved": true,
+      "score": 94,
+      "all_letter_criteria": "pass"
+    }
+  },
+  "boundary": {
+    "real_codex_calls": true,
+    "real_pdf_compilation": true,
+    "negative_and_positive_controls": true,
+    "visual_pdf_inspection": true,
+    "synthetic_candidate": true,
+    "synthetic_offer": true,
+    "web_discovery_included": false,
+    "chrome_submission_included": false,
+    "employer_submission": false
+  }
+}

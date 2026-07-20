@@ -1,0 +1,120 @@
+﻿{
+    "approved":  true,
+    "score":  90,
+    "ats_score":  90,
+    "editorial_score":  94,
+    "adaptation_score":  92,
+    "blocking_issues":  [
+
+                        ],
+    "warnings":  [
+                     "WordPress, French social and tax legislation, Ciel ComptabilitÃ© and Spaiectacle are unsupported and therefore truthfully omitted.",
+                     "Treasury, supplier/client payments, accounting records, transfer contracts and expense claims are covered only through transferable budget, supplier, contract and documentation experience.",
+                     "The cover letter uses only 37.9% of the page, but it remains balanced, coherent and complete without unsupported filler."
+                 ],
+    "requirement_coverage":  [
+                                 {
+                                     "requirement_id":  "req_01",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "Atelier Horizon experience",
+                                                        "City in Motion project",
+                                                        "Letter paragraphs 1-2"
+                                                    ],
+                                     "rationale":  "Touring installations, transport documentation, venue adaptations, installation crews and artist welcome packs substantively cover tour logistics, but not ticketing, accommodation, rooming lists or roadbooks."
+                                 },
+                                 {
+                                     "requirement_id":  "req_02",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "Atelier Horizon experience",
+                                                        "City in Motion project",
+                                                        "Professional Capabilities",
+                                                        "Letter paragraph 2"
+                                                    ],
+                                     "rationale":  "Budgets, supplier consultations, lender agreements, contracts, production documentation and reports are well evidenced; expense claims and formal accounting records are not."
+                                 },
+                                 {
+                                     "requirement_id":  "req_03",
+                                     "coverage":  "indirect",
+                                     "placements":  [
+                                                        "Atelier Horizon experience",
+                                                        "Professional Capabilities",
+                                                        "Letter paragraph 2"
+                                                    ],
+                                     "rationale":  "Budget control and supplier coordination transfer to treasury and payment workflows, but payroll, social charges, copyright payments and formal social/accounting administration are not evidenced."
+                                 },
+                                 {
+                                     "requirement_id":  "req_04",
+                                     "coverage":  "exact",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "CV Education",
+                                                        "Letter paragraphs 1 and 3"
+                                                    ],
+                                     "rationale":  "The CV shows four years of relevant cultural-production experience and an MA in Cultural Project Management."
+                                 },
+                                 {
+                                     "requirement_id":  "req_05",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "Professional Capabilities"
+                                                    ],
+                                     "rationale":  "The CV explicitly lists Word and Excel for production documents and tracking, consistent with the candidate\u0027s documented calendars, briefs and reports."
+                                 },
+                                 {
+                                     "requirement_id":  "req_06",
+                                     "coverage":  "missing",
+                                     "placements":  [
+
+                                                    ],
+                                     "rationale":  "WordPress is neither claimed nor supported by the candidate evidence."
+                                 },
+                                 {
+                                     "requirement_id":  "req_07",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "Atelier Horizon experience",
+                                                        "City in Motion project",
+                                                        "Professional Capabilities",
+                                                        "CV Education",
+                                                        "Letter paragraphs 1-3"
+                                                    ],
+                                     "rationale":  "Cultural-sector knowledge is strongly demonstrated through education and four years of production work; lender agreements and contracts provide transferable rather than specialist live-performance contract evidence."
+                                 },
+                                 {
+                                     "requirement_id":  "req_08",
+                                     "coverage":  "missing",
+                                     "placements":  [
+
+                                                    ],
+                                     "rationale":  "No verified evidence supports knowledge of French social and tax legislation."
+                                 },
+                                 {
+                                     "requirement_id":  "req_09",
+                                     "coverage":  "missing",
+                                     "placements":  [
+
+                                                    ],
+                                     "rationale":  "Neither Ciel ComptabilitÃ© nor Spaiectacle is supported or claimed; this is a preferred rather than mandatory requirement."
+                                 },
+                                 {
+                                     "requirement_id":  "req_10",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "Atelier Horizon experience",
+                                                        "Maison des Cultures experience",
+                                                        "Selected Productions",
+                                                        "Letter paragraphs 1-4"
+                                                    ],
+                                     "rationale":  "The package clearly demonstrates support for cultural projects from brief to public presentation and coordination across artistic, technical and communications teams."
+                                 }
+                             ],
+    "repair_actions":  [
+
+                       ]
+}

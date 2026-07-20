@@ -1,0 +1,84 @@
+{
+  "campaign_id": "maya-laurent-ac33d313-v4-83890da92767",
+  "candidate": "synthetic_maya_laurent",
+  "agent_model": "gpt-5.6-sol",
+  "discovered": 9,
+  "selected": 5,
+  "completed": 5,
+  "offers": [
+    {
+      "company": "UMDH - Une Marque & Des Hommes",
+      "role": "Charge(e) de Production Evenementielle",
+      "fit_score": 92,
+      "decision": "selected",
+      "run_id": "maya-laurent-ac33d313-v4-c621043393df",
+      "final_review_score": 92,
+      "cv_pages": 1,
+      "letter_pages": 1
+    },
+    {
+      "company": "La Belle Equipe",
+      "role": "Chef de Projet Evenementiel (H/F)",
+      "fit_score": 86,
+      "decision": "selected",
+      "run_id": "maya-laurent-ac33d313-v4-2e67431b5124",
+      "final_review_score": 92,
+      "cv_pages": 1,
+      "letter_pages": 1
+    },
+    {
+      "company": "The Galion Project",
+      "role": "Event & Content Project Junior",
+      "fit_score": 84,
+      "decision": "selected",
+      "run_id": "maya-laurent-ac33d313-v4-ecbcf439790e",
+      "final_review_score": 92,
+      "cv_pages": 1,
+      "letter_pages": 1
+    },
+    {
+      "company": "Gingko Biloba",
+      "role": "Assistant(e) d'administratrice de production",
+      "fit_score": 82,
+      "decision": "selected",
+      "run_id": "maya-laurent-ac33d313-v4-9cdd41f7a9ee",
+      "final_review_score": 90,
+      "cv_pages": 1,
+      "letter_pages": 1
+    },
+    {
+      "company": "3D Family Production",
+      "role": "Charge(e) de production et administration",
+      "fit_score": 79,
+      "decision": "selected",
+      "run_id": "maya-laurent-ac33d313-v4-d4a99196d517",
+      "final_review_score": 91,
+      "cv_pages": 1,
+      "letter_pages": 1
+    },
+    {
+      "company": "MCI group France",
+      "role": "Chef de Projets Senior Sante (H/F)",
+      "fit_score": 76,
+      "decision": "not_selected"
+    },
+    {
+      "company": "Myphotoagency",
+      "role": "Chef.fe de projet",
+      "fit_score": 72,
+      "decision": "not_selected"
+    },
+    {
+      "company": "SESAN",
+      "role": "Charge de production visuelle et audiovisuelle (H/F)",
+      "fit_score": 66,
+      "decision": "not_selected"
+    },
+    {
+      "company": "France Travail employer not disclosed",
+      "role": "Chef de projet evenementiel (H/F)",
+      "fit_score": 61,
+      "decision": "not_selected"
+    }
+  ]
+}

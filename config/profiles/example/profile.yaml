@@ -1,0 +1,29 @@
+schema_version: 1
+candidate_id: alex-morgan
+identity:
+  first_name: Alex
+  last_name: Morgan
+  email: alex.morgan@example.test
+  phone: "+33 1 00 00 00 00"
+  location: Toulouse
+locale: en-GB
+availability: Immediate
+work_authorization: France
+facts_path: facts.yaml
+project_bank_path: projects.yaml
+skill_policy_path: skills.yaml
+cv_model_path: cv_model.tex
+cv_source_path: cv_source.md
+letter_model_path: letter_model.txt
+adaptation_policy_path: adaptation_policy.yaml
+search_preferences_path: search_preferences.yaml
+submission_preferences_path: submission_preferences.yaml
+protected_claims:
+  - identity.current
+forbidden_claims: []
+project_lab:
+  allow_new_project: true
+  allow_external_inspiration: true
+  require_verification_warning: true
+  minimum_visible_projects: 3
+  maximum_visible_projects: 3

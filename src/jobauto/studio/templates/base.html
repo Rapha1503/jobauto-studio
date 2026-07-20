@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}JobAuto Studio{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', path='/favicon.svg') }}" type="image/svg+xml">
+    <link rel="stylesheet" href="{{ url_for('static', path='/studio.css') }}?v=20260720-checked-demo-1">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="JobAuto Studio home">
+        <span class="brand-mark" aria-hidden="true">JA</span>
+        <span><strong>JobAuto</strong><small>Studio</small></span>
+      </a>
+      <div class="runtime-state"><span></span> Local workspace</div>
+    </header>
+    <main>{% block content %}{% endblock %}</main>
+  </body>
+</html>

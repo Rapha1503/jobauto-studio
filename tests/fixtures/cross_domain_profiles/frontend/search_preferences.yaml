@@ -1,0 +1,17 @@
+schema_version: 1
+roles:
+  preferred: [Frontend Software Engineer, Frontend Engineer, Software Engineer]
+announcement_keywords:
+  preferred: [React, TypeScript, accessibility, design systems]
+technical_stacks:
+  preferred: [TypeScript, React, Next.js, Playwright]
+max_experience_years: 5
+locations:
+  preferred: [Bordeaux, France, Remote]
+remote: preferred
+contracts:
+  required: [permanent]
+max_age_days: 60
+excluded_companies: []
+excluded_titles: [Senior, Staff, Principal, Lead]
+freeform: Prefer product teams that value accessibility, quality and frontend architecture.

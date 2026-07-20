@@ -1,0 +1,23 @@
+schema_version: 1
+policy_id: frontend-test
+documents:
+  cv:
+    section_order: [identity, summary, experience, projects, skills, education, languages, interests]
+    layout:
+      minimum_font_size_pt: 9.5
+      maximum_font_size_pt: 12.0
+      minimum_line_height_ratio: 1.10
+      maximum_line_height_ratio: 1.50
+    sections:
+      identity: {fidelity: locked, required: true, protected_terms: [Noah Williams]}
+      summary: {fidelity: adaptable, required: true, target_lines: 4, min_characters: 180, max_characters: 520, protected_fact_ids: [identity.current]}
+      experience: {fidelity: adaptable, required: true}
+      projects: {fidelity: adaptable, required: true}
+      skills: {fidelity: replaceable, required: true}
+      education: {fidelity: very_faithful, required: true}
+      languages: {fidelity: locked, required: true}
+      interests: {fidelity: locked, required: false}
+  letter:
+    section_order: [body]
+    sections:
+      body: {fidelity: highly_adaptable, required: true, max_characters: 3000}

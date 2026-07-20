@@ -1,0 +1,17 @@
+schema_version: 1
+roles:
+  preferred: [Regulatory Affairs Specialist, Regulatory Affairs Associate]
+announcement_keywords:
+  preferred: [medical devices, EU MDR, regulatory submissions]
+technical_stacks:
+  preferred: [EU MDR, ISO 13485]
+max_experience_years: 5
+locations:
+  preferred: [Lyon, France]
+remote: preferred
+contracts:
+  required: [permanent]
+max_age_days: 60
+excluded_companies: []
+excluded_titles: [Senior, Director, Head]
+freeform: Prefer hands-on medical-device regulatory roles with cross-functional exposure.

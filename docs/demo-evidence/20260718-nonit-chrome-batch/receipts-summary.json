@@ -1,0 +1,52 @@
+{
+  "candidate": "synthetic_maya_laurent",
+  "proof_type": "chrome_extension_nonit_sandbox_batch",
+  "employer_submission": false,
+  "receipts": [
+    {
+      "handoff_id": "handoff-8c6be17fce0ed466",
+      "company": "UMDH - Une Marque & Des Hommes",
+      "role": "Charge(e) de Production Evenementielle",
+      "status": "sandbox_verified",
+      "verified_at": "2026-07-18T16:15:04.838547+00:00",
+      "cv_sha256": "c97f7ff1ee9329a6ca3c9e80547f9824e87e5e001ef8925fa2ae24cb6a45b8db",
+      "letter_sha256": "ddc00b537847cea768c1f3bb9928e770a53d609650a3c90a52fece44be74527d"
+    },
+    {
+      "handoff_id": "handoff-b6be813144c80ba0",
+      "company": "La Belle Equipe",
+      "role": "Chef de Projet Evenementiel (H/F)",
+      "status": "sandbox_verified",
+      "verified_at": "2026-07-18T16:59:44.085928+00:00",
+      "cv_sha256": "3dff169be085ce5582ce6931d04374805d7e8f23111c048503dcb3c1d63957dc",
+      "letter_sha256": "ea0cef6f11c78ef5089df9f837954836d13a69e1698a5e5542145a71bd0ddd2f"
+    },
+    {
+      "handoff_id": "handoff-28d3258b90649b13",
+      "company": "The Galion Project",
+      "role": "Event & Content Project Junior",
+      "status": "sandbox_verified",
+      "verified_at": "2026-07-18T17:01:39.790159+00:00",
+      "cv_sha256": "9296427d47f467b2cd1b2e68706d94d9785063dad8606075903c92bb7ca4cf1c",
+      "letter_sha256": "70f5c29410307724c621a6e2748f8509701f712483668de3652139891b681e1a"
+    },
+    {
+      "handoff_id": "handoff-6a1da4a0f8b366bf",
+      "company": "Gingko Biloba",
+      "role": "Assistant(e) d'administratrice de production",
+      "status": "sandbox_verified",
+      "verified_at": "2026-07-18T17:02:25.114711+00:00",
+      "cv_sha256": "1348ccd97865d55d4a55fa0e06262c9eba81305eb411a69def024dc88801f4bf",
+      "letter_sha256": "f2b6123e4c4c8e1342d8e3c35912302ccc340164756b87f4b1369823bc35d715"
+    },
+    {
+      "handoff_id": "handoff-84f62446a02a8a14",
+      "company": "3D Family Production",
+      "role": "Production and administration coordinator",
+      "status": "sandbox_verified",
+      "verified_at": "2026-07-18T17:03:14.550481+00:00",
+      "cv_sha256": "da35a623c4a7de7c91189c8dc2aef10c8482b671a6ba2bdcd81d292fc58940eb",
+      "letter_sha256": "57b919a0f92977766d4c298377d272d58d70288fb3993eaf5b6040c40c2825e0"
+    }
+  ]
+}

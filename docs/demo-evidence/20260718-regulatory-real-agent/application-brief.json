@@ -1,0 +1,421 @@
+{
+  "company": "Medica Europe",
+  "role": "Regulatory Affairs Specialist",
+  "role_family": "Regulatory Affairs",
+  "language": "en",
+  "summary": "Permanent Regulatory Affairs Specialist role supporting Medica Europe's European medical-device portfolio in Lyon. The position centres on EU MDR technical documentation, regulatory submissions, notified-body interactions, change assessment, clinical and post-market documentation, and traceable cross-functional coordination. Sofia offers directly verified evidence across these central responsibilities and exceeds the stated two-year experience threshold.",
+  "responsibilities": [
+    "Prepare and maintain EU MDR technical documentation.",
+    "Assess product and manufacturing changes.",
+    "Coordinate submission evidence, notified-body responses and current submission plans.",
+    "Contribute to clinical evaluation, post-market surveillance, vigilance and risk-management documentation.",
+    "Improve regulatory processes while coordinating Quality, Clinical, Product Development and Manufacturing stakeholders."
+  ],
+  "required_skills": [
+    "EU MDR",
+    "ISO 13485",
+    "Medical-device technical documentation",
+    "Regulatory submissions and notified-body interactions",
+    "Change-impact assessment",
+    "Clinical evaluation",
+    "Post-market surveillance and vigilance",
+    "Risk management",
+    "Technical writing in English",
+    "Traceability and cross-functional coordination"
+  ],
+  "preferred_skills": [
+    "Class II medical devices",
+    "CAPA",
+    "Document control",
+    "Managing multiple priorities"
+  ],
+  "company_details": [
+    "European medical-device portfolio",
+    "Permanent position in Lyon",
+    "Hybrid working",
+    "Cross-functional environment spanning Quality, Clinical, Product Development and Manufacturing"
+  ],
+  "seniority": "unspecified",
+  "normalized_role": "Regulatory Affairs Specialist",
+  "targeted_keywords": [
+    "EU MDR",
+    "ISO 13485",
+    "technical documentation",
+    "Class II medical devices",
+    "regulatory submissions",
+    "notified body",
+    "change assessment",
+    "clinical evaluation",
+    "post-market surveillance",
+    "vigilance",
+    "risk management",
+    "CAPA",
+    "document control",
+    "technical writing",
+    "traceability"
+  ],
+  "cv_angle": "Present a medical-device regulatory affairs specialist with three years of directly relevant experience, foregrounding EU MDR technical documentation, Class II devices, submission readiness, notified-body coordination and lifecycle compliance evidence.",
+  "letter_angle": "Build the primary argument around Sofia's end-to-end EU MDR documentation and submission support, then show how her clinical, post-market and risk-management work enables traceable coordination across the functions named in the offer.",
+  "adaptation_guidance": [
+    "Lead with verified EU MDR, Class II technical-documentation and notified-body evidence.",
+    "Make the three years of medical-device regulatory experience explicit to answer the experience threshold.",
+    "Use the skills section for recruiter-recognizable regulatory, quality-system and product-safety capabilities rather than general behaviours.",
+    "Demonstrate English technical writing through the English application and documented regulatory-writing responsibilities without adding an unsupported proficiency claim beyond the verified language record.",
+    "Do not create a project section because the candidate's Project Lab policy permits zero visible projects."
+  ],
+  "open_role": "Regulatory Affairs Specialist",
+  "sector": "Medical devices",
+  "specialisations": [
+    "European medical-device regulation",
+    "EU MDR technical documentation",
+    "Regulatory submissions",
+    "Quality management systems",
+    "Post-market and product safety"
+  ],
+  "requirements": [
+    {
+      "requirement_id": "req_01",
+      "requirement": "Have at least two years of experience in medical-device regulatory affairs or quality assurance.",
+      "source_excerpt": "Candidates should have at least two years of experience in medical-device regulatory affairs or quality assurance.",
+      "priority": "must",
+      "kind": "experience"
+    },
+    {
+      "requirement_id": "req_02",
+      "requirement": "Prepare and maintain EU MDR technical documentation.",
+      "source_excerpt": "Responsibilities include preparing and maintaining EU MDR technical documentation, assessing product and manufacturing changes, coordinating evidence for regulatory submissions, answering notified-body questions and keeping submission plans current.",
+      "priority": "must",
+      "kind": "technical_skill"
+    },
+    {
+      "requirement_id": "req_03",
+      "requirement": "Assess product and manufacturing changes for regulatory impact.",
+      "source_excerpt": "Responsibilities include preparing and maintaining EU MDR technical documentation, assessing product and manufacturing changes, coordinating evidence for regulatory submissions, answering notified-body questions and keeping submission plans current.",
+      "priority": "must",
+      "kind": "professional_skill"
+    },
+    {
+      "requirement_id": "req_04",
+      "requirement": "Coordinate regulatory-submission evidence, notified-body responses and submission plans.",
+      "source_excerpt": "Responsibilities include preparing and maintaining EU MDR technical documentation, assessing product and manufacturing changes, coordinating evidence for regulatory submissions, answering notified-body questions and keeping submission plans current.",
+      "priority": "must",
+      "kind": "mission"
+    },
+    {
+      "requirement_id": "req_05",
+      "requirement": "Contribute to clinical evaluation, post-market surveillance, vigilance and risk-management documentation.",
+      "source_excerpt": "The specialist will also contribute to clinical-evaluation updates, post-market surveillance, vigilance activities, risk-management documentation and continuous improvement of regulatory processes.",
+      "priority": "must",
+      "kind": "professional_skill"
+    },
+    {
+      "requirement_id": "req_06",
+      "requirement": "Contribute to continuous improvement of regulatory processes.",
+      "source_excerpt": "The specialist will also contribute to clinical-evaluation updates, post-market surveillance, vigilance activities, risk-management documentation and continuous improvement of regulatory processes.",
+      "priority": "important",
+      "kind": "mission"
+    },
+    {
+      "requirement_id": "req_07",
+      "requirement": "Understand EU MDR and ISO 13485.",
+      "source_excerpt": "The successful candidate understands EU MDR and ISO 13485, writes clear technical documents in English, manages several priorities and can coordinate subject-matter experts without losing traceability.",
+      "priority": "must",
+      "kind": "professional_skill"
+    },
+    {
+      "requirement_id": "req_08",
+      "requirement": "Write clear technical documents in English.",
+      "source_excerpt": "The successful candidate understands EU MDR and ISO 13485, writes clear technical documents in English, manages several priorities and can coordinate subject-matter experts without losing traceability.",
+      "priority": "must",
+      "kind": "professional_skill"
+    },
+    {
+      "requirement_id": "req_09",
+      "requirement": "Manage several priorities.",
+      "source_excerpt": "The successful candidate understands EU MDR and ISO 13485, writes clear technical documents in English, manages several priorities and can coordinate subject-matter experts without losing traceability.",
+      "priority": "important",
+      "kind": "professional_behavior"
+    },
+    {
+      "requirement_id": "req_10",
+      "requirement": "Coordinate subject-matter experts while preserving traceability.",
+      "source_excerpt": "The successful candidate understands EU MDR and ISO 13485, writes clear technical documents in English, manages several priorities and can coordinate subject-matter experts without losing traceability.",
+      "priority": "must",
+      "kind": "mission"
+    },
+    {
+      "requirement_id": "req_11",
+      "requirement": "Bring experience with Class II devices, CAPA, document control and notified-body interactions.",
+      "source_excerpt": "Experience with Class II devices, CAPA, document control and notified-body interactions is valued.",
+      "priority": "nice",
+      "kind": "professional_skill"
+    },
+    {
+      "requirement_id": "req_12",
+      "requirement": "Use professional English and communicate confidently across functions.",
+      "source_excerpt": "The position requires professional English and confident cross-functional communication.",
+      "priority": "must",
+      "kind": "professional_behavior"
+    }
+  ],
+  "evidence_mappings": [
+    {
+      "requirement_id": "req_01",
+      "evidence_level": "verified",
+      "fact_ids": [
+        "identity.current",
+        "experience.mednova.documentation",
+        "experience.biocert.quality"
+      ],
+      "rationale": "The candidate has three years of medical-device compliance experience spanning regulatory affairs and quality assurance."
+    },
+    {
+      "requirement_id": "req_02",
+      "evidence_level": "verified",
+      "fact_ids": [
+        "experience.mednova.documentation"
+      ],
+      "rationale": "Direct evidence confirms preparation and maintenance of EU MDR technical documentation for Class II devices."
+    },
+    {
+      "requirement_id": "req_03",
+      "evidence_level": "verified",
+      "fact_ids": [
+        "experience.mednova.documentation"
+      ],
+      "rationale": "The same experience explicitly includes change-impact assessments within EU MDR documentation work."
+    },
+    {
+      "requirement_id": "req_04",
+      "evidence_level": "verified",
+      "fact_ids": [
+        "experience.mednova.coordination"
+      ],
+      "rationale": "Direct evidence covers traceable submission evidence and notified-body questions through closure."
+    },
+    {
+      "requirement_id": "req_05",
+      "evidence_level": "verified",
+      "fact_ids": [
+        "experience.mednova.postmarket"
+      ],
+      "rationale": "Direct evidence covers clinical evaluation, post-market surveillance, vigilance and risk-management updates."
+    },
+    {
+      "requirement_id": "req_06",
+      "evidence_level": "transferable",
+      "fact_ids": [],
+      "rationale": "Maintaining documentation, closing notified-body questions and supporting controlled quality follow-up provide relevant process-discipline evidence, but no candidate fact explicitly claims ownership of continuous-improvement initiatives."
+    },
+    {
+      "requirement_id": "req_07",
+      "evidence_level": "verified",
+      "fact_ids": [
+        "experience.mednova.documentation",
+        "experience.biocert.quality"
+      ],
+      "rationale": "EU MDR is demonstrated in regulatory documentation work and ISO 13485 in quality-record and CAPA review."
+    },
+    {
+      "requirement_id": "req_08",
+      "evidence_level": "verified",
+      "fact_ids": [
+        "source_block.experience",
+        "source_block.languages"
+      ],
+      "rationale": "The source-backed experience establishes technical regulatory writing, while the verified language block records English at C1."
+    },
+    {
+      "requirement_id": "req_09",
+      "evidence_level": "transferable",
+      "fact_ids": [],
+      "rationale": "Concurrent documentation, submission, post-market and cross-functional activities indicate transferable prioritisation capability, although no exact fact explicitly evaluates multi-priority management."
+    },
+    {
+      "requirement_id": "req_10",
+      "evidence_level": "verified",
+      "fact_ids": [
+        "experience.mednova.coordination"
+      ],
+      "rationale": "The candidate coordinated quality, clinical and engineering evidence while maintaining traceability and closing notified-body questions."
+    },
+    {
+      "requirement_id": "req_11",
+      "evidence_level": "verified",
+      "fact_ids": [
+        "experience.mednova.documentation",
+        "experience.biocert.quality",
+        "experience.mednova.coordination"
+      ],
+      "rationale": "The evidence directly covers Class II devices, CAPA, controlled documentation and notified-body interactions."
+    },
+    {
+      "requirement_id": "req_12",
+      "evidence_level": "verified",
+      "fact_ids": [
+        "source_block.languages",
+        "experience.mednova.coordination"
+      ],
+      "rationale": "English C1 and direct coordination across quality, clinical and engineering teams support both parts of the requirement."
+    }
+  ],
+  "adaptation_decisions": [
+    {
+      "surface": "both",
+      "decision": "Lead with the candidate's EU MDR technical-documentation and submission-readiness record for Class II medical devices, including change-impact assessment and notified-body response coordination.",
+      "rationale": "This is the strongest coherent evidence cluster for the role's central obligations and differentiating ATS signals, while directly proving the experience threshold and day-to-day regulatory contribution.",
+      "fact_ids": [
+        "identity.current",
+        "experience.mednova.documentation",
+        "experience.mednova.coordination"
+      ]
+    },
+    {
+      "surface": "letter",
+      "decision": "Use clinical evaluation, post-market surveillance, vigilance and risk-management updates as the complementary argument for lifecycle compliance and cross-functional effectiveness.",
+      "rationale": "This cluster demonstrates breadth beyond initial submissions and aligns with the offer's recurring product-safety and lifecycle responsibilities without diluting the primary documentation argument.",
+      "fact_ids": [
+        "experience.mednova.postmarket"
+      ]
+    }
+  ],
+  "project_plan": {
+    "decision": "none",
+    "rationale": "The candidate's Project Lab policy sets both minimum and maximum visible projects to zero, so no personal-project section may be introduced.",
+    "central_gaps": [],
+    "slots": []
+  },
+  "skill_plan": {
+    "categories": [
+      "Regulatory Affairs",
+      "Quality Systems",
+      "Clinical & Safety",
+      "Professional Methods"
+    ],
+    "items": [
+      {
+        "name": "EU MDR",
+        "category": "Regulatory Affairs",
+        "kind": "standard",
+        "priority": "must",
+        "evidence_level": "verified",
+        "requirement_ids": [
+          "req_02",
+          "req_07"
+        ]
+      },
+      {
+        "name": "Technical documentation",
+        "category": "Regulatory Affairs",
+        "kind": "technical_capability",
+        "priority": "must",
+        "evidence_level": "verified",
+        "requirement_ids": [
+          "req_02"
+        ]
+      },
+      {
+        "name": "Regulatory submissions & notified bodies",
+        "category": "Regulatory Affairs",
+        "kind": "technical_capability",
+        "priority": "must",
+        "evidence_level": "verified",
+        "requirement_ids": [
+          "req_04",
+          "req_11"
+        ]
+      },
+      {
+        "name": "Change-impact assessment",
+        "category": "Regulatory Affairs",
+        "kind": "professional_method",
+        "priority": "must",
+        "evidence_level": "verified",
+        "requirement_ids": [
+          "req_03"
+        ]
+      },
+      {
+        "name": "Class II medical devices",
+        "category": "Regulatory Affairs",
+        "kind": "domain_knowledge",
+        "priority": "nice",
+        "evidence_level": "verified",
+        "requirement_ids": [
+          "req_11"
+        ]
+      },
+      {
+        "name": "ISO 13485",
+        "category": "Quality Systems",
+        "kind": "standard",
+        "priority": "must",
+        "evidence_level": "verified",
+        "requirement_ids": [
+          "req_07"
+        ]
+      },
+      {
+        "name": "CAPA & document control",
+        "category": "Quality Systems",
+        "kind": "professional_method",
+        "priority": "nice",
+        "evidence_level": "verified",
+        "requirement_ids": [
+          "req_11"
+        ]
+      },
+      {
+        "name": "Clinical evaluation",
+        "category": "Clinical & Safety",
+        "kind": "technical_capability",
+        "priority": "must",
+        "evidence_level": "verified",
+        "requirement_ids": [
+          "req_05"
+        ]
+      },
+      {
+        "name": "Post-market surveillance & vigilance",
+        "category": "Clinical & Safety",
+        "kind": "technical_capability",
+        "priority": "must",
+        "evidence_level": "verified",
+        "requirement_ids": [
+          "req_05"
+        ]
+      },
+      {
+        "name": "Risk management",
+        "category": "Clinical & Safety",
+        "kind": "professional_method",
+        "priority": "must",
+        "evidence_level": "verified",
+        "requirement_ids": [
+          "req_05"
+        ]
+      },
+      {
+        "name": "Technical writing in English",
+        "category": "Professional Methods",
+        "kind": "technical_capability",
+        "priority": "must",
+        "evidence_level": "verified",
+        "requirement_ids": [
+          "req_08"
+        ]
+      },
+      {
+        "name": "Regulatory traceability",
+        "category": "Professional Methods",
+        "kind": "professional_method",
+        "priority": "must",
+        "evidence_level": "verified",
+        "requirement_ids": [
+          "req_10"
+        ]
+      }
+    ],
+    "rationale": "The visible competency plan prioritises exact, supported regulatory, quality and product-safety signals from the offer. It retains central EU MDR, documentation, submission, lifecycle-safety and English-writing terms while leaving general behaviours to experience evidence and the letter."
+  }
+}

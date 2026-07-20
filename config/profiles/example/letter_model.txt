@@ -1,0 +1,10 @@
+Dear hiring team,
+
+I am applying for a data engineering role where reliable pipelines and useful data products are central to the work. My experience combines Python and SQL development, cloud data modelling, quality controls and close collaboration with operational teams.
+
+At Northwind Energy, I have worked across ingestion, transformation, monitoring and analytics delivery. This has given me a practical view of what makes a data platform maintainable: clear contracts, observable processing and outputs that answer real business questions.
+
+I would welcome the opportunity to discuss how this background could support your team and its data products.
+
+Kind regards,
+Alex Morgan

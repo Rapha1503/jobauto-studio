@@ -1,0 +1,74 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage[margin=1.2cm]{geometry}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\renewcommand{\baselinestretch}{1.00}
+\pagestyle{empty}
+\setlist[itemize]{leftmargin=*,nosep,topsep=1pt}
+\newcommand{\cvsection}[1]{\par\vspace{3pt}\textbf{\large #1}\par\vspace{0.5pt}\rule{\linewidth}{0.35pt}\vspace{1pt}}
+
+\begin{document}
+\begin{center}
+{\Large\textbf{LÉA DUBOIS}}\\[2pt]
+\textbf{Ingénieure de recherche IA \& Bioinformatique | NLP, Python, Biologie | Paris}\\[2pt]
+lea.dubois@example.test \;|\; +33 6 00 00 00 02 \;|\; \href{https://example.test/lea-dubois}{example.test/lea-dubois}
+\end{center}
+
+\cvsection{Résumé}
+Ingénieure de recherche en bioinformatique spécialisée en NLP biomédical, machine learning et analyse de données omiques. Expérience dans la transformation de publications, données cliniques dé-identifiées et données transcriptomiques en modèles évalués, outils reproductibles et résultats interprétables pour des équipes scientifiques. Recherche un poste en IA appliquée aux sciences du vivant à partir d'octobre 2026.
+
+\cvsection{Expérience}
+\textbf{Institut BioNexus -- Ingénieure de recherche, NLP biomédical} \hfill 2024--2026
+\begin{itemize}
+\item Construction d'un pipeline Python d'ingestion et de normalisation de publications PubMed, avec annotation guidée par les ontologies MeSH et contrôle qualité des corpus.
+\item Fine-tuning de BioBERT sous PyTorch pour reconnaître gènes, pathologies et traitements, avec macro-F1 de 0,88, validation croisée et analyse d'erreurs avec les biologistes.
+\item Développement d'une API FastAPI de recherche sémantique et d'extraction d'entités, conteneurisée avec Docker et suivie par MLflow, DVC et GitHub Actions.
+\item Cadrage des besoins, protocoles d'évaluation et restitution des résultats auprès de chercheurs, bioinformaticiens et équipes produit dans un environnement international.
+\end{itemize}
+\textbf{Genomic Systems Lab -- Bioinformaticienne, stage de recherche} \hfill 2023--2024
+\begin{itemize}
+\item Analyse de données single-cell RNA-seq : contrôle qualité, normalisation, réduction de dimension, clustering et identification de marqueurs avec Scanpy, Seurat et R.
+\item Production de notebooks reproductibles, visualisations scientifiques et synthèses bibliographiques pour interpréter les sous-populations cellulaires observées.
+\end{itemize}
+
+\cvsection{Projets}
+\textbf{Extraction de relations biomédicales} | Python, PyTorch, Transformers, BioBERT, spaCy
+\begin{itemize}
+\item Entraînement d'un pipeline NER et extraction de relations sur 4 200 résumés annotés, avec suivi des expériences, analyse d'erreurs par entité et interprétation des confusions.
+\end{itemize}
+\textbf{Assistant RAG de littérature scientifique} | Python, FastAPI, Qdrant, LangGraph, APIs LLM
+\begin{itemize}
+\item Développement d'un assistant sur des articles biomédicaux combinant recherche hybride, reranking, réponses sourcées et benchmark de questions conçu avec des utilisateurs scientifiques.
+\end{itemize}
+\textbf{Analyse single-cell de réponses immunitaires} | Python, Scanpy, R, Seurat, scVI
+\begin{itemize}
+\item Analyse reproductible de 18 000 cellules, de la qualité des données à l'annotation des clusters, avec comparaison de méthodes d'intégration et étude des voies biologiques différentielles.
+\end{itemize}
+
+\cvsection{Compétences}
+\textbf{NLP \& GenAI} : PyTorch, Transformers, BioBERT, SciBERT, spaCy, NER, RAG, LangGraph\\
+\textbf{Bioinformatique} : single-cell RNA-seq, Scanpy, Seurat, scVI, Biopython, BLAST, PubMed, MeSH\\
+\textbf{Machine Learning \& statistiques} : scikit-learn, XGBoost, classification, validation croisée, SHAP, expérimentation\\
+\textbf{Data \& développement} : Python, R, SQL, pandas, FastAPI, Docker, Git, MLflow, DVC, Linux
+
+\cvsection{Formation}
+\textbf{Université Paris-Saclay -- Master Bioinformatique \& Biostatistiques} \hfill 2022--2024\\
+Génomique, biologie des systèmes, statistiques, machine learning, traitement automatique du langage.\\
+\textbf{Université de Strasbourg -- Licence Sciences de la vie} \hfill 2019--2022\\
+Biologie moléculaire, génétique, immunologie, programmation scientifique.
+
+\cvsection{Publications \& communication scientifique}
+Co-autrice d'un poster sur l'extraction d'entités biomédicales présenté à JOBIM 2025 | Animation de deux ateliers internes sur la reproductibilité des analyses et l'évaluation des modèles NLP.
+
+\cvsection{Langues}
+Français natif | Anglais C1, rédaction scientifique | Allemand B1
+
+\cvsection{Centres d'intérêt}
+Biologie marine | Médiation scientifique | Randonnée | Photographie microscopique
+\end{document}

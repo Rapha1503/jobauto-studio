@@ -1,0 +1,236 @@
+﻿{
+    "approved":  true,
+    "score":  92,
+    "ats_score":  89,
+    "editorial_score":  94,
+    "adaptation_score":  94,
+    "blocking_issues":  [
+
+                        ],
+    "warnings":  [
+                     "Hivebrite, HubSpot, Notion, registration conversion, margins and invoicing are truthfully unsupported and therefore omitted.",
+                     "Direct prior experience with residential seminars, catering, accommodation, newsletters and venue inspections is not established.",
+                     "The letter is visually short, but it is coherent, complete and does not omit central verified evidence; additional filler is not warranted."
+                 ],
+    "requirement_coverage":  [
+                                 {
+                                     "requirement_id":  "req_01",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "CV Maison des Cultures",
+                                                        "CV selected productions",
+                                                        "Letter paragraphs 1-2"
+                                                    ],
+                                     "rationale":  "More than 70 talks, workshops, performances and public programmes demonstrate varied-format delivery, although the offer\u0027s exact formats are not claimed."
+                                 },
+                                 {
+                                     "requirement_id":  "req_02",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "CV Atelier Horizon",
+                                                        "CV City in Motion",
+                                                        "CV capabilities",
+                                                        "Letter paragraph 2"
+                                                    ],
+                                     "rationale":  "Multi-venue transport, installation crews, production planning and logistics are covered; catering and accommodation remain unsupported."
+                                 },
+                                 {
+                                     "requirement_id":  "req_03",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV Atelier Horizon",
+                                                        "CV capabilities",
+                                                        "Letter paragraph 2"
+                                                    ],
+                                     "rationale":  "Supplier consultations and coordination with fabricators and venues are explicit, without overstating sourcing or negotiation ownership."
+                                 },
+                                 {
+                                     "requirement_id":  "req_04",
+                                     "coverage":  "indirect",
+                                     "placements":  [
+                                                        "CV Atelier Horizon",
+                                                        "CV City in Motion",
+                                                        "CV Night of Archives",
+                                                        "CV capabilities"
+                                                    ],
+                                     "rationale":  "Opening and live programme delivery support on-site readiness, but venue inspections are not explicitly evidenced."
+                                 },
+                                 {
+                                     "requirement_id":  "req_05",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "CV Atelier Horizon",
+                                                        "CV capabilities",
+                                                        "Letter paragraph 2"
+                                                    ],
+                                     "rationale":  "Budget tracking up to EUR 180,000 is prominent; margins and invoicing are not claimed."
+                                 },
+                                 {
+                                     "requirement_id":  "req_06",
+                                     "coverage":  "missing",
+                                     "placements":  [
+
+                                                    ],
+                                     "rationale":  "No verified Hivebrite or event-page administration experience is available."
+                                 },
+                                 {
+                                     "requirement_id":  "req_07",
+                                     "coverage":  "exact",
+                                     "placements":  [
+                                                        "CV Atelier Horizon",
+                                                        "CV capabilities",
+                                                        "Letter paragraph 3"
+                                                    ],
+                                     "rationale":  "Public-programme briefs, production documents, transport documents and welcome packs directly evidence communication and production materials."
+                                 },
+                                 {
+                                     "requirement_id":  "req_08",
+                                     "coverage":  "indirect",
+                                     "placements":  [
+                                                        "CV Maison des Cultures",
+                                                        "CV capabilities",
+                                                        "Letter paragraph 3"
+                                                    ],
+                                     "rationale":  "Audience-facing materials and communications coordination are relevant, but newsletter ownership is not verified."
+                                 },
+                                 {
+                                     "requirement_id":  "req_09",
+                                     "coverage":  "missing",
+                                     "placements":  [
+
+                                                    ],
+                                     "rationale":  "HubSpot monitoring, lead follow-up and registration conversion are unsupported."
+                                 },
+                                 {
+                                     "requirement_id":  "req_10",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV Maison des Cultures",
+                                                        "CV capabilities",
+                                                        "Letter paragraph 3"
+                                                    ],
+                                     "rationale":  "Audience feedback summaries and post-event reporting cover evaluation, but surveys, photographs and online publication are not explicit."
+                                 },
+                                 {
+                                     "requirement_id":  "req_11",
+                                     "coverage":  "indirect",
+                                     "placements":  [
+                                                        "CV Atelier Horizon",
+                                                        "CV City in Motion",
+                                                        "Letter paragraphs 2-3"
+                                                    ],
+                                     "rationale":  "Partner coordination and programme delivery transfer to venue, partner and concept research, while marketing strategy ownership is not stated."
+                                 },
+                                 {
+                                     "requirement_id":  "req_12",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV Maison des Cultures",
+                                                        "CV Atelier Horizon",
+                                                        "CV capabilities",
+                                                        "Letter paragraphs 1 and 3"
+                                                    ],
+                                     "rationale":  "Talk and workshop programming plus public-programme briefs demonstrate editorial contribution without claiming sole ownership of themes."
+                                 },
+                                 {
+                                     "requirement_id":  "req_13",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV Atelier Horizon",
+                                                        "CV Night of Archives",
+                                                        "CV capabilities",
+                                                        "Letter paragraphs 2-3"
+                                                    ],
+                                     "rationale":  "Contributor coordination and public-programme briefs transfer strongly to speaker sourcing and briefing, although topic selection is not explicit."
+                                 },
+                                 {
+                                     "requirement_id":  "req_14",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV Atelier Horizon",
+                                                        "CV capabilities",
+                                                        "Letter paragraph 3"
+                                                    ],
+                                     "rationale":  "Post-event reports are directly evidenced; publication on an internal platform is not."
+                                 },
+                                 {
+                                     "requirement_id":  "req_15",
+                                     "coverage":  "exact",
+                                     "placements":  [
+                                                        "CV education"
+                                                    ],
+                                     "rationale":  "The MA in Cultural Project Management is an equivalent master\u0027s-level qualification."
+                                 },
+                                 {
+                                     "requirement_id":  "req_16",
+                                     "coverage":  "exact",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "CV experience",
+                                                        "Letter paragraph 1"
+                                                    ],
+                                     "rationale":  "Four years of event, programme and communication-related delivery exceed the two-year requirement."
+                                 },
+                                 {
+                                     "requirement_id":  "req_17",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV Atelier Horizon",
+                                                        "CV Maison des Cultures",
+                                                        "Letter paragraphs 2-3"
+                                                    ],
+                                     "rationale":  "Schedules, weekly risk reviews and cross-team handovers demonstrate organisation, rigour and collaboration."
+                                 },
+                                 {
+                                     "requirement_id":  "req_18",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "CV experience",
+                                                        "Letter paragraphs 1 and 3"
+                                                    ],
+                                     "rationale":  "Sustained high-volume delivery and stated motivation for the new environment credibly convey energy and readiness."
+                                 },
+                                 {
+                                     "requirement_id":  "req_19",
+                                     "coverage":  "exact",
+                                     "placements":  [
+                                                        "CV Atelier Horizon",
+                                                        "CV capabilities",
+                                                        "CV languages",
+                                                        "Letter throughout"
+                                                    ],
+                                     "rationale":  "Briefs, reports, bilingual stakeholder communication and polished English writing demonstrate written and oral communication."
+                                 },
+                                 {
+                                     "requirement_id":  "req_20",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "Letter paragraph 3"
+                                                    ],
+                                     "rationale":  "The letter expresses genuine curiosity about the technology and start-up environment without inventing prior sector experience."
+                                 },
+                                 {
+                                     "requirement_id":  "req_21",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "Letter paragraph 3"
+                                                    ],
+                                     "rationale":  "The letter explicitly states strong motivation to adopt generative AI and research tools as performance levers."
+                                 },
+                                 {
+                                     "requirement_id":  "req_22",
+                                     "coverage":  "missing",
+                                     "placements":  [
+
+                                                    ],
+                                     "rationale":  "HubSpot and Notion knowledge is unsupported and appropriately not claimed."
+                                 }
+                             ],
+    "repair_actions":  [
+
+                       ]
+}

@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "profile": "alex-morgan",
+  "model": "gpt-5.6-sol",
+  "discovery": {
+    "id": "alex-morgan-6158bd194e2e",
+    "candidate_count": 5,
+    "native_web_search": true
+  },
+  "campaign": {
+    "id": "alex-morgan-58156fc74af2",
+    "selected_company": "Pigment",
+    "selected_role": "Data Engineer (Growth Team)",
+    "selected_offer_url": "https://jobs.lever.co/pigment/0aede960-d9cd-45c1-92e4-82e3cb3b2ae2"
+  },
+  "application_run": {
+    "id": "alex-morgan-03858495e568",
+    "status": "completed",
+    "first_review": {
+      "score": 58,
+      "approved": false,
+      "reason": "Unsupported completed LLM evaluation work was claimed."
+    },
+    "final_review": {
+      "score": 91,
+      "ats_score": 93,
+      "editorial_score": 94,
+      "adaptation_score": 91,
+      "approved": true
+    },
+    "agent_telemetry": {
+      "logical_tasks": 11,
+      "executions": 12,
+      "total_tokens_estimate": 125306,
+      "summed_latency_ms": 314663
+    }
+  },
+  "artifacts": {
+    "cv": {
+      "page_count": 1,
+      "pdf_sha256": "fee0a4944356ff12577981501c5fc3d06033879a1a613fa7311d675a0338518c",
+      "extracted_text_characters": 2895,
+      "vertical_coverage_ratio": 0.8661
+    },
+    "letter": {
+      "page_count": 1,
+      "pdf_sha256": "a69cc9133f6ffe4d4eb703eddc7012b5ab807ca8b04ab09f7a2372f758c29e10",
+      "extracted_text_characters": 1252,
+      "vertical_coverage_ratio": 0.3399
+    }
+  },
+  "handoff": {
+    "id": "handoff-999bf0511b2e4077",
+    "status": "sandbox_verified",
+    "portal": "jobauto_sandbox",
+    "uploaded_files": ["cv.pdf", "letter.pdf"],
+    "tracker_synchronized": false,
+    "real_employer_submission": false
+  }
+}

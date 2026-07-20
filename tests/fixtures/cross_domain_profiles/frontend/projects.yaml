@@ -1,0 +1,37 @@
+projects:
+  - id: accessible_design_system
+    title: Accessible design system
+    status: verified_public
+    visibility: cv_project
+    role_fit: [frontend_engineer]
+    keywords: [accessibility, components, design system]
+    verified_stack: [TypeScript, React, Storybook, Vitest]
+    default_stack_line: TypeScript, React, Storybook, Vitest
+    cv_bullets:
+      - Built a reusable component library with keyboard interactions, documentation and automated accessibility checks.
+      - Added versioned release notes and visual regression coverage for safe product adoption.
+    letter_angles: [Show accessible component engineering and maintainable delivery.]
+  - id: event_booking_app
+    title: Event booking web application
+    status: verified_public
+    visibility: cv_project
+    role_fit: [frontend_engineer, software_engineer]
+    keywords: [Next.js, browser testing, responsive web]
+    verified_stack: [Next.js, TypeScript, Playwright, REST APIs]
+    default_stack_line: Next.js, TypeScript, Playwright, REST APIs
+    cv_bullets:
+      - Developed a responsive booking flow with server rendering, typed API clients and end-to-end tests.
+      - Instrumented error states and performance budgets for reliable mobile use.
+    letter_angles: [Connect product delivery with tested user journeys.]
+  - id: frontend_performance_lab
+    title: Frontend performance lab
+    status: verified_public
+    visibility: cv_project
+    role_fit: [frontend_engineer]
+    keywords: [performance, Web Vitals, CI]
+    verified_stack: [JavaScript, Web Vitals, Lighthouse, GitHub Actions]
+    default_stack_line: JavaScript, Web Vitals, Lighthouse, GitHub Actions
+    cv_bullets:
+      - Created reproducible performance scenarios for bundle size, rendering and image loading.
+      - Automated Lighthouse checks in CI and documented user-experience trade-offs.
+    letter_angles: [Demonstrate performance measurement and engineering judgement.]

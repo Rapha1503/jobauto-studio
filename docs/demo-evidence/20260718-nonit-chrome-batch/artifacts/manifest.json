@@ -1,0 +1,377 @@
+﻿[
+    {
+        "run_id":  "maya-laurent-ac33d313-v4-c621043393df",
+        "company":  "UMDH - Une Marque \u0026 Des Hommes",
+        "role":  "Charge(e) de Production Evenementielle",
+        "status":  "completed",
+        "model":  "gpt-5.6-sol",
+        "final_review":  {
+                             "approved":  true,
+                             "score":  92,
+                             "ats_score":  91,
+                             "editorial_score":  93,
+                             "adaptation_score":  94
+                         },
+        "agent_trace":  {
+                            "executions":  11,
+                            "phases":  [
+                                           "offer_analysis",
+                                           "brief_review",
+                                           "brief_repair",
+                                           "brief_repair",
+                                           "brief_review",
+                                           "project_lab",
+                                           "cv_writer",
+                                           "cv_latex_writer",
+                                           "letter_writer",
+                                           "final_review",
+                                           "final_review"
+                                       ],
+                            "latency_ms":  363066,
+                            "estimated_tokens":  146302,
+                            "file":  "01-umdh/agent-events.jsonl"
+                        },
+        "cv":  {
+                   "file":  "01-umdh/cv.pdf",
+                   "sha256":  "c97f7ff1ee9329a6ca3c9e80547f9824e87e5e001ef8925fa2ae24cb6a45b8db",
+                   "pages":  1,
+                   "extracted_characters":  3592,
+                   "layout":  {
+                                  "pages":  1,
+                                  "text_fragments":  62,
+                                  "top_whitespace_ratio":  0.0607,
+                                  "bottom_whitespace_ratio":  0.0488,
+                                  "vertical_coverage_ratio":  0.8905,
+                                  "largest_internal_gap_ratio":  0.0338,
+                                  "font_size_pt":  11.0,
+                                  "line_height_ratio":  1.3,
+                                  "baseline_skip_pt":  14.3,
+                                  "layout_trials":  13,
+                                  "section_spacing_pt":  2.0,
+                                  "section_spacing_trials":  4,
+                                  "at_layout_ceiling":  false,
+                                  "unused_vertical_ratio":  0.1095,
+                                  "has_large_internal_gap":  false,
+                                  "requires_density_review":  false,
+                                  "underfilled_at_layout_ceiling":  false
+                              }
+               },
+        "letter":  {
+                       "file":  "01-umdh/letter.pdf",
+                       "sha256":  "ddc00b537847cea768c1f3bb9928e770a53d609650a3c90a52fece44be74527d",
+                       "pages":  1,
+                       "extracted_characters":  1140,
+                       "layout":  {
+                                      "pages":  1,
+                                      "text_fragments":  16,
+                                      "top_whitespace_ratio":  0.0871,
+                                      "bottom_whitespace_ratio":  0.6242,
+                                      "vertical_coverage_ratio":  0.2887,
+                                      "largest_internal_gap_ratio":  0.035
+                                  }
+                   },
+        "review_file":  "01-umdh/final-review.json"
+    },
+    {
+        "run_id":  "maya-laurent-ac33d313-v4-2e67431b5124",
+        "company":  "La Belle Equipe",
+        "role":  "Chef de Projet Evenementiel (H/F)",
+        "status":  "completed",
+        "model":  "gpt-5.6-sol",
+        "final_review":  {
+                             "approved":  true,
+                             "score":  92,
+                             "ats_score":  93,
+                             "editorial_score":  94,
+                             "adaptation_score":  92
+                         },
+        "agent_trace":  {
+                            "executions":  13,
+                            "phases":  [
+                                           "offer_analysis",
+                                           "brief_review",
+                                           "brief_repair",
+                                           "brief_review",
+                                           "project_lab",
+                                           "cv_writer",
+                                           "cv_latex_writer",
+                                           "letter_writer",
+                                           "final_review",
+                                           "final_review",
+                                           "repair",
+                                           "final_review",
+                                           "final_review"
+                                       ],
+                            "latency_ms":  442635,
+                            "estimated_tokens":  184449,
+                            "file":  "02-la-belle-equipe/agent-events.jsonl"
+                        },
+        "cv":  {
+                   "file":  "02-la-belle-equipe/cv.pdf",
+                   "sha256":  "3dff169be085ce5582ce6931d04374805d7e8f23111c048503dcb3c1d63957dc",
+                   "pages":  1,
+                   "extracted_characters":  3513,
+                   "layout":  {
+                                  "pages":  1,
+                                  "text_fragments":  66,
+                                  "top_whitespace_ratio":  0.0607,
+                                  "bottom_whitespace_ratio":  0.0523,
+                                  "vertical_coverage_ratio":  0.887,
+                                  "largest_internal_gap_ratio":  0.0327,
+                                  "font_size_pt":  11.5,
+                                  "line_height_ratio":  1.1,
+                                  "baseline_skip_pt":  12.65,
+                                  "layout_trials":  15,
+                                  "section_spacing_pt":  2.0,
+                                  "section_spacing_trials":  4,
+                                  "at_layout_ceiling":  false,
+                                  "unused_vertical_ratio":  0.113,
+                                  "has_large_internal_gap":  false,
+                                  "requires_density_review":  false,
+                                  "underfilled_at_layout_ceiling":  false
+                              }
+               },
+        "letter":  {
+                       "file":  "02-la-belle-equipe/letter.pdf",
+                       "sha256":  "ea0cef6f11c78ef5089df9f837954836d13a69e1698a5e5542145a71bd0ddd2f",
+                       "pages":  1,
+                       "extracted_characters":  1615,
+                       "layout":  {
+                                      "pages":  1,
+                                      "text_fragments":  21,
+                                      "top_whitespace_ratio":  0.0871,
+                                      "bottom_whitespace_ratio":  0.5248,
+                                      "vertical_coverage_ratio":  0.3881,
+                                      "largest_internal_gap_ratio":  0.035
+                                  }
+                   },
+        "review_file":  "02-la-belle-equipe/final-review.json"
+    },
+    {
+        "run_id":  "maya-laurent-ac33d313-v4-ecbcf439790e",
+        "company":  "The Galion Project",
+        "role":  "Event \u0026 Content Project Junior",
+        "status":  "completed",
+        "model":  "gpt-5.6-sol",
+        "final_review":  {
+                             "approved":  true,
+                             "score":  92,
+                             "ats_score":  89,
+                             "editorial_score":  94,
+                             "adaptation_score":  94
+                         },
+        "agent_trace":  {
+                            "executions":  17,
+                            "phases":  [
+                                           "offer_analysis",
+                                           "brief_review",
+                                           "brief_repair",
+                                           "brief_review",
+                                           "brief_repair",
+                                           "brief_review",
+                                           "brief_repair",
+                                           "brief_review",
+                                           "brief_repair",
+                                           "brief_review",
+                                           "project_lab",
+                                           "cv_writer",
+                                           "repair",
+                                           "cv_latex_writer",
+                                           "letter_writer",
+                                           "final_review",
+                                           "final_review"
+                                       ],
+                            "latency_ms":  647065,
+                            "estimated_tokens":  243257,
+                            "file":  "03-the-galion-project/agent-events.jsonl"
+                        },
+        "cv":  {
+                   "file":  "03-the-galion-project/cv.pdf",
+                   "sha256":  "9296427d47f467b2cd1b2e68706d94d9785063dad8606075903c92bb7ca4cf1c",
+                   "pages":  1,
+                   "extracted_characters":  3145,
+                   "layout":  {
+                                  "pages":  1,
+                                  "text_fragments":  61,
+                                  "top_whitespace_ratio":  0.0607,
+                                  "bottom_whitespace_ratio":  0.0545,
+                                  "vertical_coverage_ratio":  0.8848,
+                                  "largest_internal_gap_ratio":  0.0348,
+                                  "font_size_pt":  12.0,
+                                  "line_height_ratio":  1.2,
+                                  "baseline_skip_pt":  14.4,
+                                  "layout_trials":  7,
+                                  "section_spacing_pt":  0.0,
+                                  "section_spacing_trials":  4,
+                                  "at_layout_ceiling":  false,
+                                  "unused_vertical_ratio":  0.1152,
+                                  "has_large_internal_gap":  false,
+                                  "requires_density_review":  false,
+                                  "underfilled_at_layout_ceiling":  false
+                              }
+               },
+        "letter":  {
+                       "file":  "03-the-galion-project/letter.pdf",
+                       "sha256":  "70f5c29410307724c621a6e2748f8509701f712483668de3652139891b681e1a",
+                       "pages":  1,
+                       "extracted_characters":  1433,
+                       "layout":  {
+                                      "pages":  1,
+                                      "text_fragments":  19,
+                                      "top_whitespace_ratio":  0.0871,
+                                      "bottom_whitespace_ratio":  0.5759,
+                                      "vertical_coverage_ratio":  0.337,
+                                      "largest_internal_gap_ratio":  0.035
+                                  }
+                   },
+        "review_file":  "03-the-galion-project/final-review.json"
+    },
+    {
+        "run_id":  "maya-laurent-ac33d313-v4-9cdd41f7a9ee",
+        "company":  "Gingko Biloba",
+        "role":  "Assistant(e) d administratrice de production",
+        "status":  "completed",
+        "model":  "gpt-5.6-sol",
+        "final_review":  {
+                             "approved":  true,
+                             "score":  90,
+                             "ats_score":  90,
+                             "editorial_score":  94,
+                             "adaptation_score":  92
+                         },
+        "agent_trace":  {
+                            "executions":  14,
+                            "phases":  [
+                                           "offer_analysis",
+                                           "brief_review",
+                                           "brief_repair",
+                                           "brief_review",
+                                           "project_lab",
+                                           "cv_writer",
+                                           "cv_latex_writer",
+                                           "letter_writer",
+                                           "final_review",
+                                           "repair",
+                                           "cv_latex_writer",
+                                           "repair",
+                                           "final_review",
+                                           "final_review"
+                                       ],
+                            "latency_ms":  476693,
+                            "estimated_tokens":  178296,
+                            "file":  "04-gingko-biloba/agent-events.jsonl"
+                        },
+        "cv":  {
+                   "file":  "04-gingko-biloba/cv.pdf",
+                   "sha256":  "1348ccd97865d55d4a55fa0e06262c9eba81305eb411a69def024dc88801f4bf",
+                   "pages":  1,
+                   "extracted_characters":  3474,
+                   "layout":  {
+                                  "pages":  1,
+                                  "text_fragments":  64,
+                                  "top_whitespace_ratio":  0.0607,
+                                  "bottom_whitespace_ratio":  0.0602,
+                                  "vertical_coverage_ratio":  0.8791,
+                                  "largest_internal_gap_ratio":  0.0334,
+                                  "font_size_pt":  12.0,
+                                  "line_height_ratio":  1.1,
+                                  "baseline_skip_pt":  13.2,
+                                  "layout_trials":  10,
+                                  "section_spacing_pt":  0.0,
+                                  "section_spacing_trials":  4,
+                                  "at_layout_ceiling":  false,
+                                  "unused_vertical_ratio":  0.1209,
+                                  "has_large_internal_gap":  false,
+                                  "requires_density_review":  false,
+                                  "underfilled_at_layout_ceiling":  false
+                              }
+               },
+        "letter":  {
+                       "file":  "04-gingko-biloba/letter.pdf",
+                       "sha256":  "f2b6123e4c4c8e1342d8e3c35912302ccc340164756b87f4b1369823bc35d715",
+                       "pages":  1,
+                       "extracted_characters":  1701,
+                       "layout":  {
+                                      "pages":  1,
+                                      "text_fragments":  21,
+                                      "top_whitespace_ratio":  0.0871,
+                                      "bottom_whitespace_ratio":  0.5342,
+                                      "vertical_coverage_ratio":  0.3787,
+                                      "largest_internal_gap_ratio":  0.035
+                                  }
+                   },
+        "review_file":  "04-gingko-biloba/final-review.json"
+    },
+    {
+        "run_id":  "maya-laurent-ac33d313-v4-d4a99196d517",
+        "company":  "3D Family Production",
+        "role":  "Charge(e) de production et administration",
+        "status":  "completed",
+        "model":  "gpt-5.6-sol",
+        "final_review":  {
+                             "approved":  true,
+                             "score":  91,
+                             "ats_score":  89,
+                             "editorial_score":  94,
+                             "adaptation_score":  93
+                         },
+        "agent_trace":  {
+                            "executions":  10,
+                            "phases":  [
+                                           "offer_analysis",
+                                           "brief_review",
+                                           "brief_repair",
+                                           "brief_review",
+                                           "project_lab",
+                                           "cv_writer",
+                                           "cv_latex_writer",
+                                           "letter_writer",
+                                           "final_review",
+                                           "final_review"
+                                       ],
+                            "latency_ms":  422142,
+                            "estimated_tokens":  140935,
+                            "file":  "05-3d-family-production/agent-events.jsonl"
+                        },
+        "cv":  {
+                   "file":  "05-3d-family-production/cv.pdf",
+                   "sha256":  "da35a623c4a7de7c91189c8dc2aef10c8482b671a6ba2bdcd81d292fc58940eb",
+                   "pages":  1,
+                   "extracted_characters":  3530,
+                   "layout":  {
+                                  "pages":  1,
+                                  "text_fragments":  66,
+                                  "top_whitespace_ratio":  0.0607,
+                                  "bottom_whitespace_ratio":  0.0523,
+                                  "vertical_coverage_ratio":  0.887,
+                                  "largest_internal_gap_ratio":  0.0327,
+                                  "font_size_pt":  11.5,
+                                  "line_height_ratio":  1.1,
+                                  "baseline_skip_pt":  12.65,
+                                  "layout_trials":  15,
+                                  "section_spacing_pt":  2.0,
+                                  "section_spacing_trials":  4,
+                                  "at_layout_ceiling":  false,
+                                  "unused_vertical_ratio":  0.113,
+                                  "has_large_internal_gap":  false,
+                                  "requires_density_review":  false,
+                                  "underfilled_at_layout_ceiling":  false
+                              }
+               },
+        "letter":  {
+                       "file":  "05-3d-family-production/letter.pdf",
+                       "sha256":  "57b919a0f92977766d4c298377d272d58d70288fb3993eaf5b6040c40c2825e0",
+                       "pages":  1,
+                       "extracted_characters":  1580,
+                       "layout":  {
+                                      "pages":  1,
+                                      "text_fragments":  20,
+                                      "top_whitespace_ratio":  0.0871,
+                                      "bottom_whitespace_ratio":  0.5503,
+                                      "vertical_coverage_ratio":  0.3626,
+                                      "largest_internal_gap_ratio":  0.035
+                                  }
+                   },
+        "review_file":  "05-3d-family-production/final-review.json"
+    }
+]

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Application sandbox · JobAuto Studio{% endblock %}
+{% block content %}
+<section class="sandbox-shell">
+  <div class="sandbox-company"><span>JA</span><div><strong>JobAuto Sandbox</strong><small>Deterministic portal for Chrome proof</small></div></div>
+  <p class="eyebrow">Application form</p>
+  <h1>{{ record.role }}</h1>
+  <p class="sandbox-lead">{{ record.company }} · This local portal verifies that Chrome selected the exact reviewed PDFs before it displays a confirmation.</p>
+
+  <form id="sandbox-form" class="sandbox-form">
+    <label>Full name<input name="full_name" autocomplete="name" required></label>
+    <label>Email<input name="email" type="email" autocomplete="email" required></label>
+    <label>Location<input name="location" autocomplete="address-level2" required></label>
+    <label class="sandbox-wide">Message to the hiring team<textarea name="message" rows="6" required minlength="20"></textarea></label>
+    <label>CV PDF<input name="cv" type="file" accept="application/pdf,.pdf" required></label>
+    <label>Cover letter PDF<input name="letter" type="file" accept="application/pdf,.pdf" required></label>
+    <div class="sandbox-wide sandbox-submit"><button type="submit">Submit application</button><span id="sandbox-status" role="status"></span></div>
+  </form>
+</section>
+<script>
+  const sandboxForm = document.querySelector('#sandbox-form');
+  const sandboxStatus = document.querySelector('#sandbox-status');
+  function encode(file) {
+    if (!(file instanceof File) || !file.name) throw new Error('Select both approved PDF files.');
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      const timeout = window.setTimeout(() => reject(new Error(`Reading ${file.name} timed out.`)), 15000);
+      reader.onload = () => {
+        window.clearTimeout(timeout);
+        const encoded = String(reader.result || '').split(',', 2)[1];
+        if (!encoded) { reject(new Error(`Could not read ${file.name}.`)); return; }
+        resolve({name: file.name, content_base64: encoded});
+      };
+      reader.onerror = () => {
+        window.clearTimeout(timeout);
+        reject(new Error(`Could not read ${file.name}.`));
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+  sandboxForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    sandboxStatus.textContent = 'Verifying exact artifacts...';
+    try {
+      const data = new FormData(sandboxForm);
+      const response = await fetch('/sandbox/apply/{{ record.handoff_id }}/submit', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          full_name: data.get('full_name'),
+          email: data.get('email'),
+          location: data.get('location'),
+          message: data.get('message'),
+          cv: await encode(data.get('cv')),
+          letter: await encode(data.get('letter'))
+        })
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        sandboxStatus.textContent = result.detail || 'Submission rejected.';
+        return;
+      }
+      window.location.assign(result.confirmation_url);
+    } catch (error) {
+      sandboxStatus.textContent = error instanceof Error ? error.message : 'Submission failed.';
+    }
+  });
+</script>
+{% endblock %}

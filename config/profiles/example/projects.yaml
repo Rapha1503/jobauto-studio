@@ -1,0 +1,40 @@
+projects:
+  - id: energy_forecasting
+    title: Energy demand forecasting
+    status: verified_public
+    visibility: cv_project
+    role_fit: [data_engineer]
+    keywords: [Python, forecasting, time series]
+    verified_stack: [Python, pandas, scikit-learn, MLflow]
+    default_stack_line: Python, pandas, scikit-learn, MLflow
+    cv_bullets:
+      - Built a time-series training workflow for electricity-demand data with feature engineering, MLflow tracking and error analysis.
+      - Compared seasonal baselines and tree-based models, then documented failure modes for operations planning.
+    letter_angles:
+      - Connect the forecasting workflow to the role's data reliability needs.
+  - id: mobility_streaming
+    title: Real-time mobility data platform
+    status: verified_public
+    visibility: cv_project
+    role_fit: [data_engineer, analytics_engineer]
+    keywords: [streaming, mobility, data platform, validation]
+    verified_stack: [Python, Kafka, Spark, Docker]
+    default_stack_line: Python, Kafka, Spark, Docker
+    cv_bullets:
+      - Designed a streaming pipeline that validates, aggregates and exposes transport events for operational analytics.
+      - Added replayable integration tests, event-quality metrics and containerized local environments for reliable delivery.
+    letter_angles:
+      - Demonstrate event-driven data engineering and operational analytics ownership.
+  - id: data_quality_observability
+    title: Data quality observability
+    status: verified_public
+    visibility: cv_project
+    role_fit: [data_engineer, analytics_engineer]
+    keywords: [data quality, observability, testing, CI]
+    verified_stack: [dbt, Great Expectations, BigQuery, GitHub Actions]
+    default_stack_line: dbt, Great Expectations, BigQuery, GitHub Actions
+    cv_bullets:
+      - Automated freshness, schema and business-rule checks with CI reporting and traceable failure diagnostics.
+      - Defined dataset ownership and alerting conventions so teams could investigate incidents from source to dashboard.
+    letter_angles:
+      - Connect reliable delivery to automated data contracts and actionable monitoring.

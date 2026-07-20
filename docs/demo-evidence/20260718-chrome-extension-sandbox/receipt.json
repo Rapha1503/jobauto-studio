@@ -1,0 +1,33 @@
+{
+  "proof_type": "chrome_extension_sandbox",
+  "handoff_id": "handoff-8c6be17fce0ed466",
+  "candidate": "synthetic_maya_laurent",
+  "company": "UMDH - Une Marque & Des Hommes",
+  "role": "Charge(e) de Production Evenementielle",
+  "status": "sandbox_verified",
+  "portal": "jobauto_sandbox",
+  "browser_surface": "codex_chrome_extension",
+  "filled_fields": [
+    "full_name",
+    "email",
+    "location",
+    "message"
+  ],
+  "artifacts": [
+    {
+      "kind": "cv",
+      "filename": "cv.pdf",
+      "page_count": 1,
+      "sha256": "c97f7ff1ee9329a6ca3c9e80547f9824e87e5e001ef8925fa2ae24cb6a45b8db"
+    },
+    {
+      "kind": "letter",
+      "filename": "letter.pdf",
+      "page_count": 1,
+      "sha256": "ddc00b537847cea768c1f3bb9928e770a53d609650a3c90a52fece44be74527d"
+    }
+  ],
+  "blockers": [],
+  "warnings": [],
+  "employer_submission": false
+}

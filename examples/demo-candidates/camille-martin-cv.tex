@@ -1,0 +1,67 @@
+\documentclass[10.5pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage[margin=1.45cm]{geometry}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\renewcommand{\baselinestretch}{1.04}
+\pagestyle{empty}
+\setlist[itemize]{leftmargin=*,nosep,topsep=2pt}
+\newcommand{\cvsection}[1]{\par\vspace{5pt}\textbf{\large #1}\par\vspace{1pt}\rule{\linewidth}{0.35pt}\vspace{2pt}}
+\begin{document}
+\begin{center}
+{\Large\textbf{CAMILLE MARTIN}}\\[3pt]
+\textbf{Data \& AI Engineer | Python, SQL, Machine Learning | Lyon}\\[3pt]
+camille.martin@example.test \;|\; +33 4 00 00 00 01 \;|\; \href{https://example.test/camille}{example.test/camille}
+\end{center}
+
+\cvsection{Résumé}
+Ingénieure Data \& IA avec deux ans d'expérience sur des produits analytiques, des pipelines cloud et des applications de machine learning. Habituée à relier qualité des données, besoins métier et mise en production de solutions Python/SQL mesurables.
+
+\cvsection{Expérience}
+\textbf{GridLab -- Data \& AI Engineer} \hfill 2024--2026
+\begin{itemize}
+\item Industrialisation de pipelines Python et SQL sur BigQuery pour consolider des données de consommation énergétique, avec contrôles qualité, monitoring et documentation.
+\item Développement de modèles de prévision et d'indicateurs opérationnels utilisés par les équipes planification pour analyser demande, anomalies et capacité réseau.
+\item Cadrage des besoins, priorisation des livrables et restitution des résultats auprès d'équipes produit, data et opérations dans un environnement Agile.
+\end{itemize}
+\textbf{UrbanFlow -- Data Analyst, stage} \hfill 2023--2024
+\begin{itemize}
+\item Construction de datasets SQL réutilisables et de dashboards Looker pour le suivi de mobilité, avec automatisation des contrôles et analyse des écarts.
+\item Traduction de questions métier en métriques documentées, analyses pandas et recommandations actionnables.
+\end{itemize}
+
+\cvsection{Projets}
+\textbf{Prévision de demande énergétique} | Python, pandas, scikit-learn, MLflow
+\begin{itemize}
+\item Conception d'un pipeline de séries temporelles avec feature engineering, comparaison de modèles, suivi MLflow et analyse d'erreurs par période.
+\end{itemize}
+\textbf{Assistant RAG pour documentation technique} | Python, FastAPI, embeddings, reranking
+\begin{itemize}
+\item Développement d'un assistant sur un corpus documentaire avec recherche hybride, réponses sourcées, évaluation et API REST conteneurisée.
+\end{itemize}
+\textbf{Plateforme temps réel de données mobilité} | Python, Kafka, Spark, Docker
+\begin{itemize}
+\item Mise en place d'un flux événementiel validant et agrégeant les données, avec tests d'intégration rejouables et métriques de qualité.
+\end{itemize}
+
+\cvsection{Compétences}
+\textbf{Data Engineering} : Python, SQL, Airflow, dbt, Spark, Kafka, ETL/ELT\\
+\textbf{Machine Learning \& GenAI} : scikit-learn, MLflow, RAG, embeddings, évaluation\\
+\textbf{Cloud \& Analytics} : GCP, BigQuery, Looker, pandas, qualité des données\\
+\textbf{Développement} : FastAPI, APIs REST, Docker, Git, GitHub Actions, CI/CD
+
+\cvsection{Formation}
+\textbf{École du Numérique -- Diplôme d'ingénieur, majeure Data \& IA} \hfill 2021--2026\\
+Machine learning, statistiques, data engineering, systèmes distribués et cloud.
+
+\cvsection{Langues}
+Français natif | Anglais C1 | Espagnol B1
+
+\cvsection{Centres d'intérêt}
+Énergie | Mobilité | Photographie
+\end{document}

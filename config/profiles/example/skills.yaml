@@ -1,0 +1,9 @@
+minimum_group_overlap: 0.75
+
+verified:
+  Data Engineering: [Python, SQL, Airflow, dbt, Spark, Kafka, ETL/ELT]
+  Cloud & Warehouses: [GCP, BigQuery, Cloud Storage, Docker]
+  Analytics & Quality: [pandas, Great Expectations, Looker, data modelling]
+  ML & Delivery: [scikit-learn, MLflow, Git, GitHub Actions, CI/CD]
+
+transferable: {}

@@ -1,0 +1,10 @@
+Madame, Monsieur,
+
+Je vous adresse ma candidature pour un poste de Machine Learning Engineer orienté applications concrètes et qualité des modèles. Mon parcours combine expérimentation PyTorch, évaluation rigoureuse, mise en production et collaboration avec des équipes produit.
+
+Chez Contoso Health, j'interviens sur l'ensemble du cycle de vie de modèles de vision : préparation des données, entraînement, analyse d'erreurs, suivi des expériences et exposition par API. Cette expérience m'a appris à considérer la fiabilité et l'utilisation opérationnelle au même niveau que la performance brute.
+
+Je serais heureux d'échanger avec vous sur les besoins de votre équipe et la manière dont je pourrais contribuer à vos produits IA.
+
+Cordialement,
+Jamie Chen

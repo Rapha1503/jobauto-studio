@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}Finding jobs · JobAuto Studio{% endblock %}
+{% block content %}
+<section class="run-shell discovery-shell" data-status-url="/discoveries/{{ record.discovery_id }}/status">
+  <div class="workflow-nav"><a class="back" href="/profiles/{{ record.candidate_id }}">← Back to my profile</a><span>The search continues while this page is open.</span></div>
+  <p class="eyebrow">Live job search</p>
+  <h1>Finding your next {{ record.requested_count }} opportunities</h1>
+  <p class="run-lead">Codex searches current job pages. JobAuto then removes duplicates, checks your preferences and prepares tailored documents for the strongest matches. You will be redirected to the application batch automatically.</p>
+
+  <section class="search-source-card" aria-label="Current search scope">
+    <div><span>Where JobAuto is searching</span><strong>Codex web search</strong><small>Public search results lead to detailed official company career and ATS pages. Only verified, actionable offers continue.</small></div>
+    <div><span>What guides the search</span><strong>{{ (search_preferences.roles.preferred or search_preferences.roles.required)|join(', ') or 'Your saved target roles' }}</strong><small>{{ (search_preferences.locations.preferred or search_preferences.locations.required)|join(', ') or 'Any saved location' }}{% if search_preferences.contracts.required %} · {{ search_preferences.contracts.required|join(', ') }}{% endif %}</small></div>
+    <a href="/profiles/{{ record.candidate_id }}">Review search preferences</a>
+  </section>
+
+  <div class="run-state discovery-state">
+    <span id="discovery-state">{{ record.status|replace('_', ' ') }}</span>
+    <strong id="discovery-summary">{{ record.candidate_count }} candidates inspected</strong>
+  </div>
+  <div class="live-activity" id="discovery-live-activity">
+    <span class="live-dot" aria-hidden="true"></span>
+    <div><strong id="discovery-live-title">Starting Codex search</strong><small id="discovery-live-detail">Offers are added after the current search step finishes.</small></div>
+  </div>
+
+  <ol class="progress-steps" id="discovery-progress">
+    <li data-phase="prepared"><span>1</span><div><strong>Profile loaded</strong><small>Your roles, locations and preferences are ready.</small></div></li>
+    <li data-phase="searching_web"><span>2</span><div><strong>Searching current offers</strong><small>Codex checks detailed job pages and official application links.</small></div></li>
+    <li data-phase="deduplicating_and_scoring"><span>3</span><div><strong>Checking fit and duplicates</strong><small>JobAuto applies your saved criteria and keeps the best new matches.</small></div></li>
+    <li data-phase="documents_running"><span>4</span><div><strong>Preparing applications</strong><small>ATS analysis, tailored CV, letter and real PDF checks run per offer.</small></div></li>
+  </ol>
+
+  <div class="notice error-notice" id="discovery-error" hidden></div>
+  <div class="discovery-controls">
+    <button class="button secondary" id="cancel-discovery" type="button"{% if record.status in ['campaign_created', 'cancelled'] %} hidden{% endif %}>Stop after the current step</button>
+    <small>A Codex call already in progress finishes first. No new verification or application starts afterwards.</small>
+  </div>
+  <div class="discovery-recovery" id="discovery-recovery" hidden>
+    <button class="button" type="button" id="resume-discovery">Resume search</button>
+  </div>
+  {% if record.campaign_id %}
+    <a class="button" id="open-discovery-campaign" href="/campaigns/{{ record.campaign_id }}">Open application batch</a>
+  {% endif %}
+
+  <details class="panel workspace-option technical-option discovery-diagnostics">
+    <summary><strong>Technical details</strong><span>Prompt, hashes and agent events</span></summary>
+    <div class="handoff-details">
+      <div><strong>Discovery ID</strong><code>{{ record.discovery_id }}</code></div>
+      <div><strong>Candidate snapshot</strong><small>sha256 {{ record.snapshot_hash }}</small></div>
+      <div><strong>Prompt</strong><small>sha256 {{ record.prompt_sha256 }}</small></div>
+    </div>
+    <details class="technical-subsection"><summary>Generated Codex prompt</summary><pre id="prompt-text">{{ prompt }}</pre></details>
+  </details>
+</section>
+<script>
+  const shell = document.querySelector('.discovery-shell');
+  const phaseOrder = ['prepared', 'searching_web', 'deduplicating_and_scoring', 'documents_running'];
+  const phaseAliases = {'verifying_offer_urls': 'deduplicating_and_scoring'};
+  let automaticResumeAttempted = false;
+
+  function readablePhase(phase) {
+    return {
+      prepared: 'Preparing the search',
+      searching_web: 'Codex is inspecting current job pages',
+      verifying_offer_urls: 'Verifying official offer links',
+      deduplicating_and_scoring: 'Checking fit and duplicates',
+      documents_running: 'Starting tailored applications'
+    }[phase] || phase.replaceAll('_', ' ');
+  }
+
+  function scheduleRefresh(delay = 1500) {
+    window.setTimeout(refreshDiscovery, delay);
+  }
+
+  function paintProgress(phase) {
+    const current = phaseOrder.indexOf(phaseAliases[phase] || phase);
+    document.querySelectorAll('#discovery-progress li').forEach((item, index) => {
+      item.classList.toggle('is-complete', current > index);
+      item.classList.toggle('is-active', current === index);
+    });
+  }
+
+  async function refreshDiscovery() {
+    let response;
+    try {
+      response = await fetch(shell.dataset.statusUrl);
+    } catch (_error) {
+      document.querySelector('#discovery-live-title').textContent = 'Reconnecting to JobAuto';
+      document.querySelector('#discovery-live-detail').textContent = 'Your saved search is safe. Retrying automatically.';
+      scheduleRefresh(2000);
+      return;
+    }
+    if (!response.ok) {
+      scheduleRefresh(2000);
+      return;
+    }
+    const discovery = await response.json();
+    document.querySelector('#discovery-state').textContent = discovery.status.replaceAll('_', ' ');
+    document.querySelector('#discovery-summary').textContent = `${discovery.candidate_count} candidates inspected`;
+    document.querySelector('#discovery-live-title').textContent = readablePhase(discovery.phase);
+    document.querySelector('#discovery-live-detail').textContent = discovery.phase === 'searching_web'
+      ? 'Codex returns the verified batch at the end of this step; zero candidates during the search is normal.'
+      : `Last checkpoint: ${new Date(discovery.last_activity_at).toLocaleTimeString()}`;
+    paintProgress(discovery.phase);
+    if (discovery.campaign_id) {
+      window.location.assign(`/campaigns/${discovery.campaign_id}`);
+      return;
+    }
+    if (discovery.status === 'cancelled') {
+      document.querySelector('#cancel-discovery').hidden = true;
+      document.querySelector('#discovery-live-title').textContent = 'Search stopped';
+      document.querySelector('#discovery-live-detail').textContent = 'No new application campaign will start.';
+      return;
+    }
+    if (discovery.status === 'cancelling') {
+      document.querySelector('#discovery-live-title').textContent = 'Stopping after the current Codex step';
+      document.querySelector('#discovery-live-detail').textContent = 'The current call is allowed to finish; later steps will not start.';
+    }
+    if (discovery.interrupted) {
+      const error = document.querySelector('#discovery-error');
+      error.hidden = false;
+      error.textContent = 'The Studio restarted while this search was running. Your profile and prompt are safe.';
+      document.querySelector('#discovery-recovery').hidden = false;
+      if (!automaticResumeAttempted) {
+        automaticResumeAttempted = true;
+        resumeDiscovery();
+      }
+      return;
+    }
+    if (discovery.status === 'blocked') {
+      const error = document.querySelector('#discovery-error');
+      error.hidden = false;
+      error.textContent = discovery.blockers.join(' ') || 'The search could not be completed.';
+      document.querySelector('#discovery-recovery').hidden = false;
+      return;
+    }
+    scheduleRefresh();
+  }
+
+  async function resumeDiscovery() {
+    const button = document.querySelector('#resume-discovery');
+    button.disabled = true;
+    button.textContent = 'Resuming…';
+    const response = await fetch(`/discoveries/{{ record.discovery_id }}/resume`, {method: 'POST'});
+    const body = await response.json();
+    if (!response.ok) {
+      button.disabled = false;
+      button.textContent = 'Resume search';
+      document.querySelector('#discovery-error').textContent = body.detail || 'The search could not resume.';
+      return;
+    }
+    document.querySelector('#discovery-error').hidden = true;
+    document.querySelector('#discovery-recovery').hidden = true;
+    document.querySelector('#discovery-state').textContent = body.already_running ? 'running' : 'resuming';
+    scheduleRefresh(800);
+  }
+
+  document.querySelector('#resume-discovery').onclick = resumeDiscovery;
+  document.querySelector('#cancel-discovery').onclick = async event => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    button.textContent = 'Stopping after the current step...';
+    const response = await fetch(`/discoveries/{{ record.discovery_id }}/cancel`, {method: 'POST'});
+    const body = await response.json();
+    if (!response.ok) {
+      button.disabled = false;
+      button.textContent = body.detail || 'Stop failed';
+      return;
+    }
+    document.querySelector('#discovery-state').textContent = body.status.replaceAll('_', ' ');
+    if (body.status === 'cancelled') {
+      button.hidden = true;
+      document.querySelector('#discovery-live-title').textContent = 'Search stopped';
+      document.querySelector('#discovery-live-detail').textContent = 'No application campaign was created.';
+    }
+  };
+
+  paintProgress('{{ record.phase }}');
+  if ('{{ record.campaign_id or '' }}') {
+    window.location.assign('/campaigns/{{ record.campaign_id }}');
+  } else if (!['blocked', 'campaign_created', 'cancelled'].includes('{{ record.status }}')) {
+    scheduleRefresh(600);
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,68 @@
+[project]
+name = "jobauto"
+version = "0.1.0"
+description = "Configurable local AI workflow for job discovery, tailored documents, and application handoff"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+dependencies = [
+  "beautifulsoup4>=4.13",
+  "httpx>=0.28",
+  "fastapi>=0.116",
+  "jinja2>=3.1",
+  "openpyxl>=3.1",
+  "playwright>=1.52",
+  "pypdf>=6.0",
+  "pydantic>=2.10",
+  "pyyaml>=6.0",
+  "trafilatura>=2.0",
+  "typer>=0.15",
+  "uvicorn>=0.35",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3",
+  "pytest-cov>=6.0",
+  "pytest-xdist>=3.8",
+  "ruff>=0.11",
+]
+
+[project.scripts]
+jobauto = "jobauto.studio_cli:app"
+jobauto-studio = "jobauto.studio_cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+exclude = [
+  "/.codex_work",
+  "/config/*.yaml",
+  "/dist",
+  "/runs",
+  "/outputs",
+  "/tests",
+  "/tmp",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/jobauto"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"config/profiles/example" = "jobauto/studio/example_profiles/example"
+"config/profiles/example-b" = "jobauto/studio/example_profiles/example-b"
+"docs/demo-evidence/20260718-nonit-chrome-batch" = "jobauto/studio/demo_evidence"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q -n 4 --dist loadscope"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501", "B008"]

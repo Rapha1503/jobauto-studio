@@ -1,0 +1,18 @@
+{
+  "name": "jobauto",
+  "version": "0.1.0",
+  "description": "Run JobAuto application campaigns from Codex and the user's Chrome session",
+  "author": {
+    "name": "JobAuto contributors"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "JobAuto",
+    "shortDescription": "Submit reviewed JobAuto packets with Chrome",
+    "longDescription": "Connects Codex to a local JobAuto Studio queue, guides authenticated Chrome submission, and records an auditable receipt.",
+    "developerName": "JobAuto contributors",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Apply the ready packets in my JobAuto campaign using my Chrome session, then record each receipt."
+  }
+}

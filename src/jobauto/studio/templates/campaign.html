@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+{% block title %}Campaign {{ record.campaign_id }} | JobAuto Studio{% endblock %}
+{% block content %}
+<section class="run-shell campaign-shell" data-status-url="/campaigns/{{ record.campaign_id }}/status" data-submission-url="/campaigns/{{ record.campaign_id }}/submission/status">
+  <div class="workflow-nav"><a class="back" href="/profiles/{{ record.candidate_id }}">&larr; Back to my profile</a><span>Open any offer or run without losing this batch.</span></div>
+  <p class="eyebrow">Application batch</p>
+  <h1 id="campaign-title">{% if record.status == 'completed' %}Your application documents are ready{% else %}Preparing your applications{% endif %}</h1>
+  <div class="run-state">
+    <span id="campaign-state">{{ record.status }}</span>
+    <strong><b id="completed-count">{{ record.items|selectattr('run_status', 'equalto', 'completed')|list|length }}</b> document packs ready | <b id="blocked-count">{{ record.items|selectattr('run_status', 'equalto', 'blocked')|list|length }}</b> generation blocked | <b id="failed-count">{{ record.items|selectattr('run_status', 'equalto', 'failed')|list|length }}</b> generation failed | <b id="reserve-count">{{ record.reserve_count }}</b> discovery reserve</strong>
+  </div>
+  <div class="live-activity" id="campaign-live-activity">
+    <span class="live-dot{% if record.status == 'completed' %} is-complete{% endif %}" aria-hidden="true"></span>
+    <div><strong id="campaign-live-title">{% if record.status == 'completed' %}Campaign finished{% else %}Preparing the first application{% endif %}</strong><small id="campaign-live-detail">{% if record.status == 'completed' %}{{ record.selected_count }} tailored application{% if record.selected_count != 1 %}s{% endif %} passed final review and PDF checks.{% else %}The next queued offer starts automatically.{% endif %}</small></div>
+  </div>
+
+  <div id="reserve-panel" class="reserve-panel"{% if not record.reserve_count %} hidden{% endif %}>
+    <div><strong><span id="reserve-panel-count">{{ record.reserve_count }}</span> additional match{% if record.reserve_count != 1 %}es{% endif %} kept from discovery</strong><small>These offers passed the initial filters and were kept because this campaign requested {{ record.requested_limit }} application{% if record.requested_limit != 1 %}s{% endif %}. JobAuto rechecks availability before generating their documents.</small></div>
+    <button id="expand-campaign" class="button secondary" type="button">Prepare the eligible reserve</button>
+  </div>
+
+  <div class="campaign-controls">
+    {% if record.status in ['partial', 'failed', 'cancelled'] %}<button id="resume-campaign" class="button secondary" type="button">Resume remaining applications</button>{% endif %}
+    {% if record.status not in ['completed', 'cancelled'] %}<button id="cancel-campaign" class="button secondary" type="button">Stop after the current application</button>{% endif %}
+    <small>An application already being written finishes first. No next offer starts afterwards.</small>
+  </div>
+
+  <article class="panel handoff-instructions">
+    <header><div><p class="panel-kicker">Apply with Codex Chrome</p><h2 id="submission-title">Choose how Codex should apply</h2></div></header>
+    <div class="submission-modes">
+      <button class="submission-mode" type="button" data-submission-mode="automatic">
+        <strong>Apply automatically</strong>
+        <span>Codex fills the forms, uploads the approved documents, checks the final page and submits when the action is unambiguous.</span>
+      </button>
+      <button class="submission-mode secondary-mode" type="button" data-submission-mode="confirm">
+        <strong>Fill everything, let me submit</strong>
+        <span>Codex completes the same workflow but stops immediately before each final employer submission.</span>
+      </button>
+      <button class="submission-mode secondary-mode" type="button" data-submission-mode="dry_run">
+        <strong>Simulation only</strong>
+        <span>Build and verify the queue without opening Chrome or submitting anything.</span>
+      </button>
+    </div>
+    <p class="submission-note">Your choice opens a ready-to-run Codex task. Codex uses the authenticated Chrome extension; Studio keeps this queue and its receipts live.</p>
+    <p class="submission-note" id="submission-note"><span id="submission-ready-count">{{ submission.ready_count }}</span> ready for Chrome | <span id="submission-progress-count">{{ submission.claimed_count }}</span> in progress | <span id="submission-submitted-count">{{ submission.submitted_count }}</span> submitted | <span id="submission-blocked-count">{{ submission.blocked_count }}</span> blocked | <span id="submission-waiting-count">{{ submission.waiting_count }}</span> waiting for documents.</p>
+    <div class="handoff-copy" id="handoff-links">
+      {% for item in submission.items if item.handoff_id %}<div><a href="/handoffs/{{ item.handoff_id }}">{{ item.company }} | {{ item.role }} | {{ item.status|replace('_', ' ') }}</a>{% if item.blockers %}<small>{{ item.blockers|join(' ') }}</small>{% endif %}</div>{% endfor %}
+    </div>
+  </article>
+
+  <details class="campaign-tracker"><summary>Technical batch details</summary><code>{{ record.campaign_id }}</code><br><code>{{ record.tracker_path.name }}</code></details>
+  <div class="campaign-table-wrap">
+    <table class="campaign-table">
+      <thead><tr><th>Offer</th><th>Decision</th><th>Role/profile fit</th><th>Excel</th><th>Run</th><th>Reason</th></tr></thead>
+      <tbody>
+      {% for item in record.items %}
+        <tr data-item-index="{{ loop.index0 }}">
+          <td><strong>{{ item.offer.company }}</strong><small>{{ item.offer.role }}</small><a href="{{ item.offer.url }}" target="_blank">Open offer &nearr;</a></td>
+          <td><span data-decision class="decision decision-{{ item.decision }}">{% if item.decision == 'not_selected' %}discovery reserve{% else %}{{ item.decision|replace('_', ' ') }}{% endif %}</span></td>
+          <td>{% if item.offer.semantic_fit_score is not none %}<strong>{{ item.offer.semantic_fit_score }}</strong><small>{{ item.offer.semantic_fit_rationale }}</small>{% else %}{{ item.evaluation.score if item.evaluation else '-' }}{% endif %}</td>
+          <td data-excel-row>{{ item.excel_row or '-' }}</td>
+          <td data-run-cell>{% if item.run_id %}<a data-run-status href="/runs/{{ item.run_id }}">{{ item.run_status or 'pending' }}</a><small data-run-phase>{% if item.run_status == 'completed' %}CV and letter ready{% else %}{{ item.run_phase or 'Queued' }}{% endif %}</small><small data-run-metrics>{% if item.agent_call_count %}{{ item.agent_call_count }} calls · {{ (item.agent_latency_ms / 1000)|round|int }}s agent · ~{{ (item.agent_token_estimate / 1000)|round|int }}k tokens{% else %}Waiting for the first agent event{% endif %}</small>{% if item.run_status == 'completed' %}<button class="handoff-action" type="button" data-run-id="{{ item.run_id }}">Inspect packet</button>{% endif %}{% else %}-{% endif %}</td>
+          <td data-reason>{{ item.reasons|join(' ') or item.run_blockers|join(' ') or '-' }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+<script>
+  const shell = document.querySelector('.campaign-shell');
+  const terminal = new Set(['completed', 'partial', 'failed', 'cancelled']);
+  let refreshTimer = null;
+
+  function readableRunPhase(phase) {
+    if (!phase || phase === 'pending') return 'Queued';
+    if (phase === 'rendering_documents') return 'Compiling and inspecting the PDFs';
+    if (phase === 'completed') return 'CV and letter ready';
+    const agentMatch = phase.match(/^agent:([^:]+):running$/);
+    if (agentMatch) return ({
+      offer_analysis: 'Analyzing the complete offer', brief_review: 'Reviewing the ATS and application angle',
+      brief_repair: 'Repairing the application strategy', project_lab: 'Selecting and adapting projects',
+      cv_writer: 'Writing the tailored CV', cv_latex_writer: 'Applying the original LaTeX layout',
+      letter_writer: 'Writing the cover letter', supervisor: 'Supervising the final documents',
+      final_review: 'Running final ATS and quality review', repair: 'Repairing a rejected document'
+    }[agentMatch[1]] || `Running ${agentMatch[1].replaceAll('_', ' ')}`);
+    return phase.replaceAll('_', ' ');
+  }
+
+  function runMetrics(item) {
+    if (!item.agent_call_count) return 'Waiting for the first agent event';
+    const seconds = Math.round(item.agent_latency_ms / 1000);
+    const tokens = Math.round(item.agent_token_estimate / 1000);
+    return `${item.agent_call_count} calls · ${item.repair_call_count} repair${item.repair_call_count === 1 ? '' : 's'} · ${seconds}s agent · ~${tokens}k tokens`;
+  }
+
+  function scheduleRefresh(delay = 1500) {
+    window.clearTimeout(refreshTimer);
+    refreshTimer = window.setTimeout(refreshCampaign, delay);
+  }
+
+  function renderRunCell(row, item) {
+    const cell = row.querySelector('[data-run-cell]');
+    if (!item.run_id) { cell.textContent = '-'; return; }
+    cell.replaceChildren();
+    const link = document.createElement('a');
+    link.dataset.runStatus = '';
+    link.href = `/runs/${item.run_id}`;
+    link.textContent = item.run_status || 'pending';
+    const phase = document.createElement('small');
+    phase.dataset.runPhase = '';
+    phase.textContent = readableRunPhase(item.run_phase);
+    const metrics = document.createElement('small');
+    metrics.dataset.runMetrics = '';
+    metrics.textContent = runMetrics(item);
+    cell.append(link, phase, metrics);
+    if (item.run_status === 'completed') {
+      const button = document.createElement('button');
+      button.className = 'handoff-action';
+      button.type = 'button';
+      button.dataset.runId = item.run_id;
+      button.textContent = 'Inspect packet';
+      cell.append(button);
+    }
+  }
+
+  function updateRows(campaign) {
+    campaign.items.forEach((item, index) => {
+      const row = document.querySelector(`[data-item-index="${index}"]`);
+      if (!row) return;
+      const decision = row.querySelector('[data-decision]');
+      decision.textContent = item.decision === 'not_selected' ? 'discovery reserve' : item.decision.replaceAll('_', ' ');
+      decision.className = `decision decision-${item.decision}`;
+      row.querySelector('[data-excel-row]').textContent = item.excel_row || '-';
+      row.querySelector('[data-reason]').textContent = item.reasons.join(' ') || item.run_blockers.join(' ') || '-';
+      renderRunCell(row, item);
+    });
+  }
+
+  async function refreshSubmission() {
+    const response = await fetch(shell.dataset.submissionUrl);
+    if (!response.ok) return;
+    const submission = await response.json();
+    document.querySelector('#submission-ready-count').textContent = submission.ready_count;
+    document.querySelector('#submission-progress-count').textContent = submission.claimed_count;
+    document.querySelector('#submission-submitted-count').textContent = submission.submitted_count;
+    document.querySelector('#submission-blocked-count').textContent = submission.blocked_count;
+    document.querySelector('#submission-waiting-count').textContent = submission.waiting_count;
+    document.querySelector('#submission-title').textContent = submission.status.replaceAll('_', ' ');
+    const links = document.querySelector('#handoff-links');
+    links.replaceChildren();
+    submission.items.filter(item => item.handoff_id).forEach(item => {
+      const row = document.createElement('div');
+      const link = document.createElement('a');
+      link.href = `/handoffs/${item.handoff_id}`;
+      link.textContent = `${item.company} | ${item.role} | ${item.status.replaceAll('_', ' ')}`;
+      row.append(link);
+      if (item.blockers.length) {
+        const detail = document.createElement('small');
+        detail.textContent = item.blockers.join(' ');
+        row.append(detail);
+      }
+      links.append(row);
+    });
+  }
+
+  async function refreshCampaign() {
+    try {
+      const response = await fetch(shell.dataset.statusUrl, {cache: 'no-store'});
+      if (!response.ok) throw new Error('status unavailable');
+      const campaign = await response.json();
+      document.querySelector('#campaign-state').textContent = campaign.status;
+      document.querySelector('#completed-count').textContent = campaign.completed_count;
+      document.querySelector('#blocked-count').textContent = campaign.blocked_count;
+      document.querySelector('#failed-count').textContent = campaign.failed_count;
+      document.querySelector('#reserve-count').textContent = campaign.reserve_count;
+      document.querySelector('#reserve-panel-count').textContent = campaign.reserve_count;
+      document.querySelector('#reserve-panel').hidden = campaign.reserve_count === 0;
+      updateRows(campaign);
+      const selected = campaign.items.filter(item => item.decision === 'selected');
+      const active = selected.find(item => item.run_status === 'running');
+      if (active) {
+        document.querySelector('#campaign-live-title').textContent = `${active.offer.company}: ${readableRunPhase(active.run_phase)}`;
+        document.querySelector('#campaign-live-detail').textContent = `${campaign.completed_count} of ${campaign.selected_count} applications ready · ${runMetrics(active)}.`;
+      } else if (terminal.has(campaign.status)) {
+        document.querySelector('#campaign-title').textContent = campaign.completed_count ? 'Your application documents are ready' : 'Campaign needs attention';
+        document.querySelector('#campaign-live-title').textContent = 'Campaign finished';
+        document.querySelector('#campaign-live-detail').textContent = `${campaign.completed_count} of ${campaign.selected_count} applications ready.`;
+        document.querySelector('.live-dot').classList.add('is-complete');
+        await refreshSubmission();
+        scheduleRefresh(2000);
+        return;
+      } else {
+        document.querySelector('#campaign-live-title').textContent = 'Starting the next queued offer';
+        document.querySelector('#campaign-live-detail').textContent = `${campaign.completed_count} of ${campaign.selected_count} applications ready.`;
+      }
+      scheduleRefresh();
+    } catch (error) {
+      document.querySelector('#campaign-live-title').textContent = 'Reconnecting to JobAuto';
+      const diagnostic = error instanceof Error ? error.message : String(error);
+      document.querySelector('#campaign-live-detail').textContent = `The campaign is persisted. Retrying automatically. ${diagnostic}`;
+      console.error('JobAuto campaign refresh failed', error);
+      scheduleRefresh(2000);
+    }
+  }
+
+  async function prepareSubmission(mode, button) {
+    document.querySelectorAll('[data-submission-mode]').forEach(item => item.disabled = true);
+    button.querySelector('strong').textContent = mode === 'automatic'
+      ? 'Opening Codex...'
+      : (mode === 'dry_run' ? 'Preparing simulation...' : 'Preparing review mode...');
+    const response = await fetch(`/campaigns/{{ record.campaign_id }}/submission`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({mode})
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      document.querySelectorAll('[data-submission-mode]').forEach(item => item.disabled = false);
+      document.querySelector('#submission-note').textContent = payload.detail || 'Chrome queue preparation failed.';
+      return;
+    }
+    await refreshSubmission();
+    if (payload.codex_url) {
+      window.location.assign(payload.codex_url);
+      return;
+    }
+    document.querySelector('#submission-note').textContent = 'Simulation prepared. No browser was opened and nothing was submitted.';
+    document.querySelectorAll('[data-submission-mode]').forEach(item => {
+      item.disabled = false;
+      const labels = {automatic: 'Apply automatically', confirm: 'Fill everything, let me submit', dry_run: 'Simulation only'};
+      item.querySelector('strong').textContent = labels[item.dataset.submissionMode];
+    });
+  }
+
+  document.querySelectorAll('[data-submission-mode]').forEach(button => button.addEventListener('click', () => prepareSubmission(button.dataset.submissionMode, button)));
+  document.querySelector('#expand-campaign').addEventListener('click', async event => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    button.textContent = 'Adding eligible offers...';
+    const response = await fetch(`/campaigns/{{ record.campaign_id }}/expand`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'});
+    const payload = await response.json();
+    if (!response.ok) {
+      button.disabled = false;
+      button.textContent = payload.detail || 'Could not add the reserve';
+      return;
+    }
+    document.querySelector('#campaign-title').textContent = 'Preparing your applications';
+    document.querySelector('.live-dot').classList.remove('is-complete');
+    button.textContent = 'Eligible reserve added';
+    scheduleRefresh(100);
+  });
+  const resumeButton = document.querySelector('#resume-campaign');
+  if (resumeButton) resumeButton.addEventListener('click', async () => {
+    resumeButton.disabled = true;
+    resumeButton.textContent = 'Resuming...';
+    const response = await fetch(`/campaigns/{{ record.campaign_id }}/resume`, {method: 'POST'});
+    if (!response.ok) { const payload = await response.json(); resumeButton.disabled = false; resumeButton.textContent = payload.detail || 'Resume failed'; return; }
+    scheduleRefresh(100);
+  });
+  const cancelButton = document.querySelector('#cancel-campaign');
+  if (cancelButton) cancelButton.addEventListener('click', async () => {
+    cancelButton.disabled = true;
+    cancelButton.textContent = 'Stopping after the current application...';
+    const response = await fetch(`/campaigns/{{ record.campaign_id }}/cancel`, {method: 'POST'});
+    const payload = await response.json();
+    if (!response.ok) {
+      cancelButton.disabled = false;
+      cancelButton.textContent = payload.detail || 'Stop failed';
+      return;
+    }
+    document.querySelector('#campaign-state').textContent = payload.status;
+    scheduleRefresh(200);
+  });
+  document.querySelector('.campaign-table').addEventListener('click', async event => {
+    const button = event.target.closest('.handoff-action');
+    if (!button) return;
+    button.disabled = true;
+    button.textContent = 'Verifying...';
+    const response = await fetch(`/campaigns/{{ record.campaign_id }}/handoffs/${button.dataset.runId}`, {method: 'POST'});
+    const handoff = await response.json();
+    if (!response.ok) { button.disabled = false; button.textContent = handoff.detail || 'Packet blocked'; return; }
+    window.location.assign(handoff.page_url);
+  });
+  scheduleRefresh(500);
+</script>
+{% endblock %}

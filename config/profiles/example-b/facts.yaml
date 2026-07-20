@@ -1,0 +1,26 @@
+facts:
+  - fact_id: identity.current
+    claim: "Machine learning engineer with two years of experience in computer vision, model evaluation and AI application delivery."
+    status: verified
+    role_tags: [machine_learning_engineer, data_scientist]
+    keywords: [Python, PyTorch, computer vision, model evaluation]
+  - fact_id: experience.contoso.models
+    claim: "Developed and evaluated medical image-classification models with Python, PyTorch and scikit-learn."
+    status: verified
+    role_tags: [machine_learning_engineer, data_scientist]
+    keywords: [PyTorch, scikit-learn, classification, medical imaging]
+  - fact_id: experience.contoso.evaluation
+    claim: "Structured MLflow tracking, class-level error analysis and model-performance reviews with product teams."
+    status: verified
+    role_tags: [machine_learning_engineer, data_scientist]
+    keywords: [MLflow, error analysis, product]
+  - fact_id: experience.contoso.deployment
+    claim: "Industrialized a containerized FastAPI inference service with automated tests and application monitoring."
+    status: verified
+    role_tags: [machine_learning_engineer, ai_engineer]
+    keywords: [FastAPI, Docker, testing, monitoring]
+  - fact_id: experience.alpine.research
+    claim: "Prepared imaging datasets, analyzed bias, compared segmentation architectures and presented results to a multidisciplinary team."
+    status: verified
+    role_tags: [machine_learning_engineer, data_scientist]
+    keywords: [data quality, segmentation, research]

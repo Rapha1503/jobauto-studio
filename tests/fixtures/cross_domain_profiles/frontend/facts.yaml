@@ -1,0 +1,26 @@
+facts:
+  - fact_id: identity.current
+    claim: Frontend software engineer with three years of product-development experience.
+    status: verified
+    role_tags: [frontend_engineer, software_engineer]
+    keywords: [TypeScript, React, frontend]
+  - fact_id: experience.atlas.delivery
+    claim: Delivered responsive React and TypeScript journeys with reusable components and typed API integrations.
+    status: verified
+    role_tags: [frontend_engineer]
+    keywords: [React, TypeScript, REST APIs]
+  - fact_id: experience.atlas.quality
+    claim: Improved WCAG accessibility and automated unit, integration and browser tests.
+    status: verified
+    role_tags: [frontend_engineer, quality]
+    keywords: [WCAG, Playwright, testing]
+  - fact_id: experience.atlas.collaboration
+    claim: Scoped releases and solved performance issues with product, design and backend teams.
+    status: verified
+    role_tags: [frontend_engineer, product]
+    keywords: [collaboration, performance, product]
+  - fact_id: experience.studio.designsystem
+    claim: Built responsive interfaces and documented reusable component patterns in Storybook.
+    status: verified
+    role_tags: [frontend_engineer]
+    keywords: [Storybook, design systems, responsive]

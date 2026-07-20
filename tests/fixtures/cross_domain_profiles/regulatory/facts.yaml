@@ -1,0 +1,26 @@
+facts:
+  - fact_id: identity.current
+    claim: Regulatory affairs specialist with three years of medical-device compliance experience.
+    status: verified
+    role_tags: [regulatory_affairs, medical_devices]
+    keywords: [EU MDR, medical devices, regulatory affairs]
+  - fact_id: experience.mednova.documentation
+    claim: Prepared and maintained EU MDR technical documentation for Class II medical devices.
+    status: verified
+    role_tags: [regulatory_affairs]
+    keywords: [EU MDR, technical documentation, Class II]
+  - fact_id: experience.mednova.coordination
+    claim: Coordinated quality, clinical and engineering evidence and notified-body responses.
+    status: verified
+    role_tags: [regulatory_affairs, coordination]
+    keywords: [notified body, cross-functional, submissions]
+  - fact_id: experience.mednova.postmarket
+    claim: Supported post-market surveillance, vigilance, risk-management and clinical-evaluation updates.
+    status: verified
+    role_tags: [regulatory_affairs, product_safety]
+    keywords: [post-market surveillance, vigilance, risk management]
+  - fact_id: experience.biocert.quality
+    claim: Reviewed quality records and CAPA evidence against ISO 13485 procedures.
+    status: verified
+    role_tags: [quality_assurance]
+    keywords: [ISO 13485, CAPA, internal audits]

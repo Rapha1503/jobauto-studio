@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}JobAuto Studio{% endblock %}
+{% block content %}
+<section class="hero home-hero">
+  <div>
+    <p class="eyebrow">Your application workspace</p>
+    {% if active_profile %}
+    <h1>Welcome back,<br><em>{{ active_profile.profile.identity.first_name }}.</em></h1>
+    {% else %}
+    <h1>Your job search.<br><em>Prepared end to end.</em></h1>
+    {% endif %}
+  </div>
+  <div class="hero-side">
+    <p class="hero-copy">Import your CV once. JobAuto finds relevant offers, adapts the documents, checks the PDFs and prepares the application.</p>
+    <div class="hero-actions">
+    {% if active_profile %}
+      <a class="hero-action" href="/profiles/{{ active_profile.profile.candidate_id }}">Open JobAuto</a>
+      {% if active_profile_edit_url %}
+      <a class="hero-secondary profile-edit-action" href="{{ active_profile_edit_url }}">Edit profile &amp; preferences</a>
+      {% else %}
+      <a class="hero-secondary" href="/setup">Import an updated CV</a>
+      {% endif %}
+    {% else %}
+      <a class="hero-action" href="/setup">Create my JobAuto profile</a>
+      <a class="hero-secondary" href="/demo">Explore the checked demo</a>
+    {% endif %}
+    </div>
+    <p class="model-badge">Agent engine: {{ codex_model }}</p>
+  </div>
+</section>
+
+<section class="home-primary">
+  {% if active_profile %}
+  <article class="panel active-workspace-card">
+    <div>
+      <p class="panel-kicker">My workspace</p>
+      <h2>{{ active_profile.profile.identity.first_name }} {{ active_profile.profile.identity.last_name }}</h2>
+      <p>{{ active_profile.source.headline }}</p>
+    </div>
+    <div class="home-actions">
+      <a class="primary-link" href="/profiles/{{ active_profile.profile.candidate_id }}">Open JobAuto</a>
+      {% if active_profile_edit_url %}
+      <a class="profile-edit-action" href="{{ active_profile_edit_url }}">Edit profile &amp; preferences</a>
+      {% else %}
+      <a href="/setup">Import an updated CV</a>
+      {% endif %}
+    </div>
+  </article>
+  {% else %}
+  <article class="panel active-workspace-card">
+    <div>
+      <p class="panel-kicker">First step</p>
+      <h2>Bring a CV or build one here</h2>
+      <p>Preserve an existing LaTeX design, or create reusable content blocks with a JobAuto layout.</p>
+    </div>
+    <div class="home-actions"><a class="primary-link" href="/setup">Create my JobAuto profile</a></div>
+  </article>
+  {% endif %}
+</section>
+
+{% if user_profiles %}
+<section class="profile-manager panel" aria-labelledby="profile-manager-title">
+  <header class="profile-manager-head">
+    <div>
+      <p class="panel-kicker">Profiles</p>
+      <h2 id="profile-manager-title">Choose a profile</h2>
+      <p>Open an existing workspace, continue its setup or create a separate profile.</p>
+    </div>
+    <a class="primary-link" href="/setup">Create another profile</a>
+  </header>
+  <div class="profile-manager-grid">
+    {% for item in user_profiles %}
+    <article class="profile-manager-card{% if active_profile and item.profile.candidate_id == active_profile.profile.candidate_id %} is-active{% endif %}">
+      <div class="avatar">{{ item.profile.identity.first_name[0] }}{{ item.profile.identity.last_name[0] }}</div>
+      <div class="profile-card-main">
+        <h3>{{ item.profile.identity.first_name }} {{ item.profile.identity.last_name }}</h3>
+        <p>{{ item.source.headline }}</p>
+        {% if active_profile and item.profile.candidate_id == active_profile.profile.candidate_id %}<span class="profile-current">Current profile</span>{% endif %}
+      </div>
+      <div class="profile-manager-actions">
+        <button type="button" data-select-profile="{{ item.profile.candidate_id }}">Open</button>
+        {% set edit_url = active_profile_edit_url if active_profile and item.profile.candidate_id == active_profile.profile.candidate_id else none %}
+        {% if edit_url %}<a href="{{ edit_url }}">Edit setup</a>{% else %}<a href="/profiles/{{ item.profile.candidate_id }}">View</a>{% endif %}
+        <button class="quiet-danger" type="button" data-archive-profile="{{ item.profile.candidate_id }}">Archive</button>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if archived_profiles %}
+<details class="archived-profiles panel">
+  <summary><strong>Archived profiles</strong><span>{{ archived_profiles|length }} hidden from the main workspace</span></summary>
+  <div class="profile-manager-grid">
+    {% for item in archived_profiles %}
+    <article class="profile-manager-card is-archived">
+      <div class="profile-card-main"><h3>{{ item.profile.identity.first_name }} {{ item.profile.identity.last_name }}</h3><p>{{ item.source.headline }}</p></div>
+      <button type="button" data-restore-profile="{{ item.profile.candidate_id }}">Restore</button>
+    </article>
+    {% endfor %}
+  </div>
+</details>
+{% endif %}
+
+{% if example_profiles %}
+<details class="demo-profiles">
+  <summary>Explore synthetic profiles</summary>
+  <div class="profile-grid">
+    {% for item in example_profiles %}
+    <a class="profile-card" href="/profiles/{{ item.profile.candidate_id }}">
+      <div class="avatar">{{ item.profile.identity.first_name[0] }}{{ item.profile.identity.last_name[0] }}</div>
+      <div class="profile-card-main"><h3>{{ item.profile.identity.first_name }} {{ item.profile.identity.last_name }}</h3><p>{{ item.source.headline }}</p></div>
+      <span class="arrow" aria-hidden="true">↗</span>
+    </a>
+    {% endfor %}
+  </div>
+</details>
+{% endif %}
+<script>
+  async function updateProfile(endpoint) {
+    const response = await fetch(endpoint, {method: 'POST'});
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.detail || 'Profile action failed.');
+    window.location.assign(body.page_url);
+  }
+  document.querySelectorAll('[data-select-profile]').forEach(button => button.addEventListener('click', () => {
+    button.disabled = true;
+    updateProfile(`/profiles/${button.dataset.selectProfile}/select`).catch(error => {
+      button.disabled = false;
+      button.textContent = error.message;
+    });
+  }));
+  document.querySelectorAll('[data-archive-profile]').forEach(button => button.addEventListener('click', () => {
+    if (!window.confirm('Archive this profile? Existing applications and receipts remain available and the profile can be restored.')) return;
+    button.disabled = true;
+    updateProfile(`/profiles/${button.dataset.archiveProfile}/archive`).catch(error => {
+      button.disabled = false;
+      button.textContent = error.message;
+    });
+  }));
+  document.querySelectorAll('[data-restore-profile]').forEach(button => button.addEventListener('click', () => {
+    button.disabled = true;
+    updateProfile(`/profiles/${button.dataset.restoreProfile}/restore`).catch(error => {
+      button.disabled = false;
+      button.textContent = error.message;
+    });
+  }));
+</script>
+{% endblock %}

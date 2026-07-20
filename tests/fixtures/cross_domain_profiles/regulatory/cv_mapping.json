@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "filename": "sofia-regulatory.tex",
+  "encoding": "utf-8",
+  "line_ending": "lf",
+  "source_sha256": "750686fbff07fda6252d32862791a5d732e801031e9bff495eb635ba61507be7",
+  "preamble_sha256": "e57bc908f8b5146043134a57852e833a61cef9726530c445f03ec96c86d72481",
+  "document_start_line": 12,
+  "document_end_line": 58,
+  "preamble_end_byte": 394,
+  "blocks": [
+    {
+      "block_id": "identity",
+      "label": "Identity",
+      "kind": "identity",
+      "start_line": 13,
+      "end_line": 18,
+      "start_byte": 411,
+      "end_byte": 616,
+      "confidence": 0.75,
+      "detector": "document-prefix",
+      "policy": {
+        "fidelity": "very_faithful",
+        "required": true,
+        "target_lines": null,
+        "min_characters": null,
+        "max_characters": null,
+        "protected_terms": [],
+        "protected_fact_ids": []
+      }
+    },
+    {
+      "block_id": "summary",
+      "label": "Profile",
+      "kind": "summary",
+      "start_line": 19,
+      "end_line": 21,
+      "start_byte": 616,
+      "end_byte": 935,
+      "confidence": 0.9,
+      "detector": "semantic-command:cvsection",
+      "policy": {
+        "fidelity": "adaptable",
+        "required": true,
+        "target_lines": null,
+        "min_characters": null,
+        "max_characters": null,
+        "protected_terms": [],
+        "protected_fact_ids": []
+      }
+    },
+    {
+      "block_id": "experience",
+      "label": "Experience",
+      "kind": "experience",
+      "start_line": 22,
+      "end_line": 34,
+      "start_byte": 935,
+      "end_byte": 1862,
+      "confidence": 0.9,
+      "detector": "semantic-command:cvsection",
+      "policy": {
+        "fidelity": "very_faithful",
+        "required": true,
+        "target_lines": null,
+        "min_characters": null,
+        "max_characters": null,
+        "protected_terms": [],
+        "protected_fact_ids": []
+      }
+    },
+    {
+      "block_id": "skills",
+      "label": "Skills",
+      "kind": "skills",
+      "start_line": 35,
+      "end_line": 40,
+      "start_byte": 1862,
+      "end_byte": 2298,
+      "confidence": 0.9,
+      "detector": "semantic-command:cvsection",
+      "policy": {
+        "fidelity": "replaceable",
+        "required": true,
+        "target_lines": null,
+        "min_characters": null,
+        "max_characters": null,
+        "protected_terms": [],
+        "protected_fact_ids": []
+      }
+    },
+    {
+      "block_id": "education",
+      "label": "Education",
+      "kind": "education",
+      "start_line": 41,
+      "end_line": 46,
+      "start_byte": 2298,
+      "end_byte": 2673,
+      "confidence": 0.9,
+      "detector": "semantic-command:cvsection",
+      "policy": {
+        "fidelity": "locked",
+        "required": true,
+        "target_lines": null,
+        "min_characters": null,
+        "max_characters": null,
+        "protected_terms": [],
+        "protected_fact_ids": []
+      }
+    },
+    {
+      "block_id": "other",
+      "label": "Certifications \\& Training",
+      "kind": "other",
+      "start_line": 47,
+      "end_line": 49,
+      "start_byte": 2673,
+      "end_byte": 2798,
+      "confidence": 0.9,
+      "detector": "semantic-command:cvsection",
+      "policy": {
+        "fidelity": "very_faithful",
+        "required": true,
+        "target_lines": null,
+        "min_characters": null,
+        "max_characters": null,
+        "protected_terms": [],
+        "protected_fact_ids": []
+      }
+    },
+    {
+      "block_id": "other-2",
+      "label": "Professional Memberships",
+      "kind": "other",
+      "start_line": 50,
+      "end_line": 52,
+      "start_byte": 2798,
+      "end_byte": 2926,
+      "confidence": 0.9,
+      "detector": "semantic-command:cvsection",
+      "policy": {
+        "fidelity": "very_faithful",
+        "required": true,
+        "target_lines": null,
+        "min_characters": null,
+        "max_characters": null,
+        "protected_terms": [],
+        "protected_fact_ids": []
+      }
+    },
+    {
+      "block_id": "languages",
+      "label": "Languages",
+      "kind": "languages",
+      "start_line": 53,
+      "end_line": 55,
+      "start_byte": 2926,
+      "end_byte": 2988,
+      "confidence": 0.9,
+      "detector": "semantic-command:cvsection",
+      "policy": {
+        "fidelity": "locked",
+        "required": true,
+        "target_lines": null,
+        "min_characters": null,
+        "max_characters": null,
+        "protected_terms": [],
+        "protected_fact_ids": []
+      }
+    },
+    {
+      "block_id": "other-3",
+      "label": "Volunteering",
+      "kind": "other",
+      "start_line": 56,
+      "end_line": 57,
+      "start_byte": 2988,
+      "end_byte": 3113,
+      "confidence": 0.9,
+      "detector": "semantic-command:cvsection",
+      "policy": {
+        "fidelity": "very_faithful",
+        "required": true,
+        "target_lines": null,
+        "min_characters": null,
+        "max_characters": null,
+        "protected_terms": [],
+        "protected_fact_ids": []
+      }
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Chrome handoff {{ record.handoff_id }} · JobAuto Studio{% endblock %}
+{% block content %}
+<section class="run-shell handoff-shell">
+  <a class="back" href="/campaigns/{{ record.campaign_id }}">← Campaign</a>
+  <p class="eyebrow">Codex Chrome Extension handoff</p>
+  <h1>{{ record.company }} · {{ record.role }}</h1>
+  <div class="run-state"><span>{{ record.status }}</span><strong>Excel row {{ record.excel_row }}</strong></div>
+
+  {% if record.blockers %}
+  <div class="compile-error"><strong>Handoff blocked</strong><ul>{% for blocker in record.blockers %}<li>{{ blocker }}</li>{% endfor %}</ul></div>
+  {% endif %}
+
+  <div class="run-detail-grid">
+    <article class="panel run-detail-card">
+      <header><div><p class="panel-kicker">Exact artifacts</p><h2>Rehashed after review</h2></div></header>
+      <div class="handoff-details">
+      {% for artifact in record.artifacts %}
+        <div><strong>{{ artifact.kind|upper }} · {{ artifact.page_count }} page</strong><code>{{ artifact.path.name }}</code><small>sha256 {{ artifact.sha256 }}</small></div>
+      {% endfor %}
+      </div>
+    </article>
+    <article class="panel run-detail-card">
+      <header><div><p class="panel-kicker">Candidate policy</p><h2>{{ record.preferences.mode.value|replace('_', ' ')|title }}</h2></div></header>
+      <div class="handoff-details">
+        {% if record.candidate_identity %}<div><strong>Candidate</strong><span>{{ record.candidate_identity.first_name }} {{ record.candidate_identity.last_name }}</span><small>{{ record.candidate_identity.email }}{% if record.candidate_identity.phone %} · {{ record.candidate_identity.phone }}{% endif %}{% if record.candidate_identity.location %} · {{ record.candidate_identity.location }}{% endif %}</small></div>{% endif %}
+        <div><strong>Maximum per campaign</strong><span>{{ record.preferences.max_applications_per_campaign }}</span></div>
+        <div><strong>Allowed portals</strong><span>{{ record.preferences.allowed_portals|join(', ') or 'No candidate-level restriction' }}</span></div>
+        <div><strong>Standard answers</strong><span>{% if record.preferences.standard_answers %}{% for key, value in record.preferences.standard_answers.items() %}{{ key }}={{ value }}{% if not loop.last %} · {% endif %}{% endfor %}{% else %}None configured{% endif %}</span></div>
+        <div><strong>Login / CAPTCHA / 2FA</strong><span>{{ record.preferences.on_login.value }} · {{ record.preferences.on_captcha.value }} · {{ record.preferences.on_two_factor.value }}</span></div>
+        <div><strong>Confirmation evidence</strong><span>{{ 'Required' if record.preferences.require_confirmation_evidence else 'Optional' }}</span></div>
+      </div>
+    </article>
+  </div>
+
+  {% if record.status in ['ready_for_chrome', 'claimed_for_chrome', 'sandbox_verified'] %}
+  <article class="panel handoff-instructions">
+    <header><div><p class="panel-kicker">Agent boundary</p><h2>{% if record.status == 'sandbox_verified' %}Sandbox passed · ready for real Chrome{% else %}Ready for Codex in the user's Chrome{% endif %}</h2></div><a href="{{ record.offer_url }}" target="_blank">Open offer ↗</a></header>
+    <div class="handoff-copy">
+      <p>Use the JobAuto Codex plugin with the user's active Chrome session. It uploads only the two rehashed PDFs above, follows the candidate policy, stops on its configured blockers, and POSTs the observed receipt to:</p>
+      <code>POST /handoffs/{{ record.handoff_id }}/receipt</code>
+      <p><strong>First upload setup:</strong> in <code>chrome://extensions</code>, open the ChatGPT Chrome Extension details and enable <strong>Allow access to file URLs</strong>. Without it, Chrome can open the form but cannot attach these local PDFs.</p>
+      <p>Studio marks the tracker as submitted only after a receipt with confirmation evidence.</p>
+    </div>
+  </article>
+  {% elif record.status == 'submitted' and record.receipt %}
+  <article class="panel handoff-instructions">
+    <header><div><p class="panel-kicker">Confirmed receipt</p><h2>Employer application submitted</h2></div></header>
+    <div class="handoff-copy"><p>{{ record.receipt.portal }} confirmed the application at {{ record.receipt.submitted_at }}. The Chrome handoff is closed to prevent duplicate submission.</p></div>
+  </article>
+  {% endif %}
+  {% if record.status in ['ready_for_chrome', 'claimed_for_chrome'] %}
+  <div class="artifact-links handoff-controls">
+    <a href="/sandbox/apply/{{ record.handoff_id }}">Run sandbox Chrome proof</a>
+    {% if record.status == 'claimed_for_chrome' %}<button id="release-handoff" type="button">Return to queue</button>{% endif %}
+    <span id="handoff-action-status" role="status"></span>
+  </div>
+  {% endif %}
+</section>
+{% if record.status == 'claimed_for_chrome' %}
+<script>
+  document.querySelector('#release-handoff').addEventListener('click', async event => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    const response = await fetch('/handoffs/{{ record.handoff_id }}/release', {method: 'POST'});
+    const payload = await response.json();
+    if (!response.ok) {
+      button.disabled = false;
+      document.querySelector('#handoff-action-status').textContent = payload.detail || 'Could not return this application to the queue.';
+      return;
+    }
+    window.location.reload();
+  });
+</script>
+{% endif %}
+{% endblock %}

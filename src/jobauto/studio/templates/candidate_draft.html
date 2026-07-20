@@ -1,0 +1,579 @@
+{% extends "base.html" %}
+{% block title %}My JobAuto setup · JobAuto Studio{% endblock %}
+{% block content %}
+{% set is_imported = draft.origin.value != 'manual' %}
+{% set is_pdf = draft.origin.value == 'pdf' %}
+<section class="workspace-head compact-head">
+  <div>
+    <a class="back" href="{% if draft.origin.value == 'latex' %}/setup/imports/{{ draft.import_id }}{% elif is_pdf %}/api/pdf-imports/{{ draft.source_document_id }}/original.pdf{% else %}/setup{% endif %}"{% if is_pdf %} target="_blank"{% endif %}>← {% if draft.origin.value == 'latex' %}Imported CV{% elif is_pdf %}Original PDF{% else %}Setup choices{% endif %}</a>
+    <p class="eyebrow">My JobAuto setup · version <span id="draft-version">{{ draft.version }}</span></p>
+    <h1>{{ draft.identity.first_name or 'Unnamed' }} {{ draft.identity.last_name or 'candidate' }}</h1>
+    <p>{% if is_imported %}Check what JobAuto extracted. Everything else already has sensible defaults.{% else %}Build only the sections that belong in your CV. JobAuto handles the layout and adaptation rules.{% endif %}</p>
+  </div>
+  <div id="draft-state" class="ready-state{% if draft.status.value != 'validated' %} blocked{% endif %}">
+    <span>{{ draft.status.value|replace('_', ' ')|title }}</span><small>{{ draft.source_sha256[:12] }}</small>
+  </div>
+</section>
+
+<section class="extraction-overview" aria-label="{% if is_imported %}Automatic CV extraction summary{% else %}CV profile summary{% endif %}">
+  <div>
+    <p class="panel-kicker">{% if is_pdf %}Filled automatically from selectable PDF text{% elif is_imported %}Filled automatically from the CV{% else %}Blank CV workspace{% endif %}</p>
+    <strong>{% if is_imported %}Review the result. Do not rebuild your profile by hand.{% else %}Add the blocks that describe your profile.{% endif %}</strong>
+    <span>{% if is_imported %}Correct extraction mistakes or add evidence that was missing from the CV.{% else %}Work, research, projects and skills are optional. Use a custom section for publications, certifications, volunteering or any other evidence.{% endif %}</span>
+  </div>
+  <ul>
+    <li><b>{{ draft.experiences|length }}</b> experiences</li>
+    <li><b>{{ draft.skills|length }}</b> skills</li>
+    <li><b>{{ draft.projects|length }}</b> projects</li>
+    <li><b>{{ draft.education|length }}</b> education entries</li>
+    <li><b>{{ draft.additional_sections|length }}</b> additional sections</li>
+  </ul>
+</section>
+
+<nav class="setup-steps" aria-label="Candidate setup steps">
+  <button type="button" class="active" data-step-target="profile"><span>1</span>My CV</button>
+  <button type="button" data-step-target="matching"><span>2</span>Adaptation</button>
+  <button type="button" data-step-target="search"><span>3</span>Jobs</button>
+  <button type="button" data-step-target="apply"><span>4</span>Automation</button>
+</nav>
+
+<form id="candidate-form" class="draft-grid">
+  <section class="panel draft-card identity-card" data-step-panel="profile">
+    <header><div><p class="panel-kicker">My CV</p><h2>Contact details</h2><p class="contract-note">{% if is_imported %}Extracted automatically and never rewritten for an offer.{% else %}Used for applications and never rewritten for an offer.{% endif %}</p></div></header>
+    <div class="draft-form-grid">
+      <label>First name<input id="identity-first-name" value="{{ draft.identity.first_name or '' }}" required></label>
+      <label>Last name<input id="identity-last-name" value="{{ draft.identity.last_name or '' }}" required></label>
+      <label>Email<input id="identity-email" type="email" value="{{ draft.identity.email or '' }}" required></label>
+      <label>Phone<input id="identity-phone" value="{{ draft.identity.phone or '' }}"></label>
+      <label>Location<input id="identity-location" value="{{ draft.identity.location or '' }}"></label>
+      <label class="wide-field">Headline<input id="identity-headline" value="{{ draft.identity.headline or '' }}"></label>
+    </div>
+  </section>
+
+  <section class="panel draft-card identity-card summary-card" data-step-panel="profile">
+    <header><div><p class="panel-kicker">Summary</p><h2>Current CV introduction</h2><p class="contract-note">Balanced mode keeps its structure and facts, then adjusts the professional angle to the offer.</p></div></header>
+    <div class="draft-form-grid"><label class="wide-field">{% if is_imported %}Summary extracted from the CV{% else %}Professional summary{% endif %}<textarea id="candidate-summary" rows="4">{{ draft.summary or '' }}</textarea></label></div>
+  </section>
+
+  <section class="panel draft-card identity-card letter-card" data-step-panel="apply" hidden>
+    <header><div><p class="panel-kicker">Writing style</p><h2>Optional cover-letter example</h2><p class="contract-note">Leave empty to use JobAuto's concise default. Add a sample only when you want its tone preserved.</p></div></header>
+    <div class="draft-form-grid">
+      <label>CV and letter language<select id="candidate-locale">
+        {% if draft.locale not in ['fr-FR', 'en-GB'] %}<option value="{{ draft.locale }}" selected>{{ draft.locale }} (detected)</option>{% endif %}
+        <option value="fr-FR"{% if draft.locale == 'fr-FR' %} selected{% endif %}>French by default</option>
+        <option value="en-GB"{% if draft.locale == 'en-GB' %} selected{% endif %}>English by default</option>
+      </select><small class="field-help">Follow each offer's requested language when it is explicit; otherwise use this default.</small></label>
+      <label class="wide-field">Writing sample, optional<textarea id="letter-reference" rows="6" placeholder="Paste one of your previous letters if useful.">{{ draft.letter_reference or '' }}</textarea></label>
+    </div>
+  </section>
+
+  <section class="panel draft-card identity-card" data-step-panel="profile">
+    <header><div><p class="panel-kicker">Experience</p><h2>{% if is_imported %}Extracted work history{% else %}Work and research history{% endif %}</h2><p class="contract-note">{% if is_imported %}Open an item only to correct it or add information missing from the CV.{% else %}Add the roles and assignments that should support future applications.{% endif %}</p></div><button class="mini-action" type="button" id="add-experience">Add</button></header>
+    <div id="experience-editors" class="editor-list">
+      {% for item in draft.experiences %}
+      <details class="item-editor experience-editor compact-editor" data-id="{{ item.experience_id }}">
+        <summary><strong>{{ item.organization }} · {{ item.role }}</strong><span>{{ item.dates or 'Edit details' }}</span></summary>
+        <button class="remove-item" type="button">Remove</button>
+        <div class="editor-grid">
+          <label>Organization<input data-field="organization" value="{{ item.organization }}"></label>
+          <label>Role<input data-field="role" value="{{ item.role }}"></label>
+          <label>Office location, optional<input data-field="location" value="{{ item.location or '' }}"></label>
+          <label>Dates<input data-field="dates" value="{{ item.dates or '' }}"></label>
+          <label>Sector<input data-field="sector" value="{{ item.sector or '' }}"></label>
+          <label class="wide-field">Tools, comma separated<input data-field="tools" value="{{ item.tools|join(', ') }}"></label>
+          <label class="wide-field">Facts, one per line<textarea data-field="facts" rows="3">{{ item.facts|join('\n') }}</textarea></label>
+          <label class="wide-field">Verified metrics, one per line<textarea data-field="metrics" rows="2">{{ item.metrics|join('\n') }}</textarea></label>
+          <label class="wide-field">Allowed angles, comma separated<input data-field="angles" value="{{ item.allowed_angles|join(', ') }}"></label>
+          <fieldset class="wide-field protection-editor"><legend>Protected fields</legend>{% for field in ['organization','role','dates','metrics'] %}<label><input data-protected="{{ field }}" type="checkbox"{% if field in item.protected_fields %} checked{% endif %}> {{ field }}</label>{% endfor %}</fieldset>
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel draft-card identity-card" data-step-panel="profile">
+    <header><div><p class="panel-kicker">Education and details</p><h2>Kept unchanged by default</h2><p class="contract-note">{% if is_imported %}Open this section only if extraction missed something.{% else %}Add education, languages and interests only when they belong in your CV.{% endif %}</p></div><button class="mini-action" type="button" id="add-education">Add</button></header>
+    <div id="education-editors" class="editor-list">
+      {% for item in draft.education %}
+      <details class="item-editor education-editor compact-editor" data-source-index="{{ loop.index0 }}">
+        <summary><strong>{{ item.institution }} · {{ item.program }}</strong><span>{{ item.dates or 'Edit details' }}</span></summary>
+        <button class="remove-item" type="button">Remove</button>
+        <div class="editor-grid">
+          <label>Institution<input data-field="institution" value="{{ item.institution }}"></label>
+          <label>Program<input data-field="program" value="{{ item.program }}"></label>
+          <label>Location, optional<input data-field="location" value="{{ item.location or '' }}"></label>
+          <label>Dates<input data-field="dates" value="{{ item.dates or '' }}"></label>
+          <label class="wide-field">Details, one per line<textarea data-field="details" rows="2">{{ item.details|join('\n') }}</textarea></label>
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+    <div class="draft-form-grid metadata-fields">
+      <label class="wide-field">Languages, comma separated<input id="languages" value="{{ draft.languages|join(', ') }}"></label>
+      <label class="wide-field">Interests, comma separated<input id="interests" value="{{ draft.interests|join(', ') }}"></label>
+    </div>
+  </section>
+
+  <section class="panel draft-card identity-card" data-step-panel="profile">
+    <header><div><p class="panel-kicker">Your own sections</p><h2>Publications, certifications or anything else</h2><p class="contract-note">Use a clear section name and the exact content you want JobAuto to keep as candidate evidence.</p></div><button class="mini-action" type="button" id="add-additional-section">Add section</button></header>
+    <div id="additional-section-editors" class="editor-list">
+      {% for section in draft.additional_sections %}
+      <details class="item-editor additional-section-editor compact-editor" data-source-index="{{ loop.index0 }}">
+        <summary><strong>{{ section.label }}</strong><span>Edit section</span></summary>
+        <button class="remove-item" type="button">Remove</button>
+        <div class="editor-grid">
+          <label class="wide-field">Section name<input data-field="label" value="{{ section.label }}"></label>
+          <label class="wide-field">Content<textarea data-field="content" rows="4">{{ section.content }}</textarea></label>
+          <label>How JobAuto may edit it<select data-field="fidelity">{% for option, label in [('locked','Keep exact'),('very_faithful','Light edits'),('adaptable','Adapt the angle'),('highly_adaptable','Rewrite from my evidence')] %}<option value="{{ option }}"{% if section.fidelity.value == option %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+  </section>
+
+  <details class="panel draft-card workspace-option extracted-bank" data-step-panel="matching" hidden>
+    <summary><strong>{{ draft.skills|length }} {% if is_imported %}skills imported from the CV{% else %}skills in your profile{% endif %}</strong><span>Review only to add, require or forbid a skill</span></summary>
+    <div class="bank-intro"><p>JobAuto already uses these skills when relevant to an offer. No review is required.</p><button class="mini-action" type="button" id="add-skill">Add a skill</button></div>
+    <div id="skill-editors" class="editor-list compact-list">
+      {% for skill in draft.skills %}
+      <details class="item-editor skill-editor compact-editor" data-source-index="{{ loop.index0 }}">
+        <summary><strong>{{ skill.name }}</strong><span>{{ 'Use when relevant' if skill.usage.value == 'default' else ('Always show' if skill.usage.value == 'required' else 'May hide') }}</span></summary>
+        <button class="remove-item" type="button">Remove</button>
+        <div class="editor-grid">
+          <label>Skill<input data-field="name" value="{{ skill.name }}"></label>
+          <label>Category<input data-field="category" value="{{ skill.category }}"></label>
+          <label>Display priority<select data-field="usage">{% for option, label in [('required','Always show'),('default','Offer-dependent'),('removable','May hide')] %}<option value="{{ option }}"{% if skill.usage.value == option %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+          <label>Evidence status<select data-field="evidence">{% for option, label in [('verified','Verified'),('transferable','Transferable if requested'),('forbidden','Never use')] %}<option value="{{ option }}"{% if skill.evidence.value == option %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+          <label class="check-field"><input data-field="warning" type="checkbox"{% if skill.verification_warning %} checked{% endif %}> Warn before use</label>
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+  </details>
+
+  <section class="panel draft-card identity-card{% if not draft.projects %} empty-card{% endif %}" data-step-panel="matching" hidden>
+    <header><div><p class="panel-kicker">Project bank</p><h2>Choose the best projects for each offer</h2><p class="contract-note">By default, JobAuto selects the most relevant projects and may change their angle without changing the facts. {% if is_imported %}Add projects that are absent from the imported CV.{% else %}Add the projects, case studies or work samples JobAuto may select.{% endif %}</p></div><button class="mini-action" type="button" id="add-project">Add a project</button></header>
+    <div id="project-editors" class="editor-list two-column-list">
+      {% if not draft.projects %}
+      <div class="empty-bank" id="project-empty-state">
+        <strong>No separate projects found</strong>
+        <span>That is fine for an experience-led CV. JobAuto will use your work history and other verified sections. Add a project, case study or work sample only when it should be selected per offer.</span>
+      </div>
+      {% endif %}
+      {% for project in draft.projects %}
+      <details class="item-editor project-editor compact-editor" data-id="{{ project.project_id }}">
+        <summary><strong>{{ project.title }}</strong><span>{{ project.stack|join(', ') }}</span></summary>
+        <button class="remove-item" type="button">Remove</button>
+        <div class="editor-grid">
+          <label class="wide-field">Title<input data-field="title" value="{{ project.title }}"></label>
+          <label class="wide-field">Tools, methods or materials, comma separated<input data-field="stack" value="{{ project.stack|join(', ') }}"></label>
+          <label class="wide-field">Description, one bullet per line<textarea data-field="description" rows="3">{{ project.description|join('\n') }}</textarea></label>
+          <label>How JobAuto may use it<select data-field="use-mode">{% for option, label in [('reuse','Keep exactly as written'),('reframe','Adapt the angle, keep the facts'),('derive','Allow a defensible variation')] %}<option value="{{ option }}"{% if project.use_mode.value == option %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+          {% set fidelity_options = [('locked','Exact text'),('very_faithful','Light edits'),('adaptable','Adapt to the offer'),('highly_adaptable','Strong rewrite from evidence'),('replaceable','Replace from evidence')] %}
+          <details class="wide-field inline-advanced"><summary>Advanced wording permissions</summary><div class="editor-grid">
+            <label>Title freedom<select data-field="title-fidelity">{% for option, label in fidelity_options %}<option value="{{ option }}"{% if project.title_fidelity.value == option %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+            <label>Tools or methods freedom<select data-field="stack-fidelity">{% for option, label in fidelity_options %}<option value="{{ option }}"{% if project.stack_fidelity.value == option %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+            <label>Description freedom<select data-field="description-fidelity">{% for option, label in fidelity_options %}<option value="{{ option }}"{% if project.description_fidelity.value == option %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+          </div></details>
+          <label class="check-field"><input data-field="visible" type="checkbox"{% if project.visible_by_default %} checked{% endif %}> Visible by default</label>
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel draft-card search-card" data-step-panel="search" hidden>
+    <header><div><p class="panel-kicker">Job search</p><h2>Describe the jobs you want</h2><p class="contract-note">A few examples are enough. Codex interprets nearby titles and equivalent wording rather than applying an exact keyword filter.</p></div></header>
+    <div class="search-preferences">
+      <label class="wide-field search-intent">In your own words<textarea id="search-freeform" rows="3" placeholder="Example: I am looking for regulatory affairs roles in Lyon, focused on medical devices and cross-functional submissions.">{{ draft.search_preferences.freeform or '' }}</textarea></label>
+      {% for key, label, placeholder, terms, primary_level in [
+        ('roles', 'Target roles', 'Regulatory Affairs Specialist, Frontend Engineer', draft.search_preferences.roles, 'preferred'),
+        ('locations', 'Locations', 'Lyon, France, hybrid', draft.search_preferences.locations, 'preferred'),
+        ('contracts', 'Accepted contracts', 'Permanent, fixed-term', draft.search_preferences.contracts, 'required')
+      ] %}
+      <fieldset class="term-editor essential-term" data-key="{{ key }}"><legend>{{ label }}</legend>
+        <label>{{ 'Accepted values' if primary_level == 'required' else 'Examples' }}<input data-level="{{ primary_level }}" value="{{ (terms.required if primary_level == 'required' else terms.preferred)|join(', ') }}" placeholder="{{ placeholder }}"></label>
+        {% if primary_level == 'required' %}<small class="field-help">When an offer explicitly states another contract type, JobAuto rejects it before ATS analysis or document generation.</small>{% endif %}
+        <details class="inline-advanced"><summary>Strict rules, optional</summary>
+          {% if primary_level != 'required' %}<label>Must include<input data-level="required" value="{{ terms.required|join(', ') }}"></label>{% endif %}
+          {% if primary_level == 'required' %}<label>Prefer<input data-level="preferred" value="{{ terms.preferred|join(', ') }}"></label>{% endif %}
+          <label>Avoid<input data-level="avoid" value="{{ terms.avoid|join(', ') }}"></label>
+        </details>
+      </fieldset>
+      {% endfor %}
+      <details class="advanced-section"><summary><strong>More filters</strong><span>Optional keywords, stacks, sectors, salary and exclusions</span></summary>
+        <div class="advanced-search-grid">
+          {% for key, label, terms in [
+            ('announcement-keywords', 'Offer keywords', draft.search_preferences.announcement_keywords),
+            ('technical-stacks', 'Tools, standards or technologies', draft.search_preferences.technical_stacks),
+            ('sectors', 'Sectors', draft.search_preferences.sectors)
+          ] %}
+          <fieldset class="term-editor" data-key="{{ key }}"><legend>{{ label }}</legend>
+            <label>Must include<input data-level="required" value="{{ terms.required|join(', ') }}"></label>
+            <label>Prefer<input data-level="preferred" value="{{ terms.preferred|join(', ') }}"></label>
+            <label>Avoid<input data-level="avoid" value="{{ terms.avoid|join(', ') }}"></label>
+          </fieldset>
+          {% endfor %}
+          <div class="draft-form-grid search-limits">
+            <label>Hard maximum experience requested<input id="max-experience" type="number" step="0.5" min="0" value="{{ draft.search_preferences.max_experience_years if draft.search_preferences.max_experience_years is not none else '' }}"><small class="field-help">If an offer explicitly asks for more, JobAuto rejects it before generating documents. Leave blank to let Codex judge accessibility.</small></label>
+            <label>Maximum offer age, days<input id="max-age" type="number" min="0" value="{{ draft.search_preferences.max_age_days if draft.search_preferences.max_age_days is not none else '' }}"></label>
+            <label>Remote<select id="remote">{% for option in ['neutral','required','preferred','avoid'] %}<option value="{{ option }}"{% if draft.search_preferences.remote.value == option %} selected{% endif %}>{{ option }}</option>{% endfor %}</select></label>
+            <label>Minimum salary<input id="salary-min" type="number" min="0" value="{{ draft.search_preferences.salary.minimum_annual if draft.search_preferences.salary.minimum_annual is not none else '' }}"></label>
+            <label>Preferred salary<input id="salary-preferred" type="number" min="0" value="{{ draft.search_preferences.salary.preferred_annual if draft.search_preferences.salary.preferred_annual is not none else '' }}"></label>
+            <label>Currency<input id="salary-currency" maxlength="3" value="{{ draft.search_preferences.salary.currency or '' }}"></label>
+            <label class="wide-field">Excluded companies<input id="excluded-companies" value="{{ draft.search_preferences.excluded_companies|join(', ') }}"></label>
+            <label class="wide-field">Excluded titles<input id="excluded-titles" value="{{ draft.search_preferences.excluded_titles|join(', ') }}"></label>
+          </div>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <section class="panel draft-card search-card" data-step-panel="apply" hidden>
+    <header><div><p class="panel-kicker">Application automation</p><h2>Choose how far JobAuto may go</h2><p class="contract-note">The safe default prepares every application and asks before sending. Technical browser behavior uses sensible defaults.</p></div></header>
+    <div class="draft-form-grid">
+      <label>Application mode<select id="submission-mode">{% for option, label in [('confirm','Prepare, then ask before sending'),('automatic','Submit automatically when the form is clear'),('dry_run','Simulation only')] %}<option value="{{ option }}"{% if draft.submission_preferences.mode.value == option %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label>Maximum applications per campaign<input id="submission-limit" type="number" min="1" max="100" value="{{ draft.submission_preferences.max_applications_per_campaign }}"></label>
+      <div class="wide-field standard-answer-card">
+        <div class="standard-answer-heading"><strong>Answers reused in application forms</strong><span>Fill only what you already know. Codex asks when a form needs something else.</span></div>
+        <div class="standard-answer-grid">
+          <label>Work authorization<input id="standard-work-authorization" list="work-authorization-options" value="{{ draft.submission_preferences.standard_answers.get('work_authorization', '') }}" placeholder="Example: Authorized to work in France"></label>
+          <datalist id="work-authorization-options"><option value="Authorized to work in the country"><option value="Needs sponsorship"><option value="No work authorization"></datalist>
+          <label>Availability<input id="standard-availability" value="{{ draft.submission_preferences.standard_answers.get('availability', '') }}" placeholder="Example: September 2026"></label>
+          <label>Salary expectation<input id="standard-salary-expectation" value="{{ draft.submission_preferences.standard_answers.get('salary_expectation', '') }}" placeholder="Example: 42,000 EUR"></label>
+        </div>
+        <details class="inline-advanced additional-answers"><summary>Other recurring answers</summary>
+          <label>One answer per line<textarea id="submission-extra-answers" rows="3" placeholder="question=answer">{% for key, answer in draft.submission_preferences.standard_answers.items() %}{% if key not in ['work_authorization', 'availability', 'salary_expectation'] %}{{ key }}={{ answer }}{% if not loop.last %}
+{% endif %}{% endif %}{% endfor %}</textarea></label>
+        </details>
+      </div>
+      {% set all_request_user = draft.submission_preferences.on_login.value == 'request_user' and draft.submission_preferences.on_captcha.value == 'request_user' and draft.submission_preferences.on_two_factor.value == 'request_user' and draft.submission_preferences.on_ambiguous_field.value == 'request_user' %}
+      {% set all_pause = draft.submission_preferences.on_login.value == 'pause' and draft.submission_preferences.on_captcha.value == 'pause' and draft.submission_preferences.on_two_factor.value == 'pause' and draft.submission_preferences.on_ambiguous_field.value == 'pause' %}
+      <label class="wide-field automation-safety">When the browser cannot continue<select id="browser-preset">
+        <option value="assist"{% if all_request_user %} selected{% endif %}>Ask me only when blocked (recommended)</option>
+        <option value="stop"{% if all_pause %} selected{% endif %}>Stop and leave the application ready</option>
+        <option value="custom"{% if not all_request_user and not all_pause %} selected{% endif %}>Custom rules</option>
+      </select><small class="field-help">This covers login, CAPTCHA, two-factor authentication and questions Codex cannot answer safely.</small></label>
+      <details class="wide-field advanced-section browser-expert-settings"><summary><strong>Advanced browser rules</strong><span>Usually managed by Codex</span></summary><div class="draft-form-grid">
+        <label>Maximum retries<input id="submission-retries" type="number" min="0" max="5" value="{{ draft.submission_preferences.max_retries }}"></label>
+        <label>On login<select id="submission-login">{% for option in ['pause','request_user'] %}<option value="{{ option }}"{% if draft.submission_preferences.on_login.value == option %} selected{% endif %}>{{ option|replace('_', ' ') }}</option>{% endfor %}</select></label>
+        <label>On CAPTCHA<select id="submission-captcha">{% for option in ['pause','request_user'] %}<option value="{{ option }}"{% if draft.submission_preferences.on_captcha.value == option %} selected{% endif %}>{{ option|replace('_', ' ') }}</option>{% endfor %}</select></label>
+        <label>On 2FA<select id="submission-two-factor">{% for option in ['pause','request_user'] %}<option value="{{ option }}"{% if draft.submission_preferences.on_two_factor.value == option %} selected{% endif %}>{{ option|replace('_', ' ') }}</option>{% endfor %}</select></label>
+        <label>On ambiguous field<select id="submission-ambiguous">{% for option in ['pause','request_user'] %}<option value="{{ option }}"{% if draft.submission_preferences.on_ambiguous_field.value == option %} selected{% endif %}>{{ option|replace('_', ' ') }}</option>{% endfor %}</select></label>
+        <label class="check-field"><input id="submission-evidence" type="checkbox"{% if draft.submission_preferences.require_confirmation_evidence %} checked{% endif %}> Keep submission proof</label>
+        <label class="wide-field">Allowed portals<input id="submission-portals" value="{{ draft.submission_preferences.allowed_portals|join(', ') }}" placeholder="Leave blank to use supported portals"></label>
+        <label class="wide-field">Allowed consents<input id="submission-consents" value="{{ draft.submission_preferences.allowed_consents|join(', ') }}"></label>
+      </div></details>
+    </div>
+  </section>
+
+  <details class="panel draft-card identity-card project-lab-card advanced-section" data-step-panel="matching" hidden>
+    <summary><strong>Advanced project options</strong><span>Project count and optional external inspiration</span></summary>
+    <div class="toggle-row">
+      <label><input id="allow-new-project" type="checkbox"{% if draft.project_lab.allow_new_project %} checked{% endif %}> Allow a new project when evidence has a central gap</label>
+      <label><input id="allow-external-inspiration" type="checkbox"{% if draft.project_lab.allow_external_inspiration %} checked{% endif %}> Allow GitHub repository inspiration</label>
+      <label>Minimum visible projects <input id="minimum-visible-projects" type="number" min="0" max="3" value="{{ draft.project_lab.minimum_visible_projects }}"></label>
+      <label>Maximum visible projects <input id="maximum-visible-projects" type="number" min="0" max="3" value="{{ draft.project_lab.maximum_visible_projects }}"></label>
+    </div>
+  </details>
+
+  <div class="step-navigation">
+    <button type="button" id="previous-step">Previous</button>
+    <span id="step-label">Step 1 of 4 · {% if is_imported %}Check what JobAuto extracted{% else %}Build your CV blocks{% endif %}</span>
+    <button type="button" id="next-step">Next</button>
+  </div>
+
+  <div class="draft-actions">
+    <button type="button" class="validate-action" id="finish-profile" hidden>Save and open JobAuto</button>
+    <span id="draft-feedback">Your setup stays local. You can change it later.</span>
+  </div>
+</form>
+
+<script id="draft-data" type="application/json">{{ draft_payload|tojson }}</script>
+<script>
+(() => {
+  let draft = JSON.parse(document.getElementById('draft-data').textContent);
+  const $ = (selector, root = document) => root.querySelector(selector);
+  const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+  const csv = value => value.split(/[,;\r\n]+/).map(item => item.trim()).filter(Boolean);
+  const lines = value => value.split(/\r?\n/).map(item => item.trim()).filter(Boolean);
+  const answerMap = value => Object.fromEntries(lines(value).map(item => {
+    const separator = item.indexOf('=');
+    return separator < 1 ? [item, ''] : [item.slice(0, separator).trim(), item.slice(separator + 1).trim()];
+  }).filter(([_key, answer]) => answer));
+  function standardAnswers() {
+    const answers = answerMap($('#submission-extra-answers').value);
+    [
+      ['work_authorization', '#standard-work-authorization'],
+      ['availability', '#standard-availability'],
+      ['salary_expectation', '#standard-salary-expectation']
+    ].forEach(([key, selector]) => {
+      const answer = value(selector);
+      if (answer) answers[key] = answer;
+    });
+    return answers;
+  }
+  const fieldNames = {
+    roles: 'Target roles', locations: 'Locations', contracts: 'Accepted contracts',
+    announcement_keywords: 'Offer keywords', technical_stacks: 'Tools or standards',
+    sectors: 'Sectors', project_lab: 'Project options', submission_preferences: 'Automation'
+  };
+  function readableError(detail) {
+    if (typeof detail === 'string') return detail;
+    const entries = Array.isArray(detail) ? detail : (detail?.errors || [detail]);
+    return entries.filter(Boolean).map(entry => {
+      const field = [...(entry.loc || [])].reverse().find(item => fieldNames[item]);
+      const label = fieldNames[field] || 'This setting';
+      const message = entry.msg || String(entry);
+      const duplicate = message.match(/preference terms cannot appear at multiple levels:\s*(.+)$/i);
+      if (duplicate) return `${label}: keep “${duplicate[1]}” in only one list (must include, prefer or avoid).`;
+      return `${label}: ${message.replace(/^Value error,\s*/i, '')}`;
+    }).join(' ');
+  }
+  const value = (selector, root) => $(selector, root)?.value.trim() || null;
+  const sourceFor = (collection, id) => collection.find(item => item.experience_id === id || item.project_id === id)?.source_block_ids || [];
+  const stages = ['profile', 'matching', 'search', 'apply'];
+  const stageLabels = [
+    {{ ('Check what JobAuto extracted' if is_imported else 'Build your CV blocks')|tojson }},
+    'Review skills and projects only if needed',
+    'Describe the jobs you want',
+    'Choose the level of automation'
+  ];
+  const stageStorageKey = `jobauto:candidate-draft:${draft.draft_id}:stage`;
+  const requestedStage = stages.indexOf(window.location.hash.slice(1));
+  const storedStage = stages.indexOf(localStorage.getItem(stageStorageKey));
+  let activeStage = requestedStage >= 0 ? requestedStage : Math.max(0, storedStage);
+  let dirty = false;
+  let moving = false;
+
+  function showStage(index, shouldScroll = true) {
+    activeStage = Math.max(0, Math.min(stages.length - 1, index));
+    $$('[data-step-panel]').forEach(panel => { panel.hidden = panel.dataset.stepPanel !== stages[activeStage]; });
+    $$('[data-step-target]').forEach(button => button.classList.toggle('active', button.dataset.stepTarget === stages[activeStage]));
+    $('#previous-step').disabled = activeStage === 0;
+    $('#next-step').hidden = activeStage === stages.length - 1;
+    $('#finish-profile').hidden = activeStage !== stages.length - 1;
+    $('#step-label').textContent = `Step ${activeStage + 1} of ${stages.length} · ${stageLabels[activeStage]}`;
+    if (window.location.hash !== `#${stages[activeStage]}`) history.replaceState(null, '', `#${stages[activeStage]}`);
+    localStorage.setItem(stageStorageKey, stages[activeStage]);
+    if (shouldScroll) window.scrollTo({top: document.querySelector('.setup-steps').offsetTop - 20, behavior: 'smooth'});
+  }
+
+  async function moveToStage(index) {
+    if (moving || index === activeStage) return;
+    moving = true;
+    try {
+      if (dirty) await save();
+      showStage(index);
+    } catch (error) {
+      $('#draft-feedback').textContent = error.message;
+    } finally {
+      moving = false;
+    }
+  }
+
+  $$('[data-step-target]').forEach((button, index) => { button.onclick = () => moveToStage(index); });
+  $('#previous-step').onclick = () => moveToStage(activeStage - 1);
+  $('#next-step').onclick = () => moveToStage(activeStage + 1);
+  showStage(activeStage, false);
+
+  $('#candidate-form').addEventListener('input', () => { dirty = true; });
+  $('#browser-preset').addEventListener('change', event => {
+    const preset = event.currentTarget.value;
+    if (preset === 'custom') return;
+    const action = preset === 'assist' ? 'request_user' : 'pause';
+    ['#submission-login', '#submission-captcha', '#submission-two-factor', '#submission-ambiguous']
+      .forEach(selector => { $(selector).value = action; });
+    $('#submission-retries').value = preset === 'assist' ? '2' : '0';
+    $('#submission-evidence').checked = true;
+    dirty = true;
+  });
+  ['#submission-login', '#submission-captcha', '#submission-two-factor', '#submission-ambiguous', '#submission-retries']
+    .forEach(selector => $(selector).addEventListener('change', () => { $('#browser-preset').value = 'custom'; }));
+  const bindRemove = root => $$('.remove-item', root).forEach(button => button.onclick = () => { button.closest('.item-editor').remove(); dirty = true; });
+  bindRemove(document);
+
+  $('#add-experience').onclick = () => {
+    const id = `manual_${Date.now().toString(36)}`;
+    $('#experience-editors').insertAdjacentHTML('beforeend', `<article class="item-editor experience-editor" data-id="${id}"><button class="remove-item" type="button">Remove</button><div class="editor-grid"><label>Organization<input data-field="organization"></label><label>Role<input data-field="role"></label><label>Office location, optional<input data-field="location"></label><label>Dates<input data-field="dates"></label><label>Sector<input data-field="sector"></label><label class="wide-field">Tools, comma separated<input data-field="tools"></label><label class="wide-field">Facts, one per line<textarea data-field="facts" rows="3"></textarea></label><label class="wide-field">Verified metrics, one per line<textarea data-field="metrics" rows="2"></textarea></label><label class="wide-field">Allowed angles, comma separated<input data-field="angles"></label><fieldset class="wide-field protection-editor"><legend>Protected fields</legend>${['organization','role','dates'].map(field => `<label><input data-protected="${field}" type="checkbox" checked> ${field}</label>`).join('')}<label><input data-protected="metrics" type="checkbox"> metrics</label></fieldset></div></article>`);
+    bindRemove($('#experience-editors'));
+  };
+  $('#add-education').onclick = () => {
+    $('#education-editors').insertAdjacentHTML('beforeend', `<article class="item-editor education-editor" data-source-index="-1"><button class="remove-item" type="button">Remove</button><div class="editor-grid"><label>Institution<input data-field="institution"></label><label>Program<input data-field="program"></label><label>Location, optional<input data-field="location"></label><label>Dates<input data-field="dates"></label><label class="wide-field">Details, one per line<textarea data-field="details" rows="2"></textarea></label></div></article>`);
+    bindRemove($('#education-editors'));
+  };
+  $('#add-additional-section').onclick = () => {
+    $('#additional-section-editors').insertAdjacentHTML('beforeend', `<article class="item-editor additional-section-editor" data-source-index="-1"><button class="remove-item" type="button">Remove</button><div class="editor-grid"><label class="wide-field">Section name<input data-field="label" placeholder="Publications, Certifications, Volunteering…"></label><label class="wide-field">Content<textarea data-field="content" rows="4" placeholder="Add concise lines or bullets."></textarea></label><label>How JobAuto may edit it<select data-field="fidelity"><option value="locked">Keep exact</option><option value="very_faithful" selected>Light edits</option><option value="adaptable">Adapt the angle</option><option value="highly_adaptable">Rewrite from my evidence</option></select></label></div></article>`);
+    bindRemove($('#additional-section-editors'));
+    dirty = true;
+  };
+  $('#add-skill').onclick = () => {
+    $('#skill-editors').insertAdjacentHTML('beforeend', `<article class="item-editor skill-editor" data-source-index="-1"><button class="remove-item" type="button">Remove</button><div class="editor-grid"><label>Skill<input data-field="name"></label><label>Category<input data-field="category"></label><label>Display priority<select data-field="usage"><option value="required">Always show</option><option value="default" selected>Offer-dependent</option><option value="removable">May hide</option></select></label><label>Evidence status<select data-field="evidence"><option value="verified">Verified</option><option value="transferable" selected>Transferable if requested</option><option value="forbidden">Never use</option></select></label><label class="check-field"><input data-field="warning" type="checkbox" checked> Warn before use</label></div></article>`);
+    bindRemove($('#skill-editors'));
+  };
+  $('#add-project').onclick = () => {
+    const id = `manual_${Date.now().toString(36)}`;
+    const freedom = '<option value="locked">Exact text</option><option value="very_faithful">Light edits</option><option value="adaptable" selected>Adapt to the offer</option><option value="highly_adaptable">Strong rewrite from evidence</option><option value="replaceable">Replace from evidence</option>';
+    $('#project-editors').insertAdjacentHTML('beforeend', `<article class="item-editor project-editor" data-id="${id}"><button class="remove-item" type="button">Remove</button><div class="editor-grid"><label class="wide-field">Title<input data-field="title"></label><label class="wide-field">Stack, comma separated<input data-field="stack"></label><label class="wide-field">Description, one bullet per line<textarea data-field="description" rows="3"></textarea></label><label>Use mode<select data-field="use-mode"><option value="reuse">Reuse unchanged</option><option value="reframe" selected>Change the angle</option><option value="derive">Derive a variation</option></select></label><label>Title freedom<select data-field="title-fidelity">${freedom}</select></label><label>Stack freedom<select data-field="stack-fidelity">${freedom}</select></label><label>Description freedom<select data-field="description-fidelity">${freedom}</select></label><label class="check-field"><input data-field="visible" type="checkbox" checked> Visible by default</label></div></article>`);
+    $('#project-empty-state')?.remove();
+    dirty = true;
+    bindRemove($('#project-editors'));
+  };
+
+  function termPreferences(key) {
+    const fieldset = $(`.term-editor[data-key="${key}"]`);
+    return Object.fromEntries(['required', 'preferred', 'avoid'].map(level => [level, csv($(`[data-level="${level}"]`, fieldset).value)]));
+  }
+
+  function payload() {
+    const experiences = $$('.experience-editor').map(editor => ({
+      experience_id: editor.dataset.id,
+      organization: value('[data-field="organization"]', editor) || '',
+      role: value('[data-field="role"]', editor) || '',
+      location: value('[data-field="location"]', editor),
+      dates: value('[data-field="dates"]', editor),
+      sector: value('[data-field="sector"]', editor),
+      tools: csv(value('[data-field="tools"]', editor) || ''),
+      facts: lines(value('[data-field="facts"]', editor) || ''),
+      metrics: lines(value('[data-field="metrics"]', editor) || ''),
+      protected_fields: $$('[data-protected]:checked', editor).map(input => input.dataset.protected),
+      allowed_angles: csv(value('[data-field="angles"]', editor) || ''),
+      source_block_ids: sourceFor(draft.experiences, editor.dataset.id)
+    }));
+    const skills = $$('.skill-editor').map(editor => {
+      const index = Number(editor.dataset.sourceIndex);
+      return {
+        name: value('[data-field="name"]', editor) || '',
+        category: value('[data-field="category"]', editor) || '',
+        usage: value('[data-field="usage"]', editor),
+        evidence: value('[data-field="evidence"]', editor),
+        verification_warning: $('[data-field="warning"]', editor).checked,
+        source_block_ids: index >= 0 ? draft.skills[index]?.source_block_ids || [] : []
+      };
+    });
+    const projects = $$('.project-editor').map(editor => ({
+      project_id: editor.dataset.id,
+      title: value('[data-field="title"]', editor) || '',
+      stack: csv(value('[data-field="stack"]', editor) || ''),
+      description: lines(value('[data-field="description"]', editor) || ''),
+      visible_by_default: $('[data-field="visible"]', editor).checked,
+      use_mode: value('[data-field="use-mode"]', editor),
+      title_fidelity: value('[data-field="title-fidelity"]', editor),
+      stack_fidelity: value('[data-field="stack-fidelity"]', editor),
+      description_fidelity: value('[data-field="description-fidelity"]', editor),
+      source_block_ids: sourceFor(draft.projects, editor.dataset.id)
+    }));
+    const education = $$('.education-editor').map(editor => {
+      const index = Number(editor.dataset.sourceIndex);
+      return {
+        institution: value('[data-field="institution"]', editor) || '',
+        program: value('[data-field="program"]', editor) || '',
+        location: value('[data-field="location"]', editor),
+        dates: value('[data-field="dates"]', editor),
+        details: lines(value('[data-field="details"]', editor) || ''),
+        source_block_ids: index >= 0 ? draft.education[index]?.source_block_ids || [] : []
+      };
+    });
+    const additionalSections = $$('.additional-section-editor').map(editor => {
+      const index = Number(editor.dataset.sourceIndex);
+      return {
+        label: value('[data-field="label"]', editor) || '',
+        content: value('[data-field="content"]', editor) || '',
+        fidelity: value('[data-field="fidelity"]', editor) || 'very_faithful',
+        source_block_ids: index >= 0 ? draft.additional_sections[index]?.source_block_ids || [] : []
+      };
+    });
+    const numberOrNull = selector => $(selector).value === '' ? null : Number($(selector).value);
+    return {
+      expected_version: draft.version,
+      locale: value('#candidate-locale') || 'fr-FR',
+      identity: {
+        first_name: value('#identity-first-name'), last_name: value('#identity-last-name'),
+        email: value('#identity-email'), phone: value('#identity-phone'),
+        location: value('#identity-location'), headline: value('#identity-headline'),
+        source_block_ids: draft.identity.source_block_ids
+      },
+      summary: value('#candidate-summary'), summary_source_block_ids: draft.summary_source_block_ids,
+      letter_reference: value('#letter-reference'),
+      experiences, skills, projects, education, additional_sections: additionalSections,
+      languages: csv($('#languages').value), interests: csv($('#interests').value),
+      cv_layout: draft.cv_layout,
+      project_lab: {
+        allow_new_project: $('#allow-new-project').checked,
+        allow_external_inspiration: $('#allow-external-inspiration').checked,
+        require_verification_warning: draft.project_lab.require_verification_warning,
+        minimum_visible_projects: Number($('#minimum-visible-projects').value),
+        maximum_visible_projects: Number($('#maximum-visible-projects').value)
+      },
+      search_preferences: {
+        schema_version: 1,
+        roles: termPreferences('roles'),
+        announcement_keywords: termPreferences('announcement-keywords'),
+        technical_stacks: termPreferences('technical-stacks'),
+        max_experience_years: numberOrNull('#max-experience'),
+        locations: termPreferences('locations'), remote: $('#remote').value,
+        contracts: termPreferences('contracts'), max_age_days: numberOrNull('#max-age'),
+        salary: {minimum_annual: numberOrNull('#salary-min'), preferred_annual: numberOrNull('#salary-preferred'), currency: value('#salary-currency')},
+        sectors: termPreferences('sectors'),
+        excluded_companies: csv($('#excluded-companies').value),
+        excluded_titles: csv($('#excluded-titles').value), freeform: value('#search-freeform')
+      },
+      submission_preferences: {
+        schema_version: 1,
+        mode: $('#submission-mode').value,
+        max_applications_per_campaign: Number($('#submission-limit').value),
+        allowed_portals: csv($('#submission-portals').value),
+        standard_answers: standardAnswers(),
+        allowed_consents: csv($('#submission-consents').value),
+        max_retries: Number($('#submission-retries').value),
+        on_login: $('#submission-login').value,
+        on_captcha: $('#submission-captcha').value,
+        on_two_factor: $('#submission-two-factor').value,
+        on_ambiguous_field: $('#submission-ambiguous').value,
+        require_confirmation_evidence: $('#submission-evidence').checked
+      }
+    };
+  }
+
+  async function save() {
+    const feedback = $('#draft-feedback');
+    feedback.textContent = 'Saving…';
+    const response = await fetch(`/api/candidate-drafts/${draft.draft_id}`, {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload())});
+    const body = await response.json();
+    if (!response.ok) throw new Error(readableError(body.detail));
+    draft = body;
+    $('#draft-version').textContent = draft.version;
+    $('#draft-state span').textContent = 'Needs review';
+    $('#draft-state').classList.add('blocked');
+    feedback.textContent = `Saved locally as version ${draft.version}.`;
+    dirty = false;
+    return body;
+  }
+
+  $('#candidate-form').onsubmit = async event => { event.preventDefault(); try { await save(); } catch (error) { $('#draft-feedback').textContent = error.message; } };
+  $('#finish-profile').onclick = async () => {
+    const button = $('#finish-profile');
+    button.disabled = true;
+    try {
+      await save();
+      $('#draft-feedback').textContent = 'Checking your setup…';
+      const response = await fetch(`/api/candidate-drafts/${draft.draft_id}/validate`, {method: 'POST'});
+      const body = await response.json();
+      if (!response.ok) throw new Error(readableError(body.detail));
+      draft.version = body.version; draft.status = body.status;
+      $('#draft-version').textContent = draft.version;
+      $('#draft-state span').textContent = 'Validated';
+      $('#draft-state').classList.remove('blocked');
+      $('#draft-feedback').textContent = 'Opening JobAuto…';
+      const exported = await fetch(`/api/candidate-drafts/${draft.draft_id}/export`, {method: 'POST'});
+      const exportedBody = await exported.json();
+      if (!exported.ok) throw new Error(exportedBody.detail || 'Your setup could not be opened.');
+      window.location.assign(exportedBody.page_url);
+    } catch (error) {
+      $('#draft-feedback').textContent = error.message;
+      button.disabled = false;
+    }
+  };
+})();
+</script>
+{% endblock %}

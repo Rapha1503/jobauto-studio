@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Create your profile · JobAuto Studio{% endblock %}
+{% block content %}
+<section class="setup-shell">
+  <a class="back" href="/">← Profiles</a>
+  <div class="setup-hero">
+    <div>
+      <p class="eyebrow">Candidate setup</p>
+      <h1>Bring your CV, or build it here.</h1>
+      <p>Import an existing CV or create the content block by block. A LaTeX source preserves its design; a PDF imports its content into JobAuto's layout.</p>
+    </div>
+    <div class="source-seal"><strong>CV</strong><span>.tex, PDF or no file</span></div>
+  </div>
+  <section class="setup-preflight" aria-label="Local requirements">
+    {% for requirement in local_requirements %}
+    <div class="requirement-state{% if requirement.ready %} is-ready{% else %} is-missing{% endif %}"
+         data-requirement="{{ requirement.name }}"
+         data-ready="{{ 'true' if requirement.ready else 'false' }}">
+      <span aria-hidden="true"></span>
+      <div>
+        <strong>{{ requirement.name }}</strong>
+        <small>{{ "Ready" if requirement.ready else "Not found" }} &middot; {{ requirement.purpose }}</small>
+        {% if not requirement.ready and requirement.command %}
+        <code class="requirement-command">{{ requirement.command }}</code>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </section>
+  <div class="setup-choice-grid">
+  <section class="panel import-panel setup-choice">
+    <div class="import-drop" id="drop-zone">
+      <input id="tex-file" type="file" accept=".tex,text/x-tex" hidden>
+      <input id="pdf-file" type="file" accept=".pdf,application/pdf" hidden>
+      <p class="panel-kicker">Original source</p>
+      <h2>Import an existing CV</h2>
+      <p>JobAuto extracts identity, experience, projects, skills, education and custom sections. Choose LaTeX only when its exact design must remain the layout source.</p>
+      <div class="import-actions">
+        <button type="button" id="choose-file">Choose .tex</button>
+        <button type="button" class="secondary-action" id="choose-pdf">Choose PDF</button>
+      </div>
+      <small id="import-status" role="status">PDF imports content for review. LaTeX also preserves packages, macros, spacing and layout.</small>
+    </div>
+  </section>
+  <section class="panel import-panel setup-choice manual-choice">
+    <div class="import-drop">
+      <p class="panel-kicker">No source file needed</p>
+      <h2>Build my CV in JobAuto</h2>
+      <p>Add only the blocks that fit your profile: work, research, projects, education, skills or a section with your own name.</p>
+      <button type="button" id="start-manual">Start with a blank profile</button>
+      <small id="manual-status" role="status">JobAuto creates the PDF layout and keeps it readable on one page.</small>
+    </div>
+  </section>
+  </div>
+</section>
+<script>
+  const input = document.querySelector('#tex-file');
+  const choose = document.querySelector('#choose-file');
+  const status = document.querySelector('#import-status');
+  const pdfInput = document.querySelector('#pdf-file');
+  const choosePdf = document.querySelector('#choose-pdf');
+  const manual = document.querySelector('#start-manual');
+  const manualStatus = document.querySelector('#manual-status');
+  choose.addEventListener('click', () => input.click());
+  choosePdf.addEventListener('click', () => pdfInput.click());
+  input.addEventListener('change', async () => {
+    const file = input.files[0];
+    if (!file) return;
+    status.textContent = `Importing ${file.name} and compiling the original PDF…`;
+    const response = await fetch('/api/tex-imports', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-tex', 'X-Filename': file.name},
+      body: file
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      status.textContent = payload.detail || 'The CV could not be imported.';
+      return;
+    }
+    window.location.assign(payload.page_url);
+  });
+  pdfInput.addEventListener('change', async () => {
+    const file = pdfInput.files[0];
+    if (!file) return;
+    choosePdf.disabled = true;
+    const startedAt = Date.now();
+    const elapsed = () => `${Math.floor((Date.now() - startedAt) / 1000)}s`;
+    status.textContent = `Reading selectable text from ${file.name}…`;
+    const response = await fetch('/api/pdf-imports', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/pdf', 'X-Filename': file.name},
+      body: file
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      status.textContent = payload.detail || 'The PDF could not be imported.';
+      choosePdf.disabled = false;
+      return;
+    }
+    status.textContent = `Structuring ${payload.page_count} PDF page(s) with Codex · ${elapsed()} elapsed…`;
+    const poll = async () => {
+      try {
+        const check = await fetch(payload.status_url);
+        if (!check.ok) throw new Error(`status ${check.status}`);
+        const state = await check.json();
+        if (state.status === 'completed') return window.location.assign(state.page_url);
+        if (state.status === 'failed') {
+          status.textContent = state.error || 'Profile extraction failed. Use the manual editor instead.';
+          choosePdf.disabled = false;
+          return;
+        }
+        status.textContent = `Structuring ${payload.page_count} PDF page(s) with Codex · ${elapsed()} elapsed…`;
+      } catch (_error) {
+        status.textContent = `Connection interrupted after ${elapsed()}. JobAuto is retrying…`;
+      }
+      window.setTimeout(poll, 1500);
+    };
+    poll();
+  });
+  manual.addEventListener('click', async () => {
+    manual.disabled = true;
+    manualStatus.textContent = 'Creating your blank CV workspace…';
+    const response = await fetch('/api/candidate-drafts/manual', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({locale: navigator.language || 'en-GB'})
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      manualStatus.textContent = payload.detail || 'The workspace could not be created.';
+      manual.disabled = false;
+      return;
+    }
+    window.location.assign(payload.page_url);
+  });
+</script>
+{% endblock %}

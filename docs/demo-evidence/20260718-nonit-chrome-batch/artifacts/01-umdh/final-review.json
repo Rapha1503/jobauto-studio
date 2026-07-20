@@ -1,0 +1,175 @@
+﻿{
+    "approved":  true,
+    "score":  92,
+    "ats_score":  91,
+    "editorial_score":  93,
+    "adaptation_score":  94,
+    "blocking_issues":  [
+
+                        ],
+    "warnings":  [
+                     "Supplier selection and negotiation are not directly evidenced; the documents truthfully present supplier consultations and coordination.",
+                     "Safety and regulatory-compliance ownership is not evidenced and is appropriately omitted rather than overstated.",
+                     "Direct agency and premium or luxury event experience is not established; the letter frames premium corporate events as the target context.",
+                     "No named digital project-management tool is evidenced.",
+                     "The letter is visually sparse, but it remains coherent, polished and directly usable; no verified central evidence is materially absent from the application package."
+                 ],
+    "requirement_coverage":  [
+                                 {
+                                     "requirement_id":  "req_01",
+                                     "coverage":  "exact",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "CV Maison des Cultures experience",
+                                                        "CV selected productions"
+                                                    ],
+                                     "rationale":  "Operational logistics and delivery are stated directly and supported by more than 70 events across three venues."
+                                 },
+                                 {
+                                     "requirement_id":  "req_02",
+                                     "coverage":  "indirect",
+                                     "placements":  [
+                                                        "CV Atelier Horizon experience",
+                                                        "CV Professional Capabilities"
+                                                    ],
+                                     "rationale":  "Supplier consultations and coordination are evidenced, but selection and negotiation ownership are not claimed."
+                                 },
+                                 {
+                                     "requirement_id":  "req_03",
+                                     "coverage":  "exact",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "CV Atelier Horizon experience",
+                                                        "Letter paragraph 2"
+                                                    ],
+                                     "rationale":  "Production budget management up to EUR 180,000 is explicitly stated."
+                                 },
+                                 {
+                                     "requirement_id":  "req_04",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV Atelier Horizon experience",
+                                                        "CV City in Motion",
+                                                        "CV Professional Capabilities"
+                                                    ],
+                                     "rationale":  "Production schedules and installation planning are explicit; dismantling is not separately documented."
+                                 },
+                                 {
+                                     "requirement_id":  "req_05",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV Atelier Horizon experience",
+                                                        "CV City in Motion",
+                                                        "Letter paragraph 2"
+                                                    ],
+                                     "rationale":  "Installation crews, technical delivery and on-site coordination are clearly represented through verified adjacent experience."
+                                 },
+                                 {
+                                     "requirement_id":  "req_06",
+                                     "coverage":  "exact",
+                                     "placements":  [
+                                                        "CV Atelier Horizon experience",
+                                                        "CV City in Motion",
+                                                        "Letter closing paragraph"
+                                                    ],
+                                     "rationale":  "Deadlines, costs, delivery risks, operational coherence and high-quality delivery are directly addressed."
+                                 },
+                                 {
+                                     "requirement_id":  "req_07",
+                                     "coverage":  "indirect",
+                                     "placements":  [
+                                                        "CV Atelier Horizon experience",
+                                                        "CV Professional Capabilities"
+                                                    ],
+                                     "rationale":  "Accessibility, installation planning and risk reviews provide relevant foundations, but safety and regulatory responsibility are not evidenced."
+                                 },
+                                 {
+                                     "requirement_id":  "req_08",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV Atelier Horizon experience",
+                                                        "CV Maison des Cultures experience",
+                                                        "Letter paragraphs 2-3"
+                                                    ],
+                                     "rationale":  "Coordination with artists, curators and cross-functional technical and communications teams supports creative and operational coherence."
+                                 },
+                                 {
+                                     "requirement_id":  "req_09",
+                                     "coverage":  "exact",
+                                     "placements":  [
+                                                        "CV Education"
+                                                    ],
+                                     "rationale":  "The MA in Cultural Project Management exceeds the required qualification level in a relevant discipline."
+                                 },
+                                 {
+                                     "requirement_id":  "req_10",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "CV Experience",
+                                                        "Letter opening paragraph"
+                                                    ],
+                                     "rationale":  "Four years of exhibition and public-programme production meet the duration and provide strong transferable event-production experience, though not in an agency."
+                                 },
+                                 {
+                                     "requirement_id":  "req_11",
+                                     "coverage":  "exact",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "CV Experience",
+                                                        "CV selected productions",
+                                                        "CV Professional Capabilities"
+                                                    ],
+                                     "rationale":  "The package supplies strong quantified evidence of logistical, technical and organisational production capability."
+                                 },
+                                 {
+                                     "requirement_id":  "req_12",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV Atelier Horizon experience",
+                                                        "CV Maison des Cultures experience",
+                                                        "Letter closing paragraph"
+                                                    ],
+                                     "rationale":  "Decision logs, risk reviews, structured handovers and attention to deadlines substantiate rigorous and detail-conscious delivery."
+                                 },
+                                 {
+                                     "requirement_id":  "req_13",
+                                     "coverage":  "indirect",
+                                     "placements":  [
+                                                        "CV Night of Archives",
+                                                        "Letter closing paragraph"
+                                                    ],
+                                     "rationale":  "Fixed live-event schedules, high visitor volume and multi-stakeholder delivery indicate demanding conditions without asserting undocumented stress-management claims."
+                                 },
+                                 {
+                                     "requirement_id":  "req_14",
+                                     "coverage":  "exact",
+                                     "placements":  [
+                                                        "CV Languages",
+                                                        "English-language CV and letter"
+                                                    ],
+                                     "rationale":  "English C1 is explicit, and both documents demonstrate professional written English."
+                                 },
+                                 {
+                                     "requirement_id":  "req_15",
+                                     "coverage":  "indirect",
+                                     "placements":  [
+                                                        "CV Maison des Cultures experience",
+                                                        "CV Atelier Horizon experience"
+                                                    ],
+                                     "rationale":  "Shared production calendars and decision logs demonstrate digital project-management practices, but no named tool is supported."
+                                 },
+                                 {
+                                     "requirement_id":  "req_16",
+                                     "coverage":  "indirect",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "Letter opening and closing paragraphs"
+                                                    ],
+                                     "rationale":  "High-quality visitor-facing production and attention to detail are transferable to premium events, while luxury-sector experience is not claimed."
+                                 }
+                             ],
+    "repair_actions":  [
+
+                       ]
+}

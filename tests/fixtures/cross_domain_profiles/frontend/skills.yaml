@@ -1,0 +1,7 @@
+minimum_group_overlap: 0.5
+verified:
+  Frontend Engineering: [TypeScript, JavaScript, React, Next.js, HTML, CSS]
+  Quality & Accessibility: [WCAG, Playwright, Vitest, Testing Library, Lighthouse]
+  Architecture & Delivery: [REST APIs, design systems, Storybook, Git, GitHub Actions]
+  Product Collaboration: [Figma, analytics, agile delivery, technical documentation]
+transferable: {}

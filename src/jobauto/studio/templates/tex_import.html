@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% set fidelity_labels = {
+  'locked': 'Locked - exact text',
+  'very_faithful': 'Light edits - same meaning',
+  'adaptable': 'Adapt angle to the offer',
+  'highly_adaptable': 'Strong adaptation from evidence',
+  'replaceable': 'Replace from candidate evidence'
+} %}
+{% block title %}Map {{ record.filename }} · JobAuto Studio{% endblock %}
+{% block content %}
+<section class="workspace-head import-head">
+  <div>
+    <a class="back" href="/setup">← Import another CV</a>
+    <p class="eyebrow">CV imported</p>
+    <h1>{{ record.filename }}</h1>
+    <p>Choose the overall adaptation style. Your original .tex and PDF stay unchanged.</p>
+  </div>
+  <div class="ready-state {{ 'ready' if record.compilation_status == 'compiled' else 'blocked' }}">
+    <span>{{ 'CV ready' if record.compilation_status == 'compiled' else record.compilation_status|title }}</span>
+    <small>{{ mapping.source_sha256[:12] }} · {{ mapping.line_ending|upper }}</small>
+  </div>
+</section>
+
+{% if record.compilation_error %}
+<section class="compile-error"><strong>Original PDF did not compile.</strong><pre>{{ record.compilation_error }}</pre></section>
+{% endif %}
+
+<div class="tex-map-layout">
+  <details class="panel source-code-panel advanced-source">
+    <summary><div><p class="panel-kicker">Advanced</p><h2>Inspect exact LaTeX lines</h2></div><span class="hash">read only</span></summary>
+    <ol class="source-lines">
+      {% for line in source_lines %}<li><code>{{ line }}</code></li>{% endfor %}
+    </ol>
+  </details>
+
+  <section class="panel mapping-panel">
+    <header><div><p class="panel-kicker">Adaptation style</p><h2>How closely should JobAuto follow this CV?</h2></div><span class="hash">change later</span></header>
+    <div class="adaptation-presets" role="radiogroup" aria-label="CV adaptation style">
+      <button type="button" data-preset="conservative"><strong>Conservative</strong><span>Keep the wording. Only align the target role and essential keywords.</span><small>Example: project descriptions stay unchanged.</small></button>
+      <button type="button" data-preset="balanced"><strong>Balanced <em>Recommended</em></strong><span>Keep every fact and the CV structure, but adapt the professional angle.</span><small>Example: select the best projects and emphasize the relevant parts.</small></button>
+      <button type="button" data-preset="flexible"><strong>Flexible</strong><span>Rewrite adaptable sections using only information approved in your profile.</span><small>Example: reorganize a summary or project description, without inventing facts.</small></button>
+    </div>
+    <details class="advanced-mapping">
+      <summary>Advanced: customize a specific section</summary>
+      <p class="contract-note">Use this only when a custom LaTeX macro was mapped incorrectly or one section needs a different rule. The preamble, packages and macros remain protected.</p>
+      <div class="policy-guide">
+        <strong>Individual block freedom</strong>
+        <span>Exact text keeps the block unchanged.</span>
+        <span>Light edits preserve its meaning and order.</span>
+        <span>Adapt angle may rephrase and reorder for the role or sector.</span>
+        <span>Strong adaptation may substantially rewrite using candidate evidence.</span>
+        <span>Replace may rebuild the block, but only from approved evidence.</span>
+      </div>
+    <form id="mapping-form">
+      <div id="mapping-rows">
+      {% for block in mapping.blocks %}
+        <div class="mapping-row" data-block-id="{{ block.block_id }}">
+          <div class="mapping-main">
+            <input name="label" value="{{ block.label }}" aria-label="Block label">
+            <select name="kind" aria-label="Block kind">
+              {% for kind in block_kinds %}<option value="{{ kind.value }}" {{ 'selected' if kind == block.kind else '' }}>{{ kind.value|replace('_', ' ')|title }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="mapping-range">
+            <label>From line<input name="start_line" type="number" min="{{ mapping.document_start_line + 1 }}" max="{{ mapping.document_end_line - 1 }}" value="{{ block.start_line }}"></label>
+            <label>To line<input name="end_line" type="number" min="{{ mapping.document_start_line + 1 }}" max="{{ mapping.document_end_line - 1 }}" value="{{ block.end_line }}"></label>
+            <span class="confidence">{{ (block.confidence * 100)|round|int }}%</span>
+          </div>
+          <div class="mapping-policy">
+            <label>Adaptation<select name="fidelity">{% for fidelity in fidelity_levels %}<option value="{{ fidelity.value }}" {{ 'selected' if fidelity == block.policy.fidelity else '' }}>{{ fidelity_labels[fidelity.value] }}</option>{% endfor %}</select></label>
+            <label>Target lines<input name="target_lines" type="number" min="1" max="200" value="{{ block.policy.target_lines or '' }}" placeholder="Auto"></label>
+            <label class="required-toggle"><input name="required" type="checkbox" {{ 'checked' if block.policy.required else '' }}> Required</label>
+          </div>
+          <button class="remove-map" type="button">Remove block</button>
+        </div>
+      {% endfor %}
+      </div>
+      <div class="form-action">
+        <button class="secondary-action" id="add-block" type="button">Add block</button>
+        <button type="submit">Save confirmed mapping</button>
+        <span id="mapping-status" role="status"></span>
+      </div>
+    </form>
+    </details>
+    <div class="profile-extract-action">
+      <button id="extract-profile" type="button" {% if not mapping.blocks %}disabled{% endif %}>Continue and build my profile</button>
+      <span id="extract-status" role="status">{% if mapping.blocks %}JobAuto detected the named sections in this CV. Every section remains bound to its exact LaTeX block; publications, certifications, awards, volunteering and other custom sections follow the adaptation level selected below.{% else %}No CV content section was detected. Import a completed CV rather than an empty layout template.{% endif %}</span>
+    </div>
+  </section>
+
+  <section class="panel preview-panel import-preview">
+    <header><div><p class="panel-kicker">Original render</p><h2>PDF before adaptation</h2></div>{% if record.pdf_path %}<a href="/setup/imports/{{ record.import_id }}/preview.pdf" target="_blank">Open PDF ↗</a>{% endif %}</header>
+    {% if record.pdf_path %}<img class="import-preview-image" src="/setup/imports/{{ record.import_id }}/preview.png" alt="Original CV first page">{% else %}<div class="preview-empty">Fix the LaTeX compilation error before confirming this CV.</div>{% endif %}
+  </section>
+</div>
+<script>
+  const form = document.querySelector('#mapping-form');
+  const status = document.querySelector('#mapping-status');
+  const rows = document.querySelector('#mapping-rows');
+  const kindOptions = `{% for kind in block_kinds %}<option value="{{ kind.value }}">{{ kind.value|replace('_', ' ')|title }}</option>{% endfor %}`;
+  const fidelityOptions = `{% for fidelity in fidelity_levels %}<option value="{{ fidelity.value }}">{{ fidelity_labels[fidelity.value] }}</option>{% endfor %}`;
+  const bindRemove = (row) => row.querySelector('.remove-map').addEventListener('click', () => row.remove());
+  const apiError = (payload, fallback) => {
+    if (!payload || !payload.detail) return fallback;
+    if (typeof payload.detail === 'string') return payload.detail;
+    if (Array.isArray(payload.detail)) return payload.detail.map(item => item.msg || JSON.stringify(item)).join(' ');
+    return payload.detail.message || fallback;
+  };
+  document.querySelectorAll('.mapping-row').forEach(bindRemove);
+  document.querySelector('#add-block').addEventListener('click', () => {
+    const index = rows.querySelectorAll('.mapping-row').length + 1;
+    const row = document.createElement('div');
+    row.className = 'mapping-row';
+    row.dataset.blockId = `custom-${index}`;
+    row.innerHTML = `<div class="mapping-main"><input name="label" value="Custom block ${index}" aria-label="Block label"><select name="kind" aria-label="Block kind">${kindOptions}</select></div><div class="mapping-range"><label>From line<input name="start_line" type="number" min="{{ mapping.document_start_line + 1 }}" max="{{ mapping.document_end_line - 1 }}" value="{{ mapping.document_start_line + 1 }}"></label><label>To line<input name="end_line" type="number" min="{{ mapping.document_start_line + 1 }}" max="{{ mapping.document_end_line - 1 }}" value="{{ mapping.document_start_line + 1 }}"></label><span class="confidence">manual</span></div><div class="mapping-policy"><label>Adaptation<select name="fidelity">${fidelityOptions}</select></label><label>Target lines<input name="target_lines" type="number" min="1" max="200" placeholder="Auto"></label><label class="required-toggle"><input name="required" type="checkbox" checked> Required</label></div><button class="remove-map" type="button">Remove block</button>`;
+    rows.appendChild(row);
+    bindRemove(row);
+  });
+  const corrections = () => [...document.querySelectorAll('.mapping-row')].map((row) => ({
+    block_id: row.dataset.blockId,
+    label: row.querySelector('[name=label]').value,
+    kind: row.querySelector('[name=kind]').value,
+    start_line: Number(row.querySelector('[name=start_line]').value),
+    end_line: Number(row.querySelector('[name=end_line]').value),
+    fidelity: row.querySelector('[name=fidelity]').value,
+    required: row.querySelector('[name=required]').checked,
+    target_lines: row.querySelector('[name=target_lines]').value ? Number(row.querySelector('[name=target_lines]').value) : null
+  }));
+
+  async function saveMapping() {
+    status.textContent = 'Checking sections…';
+    const response = await fetch('/api/tex-imports/{{ record.import_id }}/mapping', {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({blocks: corrections()})
+    });
+    const payload = await response.json();
+    status.textContent = response.ok ? 'Sections saved.' : apiError(payload, 'Sections could not be saved.');
+    if (!response.ok) throw new Error(status.textContent);
+  }
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    try { await saveMapping(); } catch (_error) {}
+  });
+
+  const lockedKinds = new Set(['identity', 'education', 'languages', 'interests']);
+  const presetValues = {
+    conservative: {summary: 'very_faithful', experience: 'very_faithful', projects: 'very_faithful', skills: 'very_faithful', other: 'very_faithful'},
+    balanced: {summary: 'adaptable', experience: 'very_faithful', projects: 'adaptable', skills: 'adaptable', other: 'very_faithful'},
+    flexible: {summary: 'highly_adaptable', experience: 'adaptable', projects: 'highly_adaptable', skills: 'highly_adaptable', other: 'adaptable'}
+  };
+
+  function syncPresetIndicator() {
+    const rows = [...document.querySelectorAll('.mapping-row')];
+    const matchingPreset = Object.entries(presetValues).find(([, values]) => rows.every(row => {
+      const kind = row.querySelector('[name=kind]').value;
+      const expected = lockedKinds.has(kind) ? 'locked' : (values[kind] || values.other);
+      return row.querySelector('[name=fidelity]').value === expected;
+    }))?.[0];
+    document.querySelectorAll('[data-preset]').forEach(item => {
+      item.classList.toggle('active', item.dataset.preset === matchingPreset);
+    });
+  }
+
+  document.querySelectorAll('[data-preset]').forEach(button => button.addEventListener('click', () => {
+    document.querySelectorAll('.mapping-row').forEach(row => {
+      const kind = row.querySelector('[name=kind]').value;
+      row.querySelector('[name=fidelity]').value = lockedKinds.has(kind) ? 'locked' : (presetValues[button.dataset.preset][kind] || presetValues[button.dataset.preset].other);
+    });
+    syncPresetIndicator();
+    status.textContent = `${button.querySelector('strong').textContent} adaptation selected.`;
+  }));
+  document.querySelectorAll('.mapping-row [name=fidelity]').forEach(select => select.addEventListener('change', syncPresetIndicator));
+  syncPresetIndicator();
+
+  const extractButton = document.querySelector('#extract-profile');
+  const extractStatus = document.querySelector('#extract-status');
+  extractButton.addEventListener('click', async () => {
+    extractButton.disabled = true;
+    const startedAt = Date.now();
+    const elapsedLabel = () => {
+      const seconds = Math.floor((Date.now() - startedAt) / 1000);
+      return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+    };
+    const waitingMessage = () => `Building your profile from the confirmed CV sections · ${elapsedLabel()} elapsed. This usually takes 1–3 minutes.`;
+    extractStatus.textContent = 'Saving your choices, then reading the confirmed CV sections…';
+    try { await saveMapping(); } catch (error) {
+      extractStatus.textContent = error.message;
+      extractButton.disabled = false;
+      return;
+    }
+    const start = await fetch('/api/tex-imports/{{ record.import_id }}/profile-draft', {method: 'POST'});
+    if (!start.ok) {
+      extractStatus.textContent = 'Profile extraction could not start.';
+      extractButton.disabled = false;
+      return;
+    }
+    const job = await start.json();
+    const timer = window.setInterval(() => { extractStatus.textContent = waitingMessage(); }, 1000);
+    const poll = async () => {
+      try {
+        const response = await fetch(job.status_url);
+        if (!response.ok) throw new Error(`status ${response.status}`);
+        const state = await response.json();
+        if (state.status === 'completed') {
+          window.clearInterval(timer);
+          extractStatus.textContent = 'Profile ready. Opening your review…';
+          return window.location.assign(state.page_url);
+        }
+        if (state.status === 'failed') {
+          window.clearInterval(timer);
+          extractStatus.textContent = state.error || 'Profile extraction failed. Check the CV mapping and try again.';
+          extractButton.disabled = false;
+          return;
+        }
+      } catch (_error) {
+        extractStatus.textContent = `Connection interrupted after ${elapsedLabel()}. JobAuto is retrying automatically…`;
+      }
+      window.setTimeout(poll, 1500);
+    };
+    poll();
+  });
+</script>
+{% endblock %}

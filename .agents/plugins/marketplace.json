@@ -1,0 +1,20 @@
+{
+  "name": "jobauto-studio",
+  "interface": {
+    "displayName": "JobAuto Studio"
+  },
+  "plugins": [
+    {
+      "name": "jobauto",
+      "source": {
+        "source": "local",
+        "path": "./plugins/jobauto"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

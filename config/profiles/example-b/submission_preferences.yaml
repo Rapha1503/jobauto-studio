@@ -1,0 +1,13 @@
+schema_version: 1
+mode: dry_run
+max_applications_per_campaign: 3
+allowed_portals: []
+standard_answers:
+  work_authorization: France
+allowed_consents: []
+max_retries: 1
+on_login: request_user
+on_captcha: request_user
+on_two_factor: request_user
+on_ambiguous_field: request_user
+require_confirmation_evidence: true

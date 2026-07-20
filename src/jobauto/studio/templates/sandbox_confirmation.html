@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Application packet verified · JobAuto Studio{% endblock %}
+{% block content %}
+<section class="sandbox-confirmation">
+  <span class="confirmation-mark">✓</span>
+  <p class="eyebrow">Verified sandbox receipt</p>
+  <h1>Application packet verified</h1>
+  <p>The sandbox received the exact approved CV and cover letter for {{ record.candidate_identity.first_name if record.candidate_identity else record.candidate_id }}. No employer application was submitted.</p>
+  <dl>
+    <dt>Company</dt><dd>{{ record.company }}</dd>
+    <dt>Role</dt><dd>{{ record.role }}</dd>
+    <dt>Portal</dt><dd>{{ record.receipt.portal }}</dd>
+    <dt>Verified at</dt><dd>{{ record.receipt.submitted_at }}</dd>
+  </dl>
+  <a href="/handoffs/{{ record.handoff_id }}">Open receipt packet</a>
+</section>
+{% endblock %}

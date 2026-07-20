@@ -1,0 +1,361 @@
+{
+  "negative": {
+    "approved": false,
+    "score": 86,
+    "ats_score": 96,
+    "editorial_score": 88,
+    "adaptation_score": 87,
+    "blocking_issues": [
+      "The cover letter does not explain a credible candidate-specific motivation for Medica Europe's role, European portfolio, cross-functional scope, Lyon location or hybrid context; it states fit and potential contribution without saying why the work genuinely interests the candidate.",
+      "The cover letter lacks a sourced reason for targeting this particular role, domain scope or company beyond naming Medica Europe and its European medical-device portfolio."
+    ],
+    "warnings": [
+      "Continuous improvement of regulatory processes is only indirectly evidenced through submission readiness, response closure and traceable follow-up work.",
+      "Priority management is inferable from concurrent responsibilities but is not stated explicitly.",
+      "The letter does not mention maintaining current submission plans, Product Development, Manufacturing, ISO 13485, CAPA or document control; these points are substantially covered elsewhere or are non-central to the letter's selected argument.",
+      "The letter page is visually sparse, but this is not independently blocking; the required repair is substantive motivation and target specificity, not filler or page expansion."
+    ],
+    "letter_argument": {
+      "target_specificity": {
+        "state": "repair",
+        "rationale": "The letter names Medica Europe and the European medical-device portfolio, but it does not give a sourced reason why this particular portfolio, cross-functional setting, role scope or company is being targeted.",
+        "supporting_excerpt": null
+      },
+      "evidence_to_missions": {
+        "state": "pass",
+        "rationale": "The letter selects verified EU MDR documentation, change assessment, traceable coordination and post-market evidence, then connects those examples directly to submissions and lifecycle regulatory support.",
+        "supporting_excerpt": "This experience would enable me to support Medica Europe’s submissions while keeping documentation and cross-functional contributions aligned and auditable."
+      },
+      "candidate_contribution": {
+        "state": "pass",
+        "rationale": "The candidate explicitly states how her experience would contribute to auditable submissions and portfolio-wide regulatory support across the device lifecycle.",
+        "supporting_excerpt": "This combination of pre-market documentation and post-market compliance would allow me to support the regulatory needs of your European medical-device portfolio throughout the device lifecycle."
+      },
+      "motivation_credibility": {
+        "state": "repair",
+        "rationale": "No sentence explains why a sourced feature of the role or context genuinely interests the candidate. Applying, matching experience and stating what she could support do not establish motivation.",
+        "supporting_excerpt": null
+      },
+      "tone_and_naturalness": {
+        "state": "pass",
+        "rationale": "The letter is concise, professional and coherent, with a natural progression from central documentation evidence to cross-functional coordination and lifecycle compliance.",
+        "supporting_excerpt": "In my current regulatory affairs work, I coordinate traceable evidence across quality, clinical and engineering teams and follow notified-body questions through closure."
+      }
+    },
+    "requirement_coverage": [
+      {
+        "requirement_id": "req_01",
+        "coverage": "exact",
+        "placements": [
+          "CV Profile",
+          "CV Experience",
+          "Letter opening paragraph"
+        ],
+        "rationale": "The package explicitly states three years of medical-device compliance experience and shows regulatory affairs and quality-assurance roles from 2022 to 2026."
+      },
+      {
+        "requirement_id": "req_02",
+        "coverage": "exact",
+        "placements": [
+          "CV Profile",
+          "CV MedNova experience",
+          "CV Skills",
+          "Letter opening paragraph"
+        ],
+        "rationale": "EU MDR technical-documentation preparation and maintenance are stated explicitly and supported by the Class II device experience."
+      },
+      {
+        "requirement_id": "req_03",
+        "coverage": "semantic",
+        "placements": [
+          "CV Profile",
+          "CV MedNova experience",
+          "CV Skills",
+          "Letter opening paragraph"
+        ],
+        "rationale": "Change-impact assessments are explicit, although the rendered documents do not separately distinguish product changes from manufacturing changes."
+      },
+      {
+        "requirement_id": "req_04",
+        "coverage": "semantic",
+        "placements": [
+          "CV Profile",
+          "CV MedNova experience",
+          "CV Skills",
+          "Letter second paragraph"
+        ],
+        "rationale": "Regulatory-submission evidence, traceability and notified-body question closure are explicit; keeping submission plans current is not stated."
+      },
+      {
+        "requirement_id": "req_05",
+        "coverage": "exact",
+        "placements": [
+          "CV Profile",
+          "CV MedNova experience",
+          "CV Skills",
+          "Letter third paragraph"
+        ],
+        "rationale": "Clinical evaluation, post-market surveillance, vigilance and risk-management documentation are all explicitly covered."
+      },
+      {
+        "requirement_id": "req_06",
+        "coverage": "indirect",
+        "placements": [
+          "CV MedNova experience",
+          "CV BioCert experience"
+        ],
+        "rationale": "Submission-readiness reviews, question closure and traceable quality follow-up demonstrate relevant process discipline, but continuous improvement is not explicitly claimed."
+      },
+      {
+        "requirement_id": "req_07",
+        "coverage": "exact",
+        "placements": [
+          "CV MedNova experience",
+          "CV BioCert experience",
+          "CV Skills",
+          "CV Certifications & Training"
+        ],
+        "rationale": "EU MDR and ISO 13485 are both explicit and tied to relevant documentation and quality work."
+      },
+      {
+        "requirement_id": "req_08",
+        "coverage": "semantic",
+        "placements": [
+          "CV Skills",
+          "CV Languages",
+          "CV Experience"
+        ],
+        "rationale": "Technical writing is explicit, English is recorded at C1 and the regulatory-documentation experience supports clear technical writing, though the experience bullet does not explicitly say the documents were written in English."
+      },
+      {
+        "requirement_id": "req_09",
+        "coverage": "indirect",
+        "placements": [
+          "CV MedNova experience",
+          "CV BioCert experience"
+        ],
+        "rationale": "Concurrent documentation, submissions, notified-body and post-market duties imply priority management, but the behaviour is not stated directly."
+      },
+      {
+        "requirement_id": "req_10",
+        "coverage": "exact",
+        "placements": [
+          "CV Profile",
+          "CV MedNova experience",
+          "CV Skills",
+          "Letter second paragraph"
+        ],
+        "rationale": "The package explicitly describes traceable cross-functional coordination across quality, clinical and engineering contributors."
+      },
+      {
+        "requirement_id": "req_11",
+        "coverage": "exact",
+        "placements": [
+          "CV MedNova experience",
+          "CV BioCert experience",
+          "CV Skills"
+        ],
+        "rationale": "Class II devices, CAPA, document control and notified-body interactions are all explicitly present and grounded in experience."
+      },
+      {
+        "requirement_id": "req_12",
+        "coverage": "exact",
+        "placements": [
+          "CV Languages"
+        ],
+        "rationale": "English C1 directly establishes professional English proficiency, and the entire package is written consistently in English."
+      },
+      {
+        "requirement_id": "req_13",
+        "coverage": "semantic",
+        "placements": [
+          "CV Profile",
+          "CV MedNova experience",
+          "CV Skills",
+          "Letter second paragraph"
+        ],
+        "rationale": "Confident cross-functional communication is demonstrated through coordination of quality, clinical and engineering teams and notified-body responses."
+      }
+    ],
+    "repair_actions": [
+      {
+        "surface": "letter",
+        "instruction": "Add one concise, evidence-based sentence explaining why Sofia is genuinely interested in this role's sourced context, such as supporting a European medical-device portfolio across pre-market and post-market work in a cross-functional environment. Connect that interest to her verified lifecycle compliance experience without inventing company knowledge or personal history."
+      }
+    ]
+  },
+  "positive": {
+    "approved": true,
+    "score": 94,
+    "ats_score": 96,
+    "editorial_score": 94,
+    "adaptation_score": 95,
+    "blocking_issues": [],
+    "warnings": [
+      "Continuous improvement of regulatory processes is supported only indirectly through controlled-document, CAPA, audit-follow-up and lifecycle work; no unsupported ownership claim was added.",
+      "Priority management and maintenance of submission plans are not stated explicitly, although the rendered experience demonstrates concurrent regulatory activities and notified-body follow-up.",
+      "Change-impact assessment is well evidenced, but the rendered documents do not specifically distinguish product changes from manufacturing changes."
+    ],
+    "letter_argument": {
+      "target_specificity": {
+        "state": "pass",
+        "rationale": "The opening identifies the sourced European portfolio, EU MDR documentation, lifecycle-compliance and cross-functional scope as the specific reasons for applying.",
+        "supporting_excerpt": "I am applying for the Regulatory Affairs Specialist position because its focus on a European medical-device portfolio combines the work I have built my experience around: rigorous EU MDR documentation, lifecycle compliance and coordination across specialist teams."
+      },
+      "evidence_to_missions": {
+        "state": "pass",
+        "rationale": "Verified documentation, change-assessment, traceability and notified-body evidence is directly connected to supporting Medica Europe’s regulatory submissions.",
+        "supporting_excerpt": "Over three years in medical-device compliance, I have prepared and maintained EU MDR technical documentation for Class II devices, including change-impact assessments. I have also coordinated traceable evidence across quality, clinical and engineering teams and followed notified-body questions through closure."
+      },
+      "candidate_contribution": {
+        "state": "pass",
+        "rationale": "The letter explicitly states the practical contribution the candidate would make to submissions and ongoing portfolio compliance.",
+        "supporting_excerpt": "This experience would allow me to support Medica Europe’s submissions with clear documentation, disciplined traceability and effective cross-functional follow-up."
+      },
+      "motivation_credibility": {
+        "state": "pass",
+        "rationale": "The candidate links genuine interest in the role’s sourced full-lifecycle scope to her verified post-market, clinical, vigilance and risk-management experience.",
+        "supporting_excerpt": "The role’s full-lifecycle scope is particularly compelling to me. My work has included clinical-evaluation and risk-management updates, post-market surveillance and vigilance activities, giving me a practical understanding of how submission evidence must remain coherent as devices and safety information evolve."
+      },
+      "tone_and_naturalness": {
+        "state": "pass",
+        "rationale": "The writing is concise, professional and cohesive, with specific evidence and no conspicuous boilerplate, repetition or keyword stuffing.",
+        "supporting_excerpt": "I would bring that perspective to maintaining the compliance of Medica Europe’s portfolio beyond initial approval."
+      }
+    },
+    "requirement_coverage": [
+      {
+        "requirement_id": "req_01",
+        "coverage": "exact",
+        "placements": [
+          "CV Profile",
+          "CV Experience — MedNova Devices",
+          "CV Experience — BioCert Laboratories",
+          "Letter paragraph 2"
+        ],
+        "rationale": "The CV and letter explicitly state three years of medical-device compliance experience across regulatory affairs and quality assurance."
+      },
+      {
+        "requirement_id": "req_02",
+        "coverage": "exact",
+        "placements": [
+          "CV Profile",
+          "CV Experience — MedNova Devices bullet 1",
+          "CV Skills — Regulatory Affairs",
+          "Letter paragraph 2"
+        ],
+        "rationale": "Both documents explicitly state preparation and maintenance of EU MDR technical documentation."
+      },
+      {
+        "requirement_id": "req_03",
+        "coverage": "semantic",
+        "placements": [
+          "CV Experience — MedNova Devices bullet 1",
+          "CV Skills — Regulatory Affairs",
+          "Letter paragraph 2"
+        ],
+        "rationale": "Change-impact assessment is explicit, but product and manufacturing changes are not separately named."
+      },
+      {
+        "requirement_id": "req_04",
+        "coverage": "semantic",
+        "placements": [
+          "CV Profile",
+          "CV Experience — MedNova Devices bullet 2",
+          "CV Skills — Regulatory Affairs",
+          "Letter paragraph 2"
+        ],
+        "rationale": "Submission evidence, traceability and notified-body question closure are explicit; maintaining submission plans is not separately stated."
+      },
+      {
+        "requirement_id": "req_05",
+        "coverage": "exact",
+        "placements": [
+          "CV Profile",
+          "CV Experience — MedNova Devices bullet 3",
+          "CV Skills — Clinical & Safety",
+          "Letter paragraph 3"
+        ],
+        "rationale": "Clinical evaluation, post-market surveillance, vigilance and risk-management documentation are all explicitly covered."
+      },
+      {
+        "requirement_id": "req_06",
+        "coverage": "indirect",
+        "placements": [
+          "CV Experience — BioCert Laboratories",
+          "CV Experience — MedNova Devices",
+          "Letter paragraph 3"
+        ],
+        "rationale": "Lifecycle updates, CAPA evidence, controlled documents and traceable audit follow-up support improvement work without claiming direct process-improvement ownership."
+      },
+      {
+        "requirement_id": "req_07",
+        "coverage": "exact",
+        "placements": [
+          "CV Experience — MedNova Devices bullet 1",
+          "CV Experience — BioCert Laboratories bullet 1",
+          "CV Skills — Regulatory Affairs",
+          "CV Skills — Quality Systems",
+          "CV Certifications & Training"
+        ],
+        "rationale": "EU MDR and ISO 13485 are both explicitly evidenced through experience, skills and training."
+      },
+      {
+        "requirement_id": "req_08",
+        "coverage": "semantic",
+        "placements": [
+          "CV Experience — MedNova Devices",
+          "CV Skills — Professional Methods",
+          "CV Languages",
+          "Letter throughout"
+        ],
+        "rationale": "Technical-document production and technical writing are explicit, English C1 is visible, and the rendered English letter demonstrates clear professional writing."
+      },
+      {
+        "requirement_id": "req_09",
+        "coverage": "indirect",
+        "placements": [
+          "CV Experience — MedNova Devices",
+          "CV Experience — BioCert Laboratories"
+        ],
+        "rationale": "Concurrent documentation, submission, notified-body, lifecycle and audit-follow-up activities imply priority management, but the behaviour is not explicitly claimed."
+      },
+      {
+        "requirement_id": "req_10",
+        "coverage": "exact",
+        "placements": [
+          "CV Profile",
+          "CV Experience — MedNova Devices bullet 2",
+          "CV Skills — Professional Methods",
+          "Letter paragraph 2"
+        ],
+        "rationale": "Cross-functional coordination across quality, clinical and engineering teams is explicitly tied to traceable evidence and closure tracking."
+      },
+      {
+        "requirement_id": "req_11",
+        "coverage": "exact",
+        "placements": [
+          "CV Experience — MedNova Devices bullets 1–2",
+          "CV Experience — BioCert Laboratories bullet 1",
+          "CV Skills — Regulatory Affairs",
+          "CV Skills — Quality Systems",
+          "Letter paragraph 2"
+        ],
+        "rationale": "Class II devices, CAPA, document control and notified-body interactions are all explicitly present and supported."
+      },
+      {
+        "requirement_id": "req_12",
+        "coverage": "exact",
+        "placements": [
+          "CV Languages",
+          "CV Profile",
+          "CV Experience — MedNova Devices bullet 2",
+          "CV Skills — Professional Methods",
+          "Letter paragraphs 1–3"
+        ],
+        "rationale": "English C1 is explicit, while confident cross-functional communication is demonstrated through coordination across specialist teams."
+      }
+    ],
+    "repair_actions": []
+  }
+}

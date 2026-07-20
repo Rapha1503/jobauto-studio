@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% block title %}{% if application_request %}{{ application_request.company }} · {{ application_request.role }}{% else %}Application progress{% endif %} · JobAuto Studio{% endblock %}
+{% block content %}
+<section class="run-shell" data-run-id="{{ record.run_id }}">
+  <a class="back" href="{{ back_url }}">← {{ back_label }}</a>
+  <p class="eyebrow">Tracked application run</p>
+  {% if application_request %}
+    <h1>{{ application_request.company }}</h1>
+    <p class="run-lead">{{ application_request.role }}</p>
+  {% else %}
+    <h1>Application in progress</h1>
+  {% endif %}
+  <div class="run-state"><span id="run-status">{{ record.status }}</span><strong id="run-phase">{{ record.current_phase }}</strong></div>
+  <details class="phase-details">
+    <summary>Technical details · <span id="phase-count">{{ record.phase_history|length }}</span> phase transitions</summary>
+    <code>{{ record.run_id }}</code>
+    <ol id="phase-history">
+      {% for phase in record.phase_history %}<li>{{ phase }}</li>{% endfor %}
+    </ol>
+  </details>
+  <div id="run-blockers">{{ record.blockers|join(' · ') }}</div>
+  <div id="run-artifacts" class="artifact-links">
+    <a href="/runs/{{ record.run_id }}/artifacts/original-cv" target="_blank">Open original CV ↗</a>
+    {% if record.artifacts.get('cv') and record.artifacts.get('letter') %}
+      <a href="/runs/{{ record.run_id }}/artifacts/cv" target="_blank">Open CV PDF ↗</a>
+      <a href="/runs/{{ record.run_id }}/artifacts/letter" target="_blank">Open letter PDF ↗</a>
+    {% endif %}
+  </div>
+  <div id="run-next-action" class="run-next-action" {% if not campaign_id and record.status != 'completed' %}hidden{% endif %}>
+    {% if campaign_id %}
+      <a class="button primary" href="/campaigns/{{ campaign_id }}">Continue to application queue</a>
+    {% elif application_request and application_request.offer_url %}
+      <button class="button primary" id="attach-run-to-campaign" type="button">Continue to application queue</button>
+      <span id="attach-run-error" class="inline-error"></span>
+    {% else %}
+      <p>An official offer URL is required before Chrome handoff.</p>
+    {% endif %}
+  </div>
+  <section id="document-review" class="document-review" {% if not record.artifacts.get('cv') %}hidden{% endif %}>
+    <div class="review-heading">
+      <div>
+        <p class="panel-kicker">Document review</p>
+        <h2>Compare the source and tailored CV</h2>
+        <p>The PDFs below are the real files used by JobAuto. The explanation lists only detected content changes.</p>
+      </div>
+      <div class="match-score-pair">
+        <div><small>Role/profile fit estimate</small><strong>{{ initial_fit if initial_fit is not none else '—' }}</strong></div>
+        <div><small>Baseline CV ATS estimate</small><strong id="baseline-ats">{{ baseline_assessment.ats_score if baseline_assessment else '—' }}</strong></div>
+        <div><small>Final CV ATS estimate</small><strong id="comparison-ats">{{ record.review.ats_score if record.review else '—' }}</strong></div>
+      </div>
+    </div>
+    {% if baseline_assessment %}<p class="baseline-decision">CV decision: <strong>{{ baseline_assessment.decision|replace('_', ' ') }}</strong> · {{ baseline_assessment.rationale }}</p>{% endif %}
+    {% if baseline_assessment and baseline_assessment.get('ats_breakdown') %}
+      <details class="phase-details ats-breakdown">
+        <summary>How JobAuto calculated baseline ATS readiness</summary>
+        <p>Model {{ baseline_assessment.ats_breakdown.model }}. Must {{ baseline_assessment.ats_breakdown.priority_scores.must }}/100, important {{ baseline_assessment.ats_breakdown.priority_scores.important }}/100, nice {{ baseline_assessment.ats_breakdown.priority_scores.nice }}/100{% if baseline_assessment.ats_breakdown.exact_term_score is not none %}, exact terms {{ baseline_assessment.ats_breakdown.exact_term_score }}/100{% endif %}.</p>
+        <ul>{% for reason in baseline_assessment.ats_breakdown.decision_reasons %}<li>{{ reason }}</li>{% endfor %}</ul>
+      </details>
+    {% elif record.review %}
+      <p class="baseline-decision">Legacy run: these ATS estimates predate the comparable JobAuto readiness model and should not be compared. Re-run the offer to calculate a grounded baseline and final score.</p>
+    {% endif %}
+    <div class="document-comparison">
+      <article class="pdf-pane">
+        <header><div><small>Before</small><strong>Source CV</strong></div><a href="/runs/{{ record.run_id }}/artifacts/original-cv" target="_blank">Open PDF &nearr;</a></header>
+        <img alt="Source CV first page" src="/runs/{{ record.run_id }}/previews/original-cv.png" onerror="this.hidden=true; this.nextElementSibling.hidden=false">
+        <a class="preview-fallback" href="/runs/{{ record.run_id }}/artifacts/original-cv" target="_blank" hidden>Preview unavailable. Open the source PDF.</a>
+      </article>
+      <article class="pdf-pane tailored-pane">
+        <header><div><small>After</small><strong>Tailored CV</strong></div><a href="/runs/{{ record.run_id }}/artifacts/cv" target="_blank">Open PDF &nearr;</a></header>
+        <img alt="Tailored CV first page" src="/runs/{{ record.run_id }}/previews/cv.png" onerror="this.hidden=true; this.nextElementSibling.hidden=false">
+        <a class="preview-fallback" href="/runs/{{ record.run_id }}/artifacts/cv" target="_blank" hidden>Preview unavailable. Open the tailored PDF.</a>
+      </article>
+    </div>
+    <div class="change-review">
+      <div class="change-review-heading">
+        <div><p class="panel-kicker">Change ledger</p><h2>What changed and why</h2></div>
+        <span id="change-total">{% if change_summary %}{{ change_summary.change_count }} visible changes{% else %}Waiting for the final document{% endif %}</span>
+      </div>
+      <div id="change-ledger" class="change-ledger">
+        {% if change_summary %}
+          {% for change in change_summary.items %}
+          <details class="change-card"{% if loop.index <= 2 %} open{% endif %}>
+            <summary><span>{{ change.section|replace('_', ' ') }}</span><strong>{{ change.label }}</strong></summary>
+            <p class="change-rationale">{{ change.rationale }}</p>
+            <div class="change-columns"><div><small>Before</small><pre>{{ change.before }}</pre></div><div><small>After</small><pre>{{ change.after }}</pre></div></div>
+          </details>
+          {% endfor %}
+        {% else %}
+          <p class="change-empty">The generated run did not expose a structured content delta.</p>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+  <article id="adaptation-panel" class="panel adaptation-summary" {% if not adaptation_summary %}hidden{% endif %}>
+    <header><div><p class="panel-kicker">Application strategy</p><h2>Planned adaptation strategy</h2></div></header>
+    <div id="adaptation-summary"></div>
+  </article>
+  <section class="run-detail-grid">
+    <article class="panel run-detail-card">
+      <header><div><p class="panel-kicker">Live trace</p><h2>Agent activity</h2></div><span id="agent-totals" class="hash"></span></header>
+      <div id="agent-events" class="agent-events"></div>
+    </article>
+    <article class="panel run-detail-card">
+      <header><div><p class="panel-kicker">Supervisor</p><h2>ATS and document review</h2></div></header>
+      <div id="run-review" class="run-review">
+        {% if record.review %}
+          <div class="score-row">
+            <strong>{{ record.review.score }}/100</strong>
+            <span>ATS {{ record.review.ats_score }}</span>
+            <span>Editorial {{ record.review.editorial_score }}</span>
+            <span>Adaptation {{ record.review.adaptation_score }}</span>
+          </div>
+          {% if record.review.blocking_issues %}
+            <h3>Blocking issues</h3>
+            <ul>{% for issue in record.review.blocking_issues %}<li>{{ issue }}</li>{% endfor %}</ul>
+          {% endif %}
+          {% if record.review.get('letter_argument') %}
+            <h3>Letter argument</h3>
+            <ul>
+              {% for criterion, assessment in record.review.letter_argument.items() %}
+                <li>
+                  <strong>{{ criterion|replace('_', ' ') }}</strong> ·
+                  {% if assessment is mapping %}
+                    {{ assessment.state }} — {{ assessment.rationale }}
+                  {% else %}
+                    {{ assessment }}
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+          <h3>Requirement coverage</h3>
+          <ul>
+            {% for item in record.review.requirement_coverage %}
+              <li><strong>{{ item.requirement_id }}</strong> · {{ item.coverage }} — {{ item.rationale }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>Waiting for the rendered-document review.</p>
+        {% endif %}
+      </div>
+    </article>
+  </section>
+</section>
+<script>
+  const root = document.querySelector('.run-shell');
+  const runId = root.dataset.runId;
+  const terminal = new Set(['completed', 'blocked', 'failed']);
+  const initialAdaptationSummary = {{ adaptation_summary|tojson }};
+  const initialChangeSummary = {{ change_summary.model_dump(mode='json')|tojson if change_summary else 'null' }};
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+  function renderEvents(events) {
+    const codexCalls = events.filter((event) => event.model === 'codex-cli' && event.status !== 'running');
+    const logicalCalls = new Set(codexCalls.map((event) => event.call_id || `${event.phase}:${event.input_sha256 || event.attempt}`));
+    const tokens = codexCalls.reduce((sum, event) => sum + Number(event.total_tokens_estimate || 0), 0);
+    const latency = codexCalls.reduce((sum, event) => sum + Number(event.latency_ms || 0), 0);
+    const executionLabel = codexCalls.length === logicalCalls.size ? '' : ` · ${codexCalls.length} executions`;
+    document.querySelector('#agent-totals').textContent = `${logicalCalls.size} Codex tasks${executionLabel} · ~${tokens.toLocaleString()} tokens · ${(latency / 1000).toFixed(1)}s`;
+    document.querySelector('#agent-events').innerHTML = events.map((event) => `
+      <div class="agent-event agent-${escapeHtml(event.status)}">
+        <strong>${escapeHtml(event.phase)}</strong><span>${escapeHtml(event.status)}</span>
+        <small>attempt ${escapeHtml(event.attempt)}${event.total_tokens_estimate ? ` · ~${Number(event.total_tokens_estimate).toLocaleString()} tokens` : ''}${event.latency_ms ? ` · ${(Number(event.latency_ms) / 1000).toFixed(1)}s` : ''}${event.pipeline_outcome ? ` · ${escapeHtml(event.pipeline_outcome)}` : ''}</small>
+      </div>`).join('');
+  }
+  function renderReview(review) {
+    if (!review) return;
+    document.querySelector('#comparison-ats').textContent = review.ats_score ?? '—';
+    const scores = `<div class="score-row"><strong>${review.score}/100</strong><span>ATS ${review.ats_score}</span><span>Editorial ${review.editorial_score}</span><span>Adaptation ${review.adaptation_score}</span></div>`;
+    const letterArgument = Object.entries(review.letter_argument || {}).map(([criterion, assessment]) => {
+      const state = typeof assessment === 'object' ? assessment.state : assessment;
+      const rationale = typeof assessment === 'object' ? ` — ${escapeHtml(assessment.rationale || '')}` : '';
+      return `<li><strong>${escapeHtml(criterion.replaceAll('_', ' '))}</strong> · ${escapeHtml(state)}${rationale}</li>`;
+    }).join('');
+    const coverage = (review.requirement_coverage || []).map((item) => `<li><strong>${escapeHtml(item.requirement_id)}</strong> · ${escapeHtml(item.coverage)} — ${escapeHtml(item.rationale)}</li>`).join('');
+    const issues = (review.blocking_issues || []).map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+    document.querySelector('#run-review').innerHTML = `${scores}${issues ? `<h3>Blocking issues</h3><ul>${issues}</ul>` : ''}${letterArgument ? `<h3>Letter argument</h3><ul>${letterArgument}</ul>` : ''}<h3>Requirement coverage</h3><ul>${coverage}</ul>`;
+  }
+  function renderChanges(summary) {
+    if (!summary) return;
+    document.querySelector('#change-total').textContent = `${summary.change_count} visible changes`;
+    document.querySelector('#change-ledger').innerHTML = summary.items.map((change, index) => `
+      <details class="change-card" ${index < 2 ? 'open' : ''}>
+        <summary><span>${escapeHtml(change.section.replaceAll('_', ' '))}</span><strong>${escapeHtml(change.label)}</strong></summary>
+        <p class="change-rationale">${escapeHtml(change.rationale)}</p>
+        <div class="change-columns"><div><small>Before</small><pre>${escapeHtml(change.before)}</pre></div><div><small>After</small><pre>${escapeHtml(change.after)}</pre></div></div>
+      </details>`).join('');
+  }
+  function renderDocuments(run) {
+    if (!run.artifacts.cv || !run.artifacts.letter) return;
+    document.querySelector('#document-review').hidden = false;
+    const tailoredPreview = document.querySelector('img[alt="Tailored CV first page"]');
+    if (tailoredPreview && tailoredPreview.dataset.ready !== 'true') {
+      const fallback = tailoredPreview.nextElementSibling;
+      tailoredPreview.hidden = false;
+      fallback.hidden = true;
+      tailoredPreview.onload = () => {
+        tailoredPreview.dataset.ready = 'true';
+        tailoredPreview.hidden = false;
+        fallback.hidden = true;
+      };
+      tailoredPreview.onerror = () => {
+        tailoredPreview.hidden = true;
+        fallback.hidden = false;
+      };
+      tailoredPreview.src = `/runs/${runId}/previews/cv.png?ready=${encodeURIComponent(run.updated_at || '')}`;
+    }
+    renderChanges(run.change_summary);
+  }
+  const attachButton = document.querySelector('#attach-run-to-campaign');
+  if (attachButton) attachButton.addEventListener('click', async () => {
+    attachButton.disabled = true;
+    attachButton.textContent = 'Adding to application queue...';
+    const response = await fetch(`/runs/${runId}/campaign`, {method: 'POST'});
+    const payload = await response.json();
+    if (response.ok) {
+      window.location.assign(payload.page_url);
+      return;
+    }
+    document.querySelector('#attach-run-error').textContent = payload.detail || 'Unable to create the application queue.';
+    attachButton.disabled = false;
+    attachButton.textContent = 'Continue to application queue';
+  });
+  function renderAdaptation(summary) {
+    if (!summary) return;
+    const panel = document.querySelector('#adaptation-panel');
+    panel.hidden = false;
+    const target = [summary.normalized_role, summary.sector].filter(Boolean).map(escapeHtml).join(' · ');
+    const specialisations = (summary.specialisations || []).map((item) => `<span>${escapeHtml(item)}</span>`).join('');
+    const decisions = (summary.decisions || []).map((item) => `<li><strong>${escapeHtml(item.surface)}</strong> · ${escapeHtml(item.decision)}<small>${escapeHtml(item.rationale)}${item.evidence_count ? ` · ${item.evidence_count} evidence source${item.evidence_count === 1 ? '' : 's'}` : ''}</small></li>`).join('');
+    const project = summary.project_plan;
+    const slots = (project?.slots || []).map((item) => `<li><strong>Project ${escapeHtml(item.slot)} · ${escapeHtml(item.mode)}</strong><small>${escapeHtml(item.rationale)}</small></li>`).join('');
+    const projects = project ? `<h3>Project strategy · ${escapeHtml(project.decision)}</h3><p>${escapeHtml(project.rationale)}</p>${slots ? `<ul>${slots}</ul>` : ''}` : '';
+    const skills = (summary.skill_categories || []).map((group) => `<li><strong>${escapeHtml(group.category)}</strong><small>${group.items.map((item) => `${escapeHtml(item.name)} <em>${escapeHtml(item.evidence_level)}</em>`).join(' · ')}</small></li>`).join('');
+    const keywords = (summary.targeted_keywords || []).slice(0, 12).map((item) => `<span>${escapeHtml(item)}</span>`).join('');
+    const baseline = summary.baseline_cv_assessment;
+    if (baseline) document.querySelector('#baseline-ats').textContent = baseline.ats_score ?? '—';
+    const baselineDecision = baseline ? `<div class="baseline-decision"><strong>CV decision: ${escapeHtml(baseline.decision.replaceAll('_', ' '))}</strong><br>${escapeHtml(baseline.rationale)}</div>` : '';
+    document.querySelector('#adaptation-summary').innerHTML = `
+      ${baselineDecision}
+      ${target ? `<p class="strategy-target">${target}</p>` : ''}
+      ${specialisations ? `<div class="strategy-tags">${specialisations}</div>` : ''}
+      <div class="strategy-angles"><div><h3>CV angle</h3><p>${escapeHtml(summary.cv_angle)}</p></div><div><h3>Letter angle</h3><p>${escapeHtml(summary.letter_angle)}</p></div></div>
+      ${projects}
+      ${skills ? `<h3>Selected competencies</h3><ul>${skills}</ul>` : ''}
+      ${keywords ? `<h3>ATS signals</h3><div class="strategy-tags">${keywords}</div>` : ''}
+      ${decisions ? `<details class="strategy-details"><summary>Show strategy decisions</summary><ul>${decisions}</ul></details>` : ''}`;
+  }
+  async function refresh() {
+    const response = await fetch(`/runs/${runId}/status`);
+    if (!response.ok) return;
+    const run = await response.json();
+    document.querySelector('#run-status').textContent = run.status;
+    document.querySelector('#run-phase').textContent = run.current_phase;
+    document.querySelector('#phase-count').textContent = run.phase_history.length;
+    document.querySelector('#phase-history').innerHTML = run.phase_history.map((phase) => `<li>${phase}</li>`).join('');
+    document.querySelector('#run-blockers').textContent = run.blockers.join(' · ');
+    renderEvents(run.agent_events || []);
+    renderReview(run.review);
+    renderAdaptation(run.adaptation_summary);
+    renderDocuments(run);
+    if (run.status === 'completed') document.querySelector('#run-next-action').hidden = false;
+    if (run.artifacts.cv && run.artifacts.letter) {
+      document.querySelector('#run-artifacts').innerHTML = `<a href="/runs/${runId}/artifacts/original-cv" target="_blank">Open original CV ↗</a><a href="/runs/${runId}/artifacts/cv" target="_blank">Open CV PDF ↗</a><a href="/runs/${runId}/artifacts/letter" target="_blank">Open letter PDF ↗</a>`;
+    }
+    if (!terminal.has(run.status)) window.setTimeout(refresh, 1200);
+  }
+  renderAdaptation(initialAdaptationSummary);
+  renderChanges(initialChangeSummary);
+  refresh();
+</script>
+{% endblock %}

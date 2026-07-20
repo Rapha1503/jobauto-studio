@@ -1,0 +1,189 @@
+﻿{
+    "approved":  true,
+    "score":  91,
+    "ats_score":  89,
+    "editorial_score":  94,
+    "adaptation_score":  93,
+    "blocking_issues":  [
+
+                        ],
+    "warnings":  [
+                     "Direct experience with assignment-contract issuance and monitoring is not established; the documents appropriately present only agreements and contracts as adjacent experience.",
+                     "TAJA1, A1 and FEU formalities, invoicing and payment reminders, grant applications and grant reporting are not evidenced and are truthfully omitted.",
+                     "Google Workspace and Excel proficiency is unsupported and therefore absent.",
+                     "Availability for occasional travel is not stated.",
+                     "The letter occupies a relatively small portion of the page, but it is coherent, polished and contains the strongest relevant evidence; no substantive filler is warranted."
+                 ],
+    "requirement_coverage":  [
+                                 {
+                                     "requirement_id":  "req_01",
+                                     "coverage":  "exact",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "Atelier Horizon experience",
+                                                        "City in Motion",
+                                                        "Letter paragraphs 2-3"
+                                                    ],
+                                     "rationale":  "Budgets, schedules, documentation, logistics and operational follow-up across concurrent cultural productions directly cover the mission."
+                                 },
+                                 {
+                                     "requirement_id":  "req_02",
+                                     "coverage":  "indirect",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "City in Motion",
+                                                        "Professional Capabilities",
+                                                        "Letter paragraph 3"
+                                                    ],
+                                     "rationale":  "Lender agreements and general contracts provide adjacent evidence, without claiming assignment-contract drafting, issuance or monitoring."
+                                 },
+                                 {
+                                     "requirement_id":  "req_03",
+                                     "coverage":  "indirect",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "Atelier Horizon experience",
+                                                        "City in Motion",
+                                                        "Letter paragraph 3"
+                                                    ],
+                                     "rationale":  "Touring logistics and transport documentation are demonstrated, but the named TAJA1, A1 and FEU formalities are not."
+                                 },
+                                 {
+                                     "requirement_id":  "req_04",
+                                     "coverage":  "exact",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "Atelier Horizon experience",
+                                                        "Financial \u0026 Project Control",
+                                                        "Letter paragraph 2"
+                                                    ],
+                                     "rationale":  "Budget control up to EUR 180,000, supplier consultations and centralised production records directly support financial-document preparation and budget monitoring."
+                                 },
+                                 {
+                                     "requirement_id":  "req_05",
+                                     "coverage":  "missing",
+                                     "placements":  [
+
+                                                    ],
+                                     "rationale":  "No direct evidence of issuing invoices, monitoring payments or sending payment reminders appears in either document."
+                                 },
+                                 {
+                                     "requirement_id":  "req_06",
+                                     "coverage":  "missing",
+                                     "placements":  [
+                                                        "CV Grants \u0026 Awards"
+                                                    ],
+                                     "rationale":  "The bursary is relevant context, but it does not establish support for funding applications, grant requests or grant reports."
+                                 },
+                                 {
+                                     "requirement_id":  "req_07",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "Atelier Horizon experience",
+                                                        "Maison des Cultures experience",
+                                                        "Professional Capabilities",
+                                                        "Letter paragraph 3"
+                                                    ],
+                                     "rationale":  "Decision logs, calendars, documentation, reports and centralised operational information demonstrate structured records and internal tracking, though databases and archiving are not named."
+                                 },
+                                 {
+                                     "requirement_id":  "req_08",
+                                     "coverage":  "missing",
+                                     "placements":  [
+
+                                                    ],
+                                     "rationale":  "Google Workspace, Excel and other named collaborative office tools are unsupported and correctly omitted."
+                                 },
+                                 {
+                                     "requirement_id":  "req_09",
+                                     "coverage":  "exact",
+                                     "placements":  [
+                                                        "CV Languages",
+                                                        "Letter paragraph 4"
+                                                    ],
+                                     "rationale":  "English C1 is stated clearly, and both documents demonstrate strong professional written English."
+                                 },
+                                 {
+                                     "requirement_id":  "req_10",
+                                     "coverage":  "exact",
+                                     "placements":  [
+                                                        "CV Languages",
+                                                        "Letter paragraph 4"
+                                                    ],
+                                     "rationale":  "Spanish B2 directly supplies the preferred second language."
+                                 },
+                                 {
+                                     "requirement_id":  "req_11",
+                                     "coverage":  "exact",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "Atelier Horizon experience",
+                                                        "Maison des Cultures experience",
+                                                        "Letter paragraphs 1-2"
+                                                    ],
+                                     "rationale":  "Four years of cultural production and programme coordination exceed the requested initial relevant experience."
+                                 },
+                                 {
+                                     "requirement_id":  "req_12",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "Atelier Horizon experience",
+                                                        "Maison des Cultures experience",
+                                                        "Night of Archives",
+                                                        "Letter throughout"
+                                                    ],
+                                     "rationale":  "Multi-party coordination, briefs, reports and polished application writing demonstrate interpersonal and writing ability."
+                                 },
+                                 {
+                                     "requirement_id":  "req_13",
+                                     "coverage":  "exact",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "Atelier Horizon experience",
+                                                        "Maison des Cultures experience",
+                                                        "Letter paragraph 2"
+                                                    ],
+                                     "rationale":  "Six productions, more than 70 events, shared calendars, decision logs and weekly risk reviews directly evidence concurrent-project organisation and rigorous follow-up."
+                                 },
+                                 {
+                                     "requirement_id":  "req_14",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "Maison des Cultures experience",
+                                                        "Night of Archives",
+                                                        "Letter paragraphs 1 and 4"
+                                                    ],
+                                     "rationale":  "Cultural production and performance delivery are established, while the letter credibly states motivation to move into music and live performance."
+                                 },
+                                 {
+                                     "requirement_id":  "req_15",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "City in Motion",
+                                                        "CV Languages",
+                                                        "Letter paragraphs 1, 3 and 4"
+                                                    ],
+                                     "rationale":  "Touring work across three venues, multi-partner coordination and professional English and Spanish support international and intercultural readiness."
+                                 },
+                                 {
+                                     "requirement_id":  "req_16",
+                                     "coverage":  "exact",
+                                     "placements":  [
+                                                        "CV Education"
+                                                    ],
+                                     "rationale":  "The MA in Cultural Project Management directly meets the master\u0027s-level qualification requirement."
+                                 },
+                                 {
+                                     "requirement_id":  "req_17",
+                                     "coverage":  "missing",
+                                     "placements":  [
+
+                                                    ],
+                                     "rationale":  "The candidate context and rendered documents do not state availability for occasional travel."
+                                 }
+                             ],
+    "repair_actions":  [
+
+                       ]
+}

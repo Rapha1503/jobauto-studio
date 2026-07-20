@@ -1,0 +1,30 @@
+schema_version: 1
+candidate_id: sofia-martin
+identity:
+  first_name: Sofia
+  last_name: Martin
+  email: sofia.martin@example.test
+  phone: "+33 4 00 00 00 00"
+  location: Lyon
+locale: en-GB
+availability: One month notice
+work_authorization: European Union
+facts_path: facts.yaml
+project_bank_path: projects.yaml
+skill_policy_path: skills.yaml
+cv_backend: latex_source_preserving
+cv_model_path: cv_model.tex
+cv_mapping_path: cv_mapping.json
+cv_source_path: cv_source.md
+letter_model_path: letter_model.txt
+adaptation_policy_path: adaptation_policy.yaml
+search_preferences_path: search_preferences.yaml
+submission_preferences_path: submission_preferences.yaml
+protected_claims: [identity.current]
+forbidden_claims: []
+project_lab:
+  allow_new_project: false
+  allow_external_inspiration: false
+  require_verification_warning: true
+  minimum_visible_projects: 0
+  maximum_visible_projects: 0

@@ -1,0 +1,176 @@
+﻿{
+    "approved":  true,
+    "score":  92,
+    "ats_score":  93,
+    "editorial_score":  94,
+    "adaptation_score":  92,
+    "blocking_issues":  [
+
+                        ],
+    "warnings":  [
+                     "Direct ownership of host-team training and retention, recruitment pipelines, detailed workforce HR administration, uniform inventory and student partnerships is not evidenced; the documents appropriately avoid claiming it.",
+                     "The cover letter is visually sparse, but remains coherent, polished and usable without invented filler."
+                 ],
+    "requirement_coverage":  [
+                                 {
+                                     "requirement_id":  "req_01",
+                                     "coverage":  "exact",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "Atelier Horizon experience",
+                                                        "Cover letter paragraphs 1-2"
+                                                    ],
+                                     "rationale":  "Explicitly covers delivery from initial brief through opening and on-site execution."
+                                 },
+                                 {
+                                     "requirement_id":  "req_02",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "Atelier Horizon experience",
+                                                        "Professional Capabilities",
+                                                        "Cover letter paragraph 2"
+                                                    ],
+                                     "rationale":  "Schedules, budgets, supplier coordination, contracts, logistics and operational documentation are present; expenses are not stated."
+                                 },
+                                 {
+                                     "requirement_id":  "req_03",
+                                     "coverage":  "indirect",
+                                     "placements":  [
+                                                        "Night of Archives project",
+                                                        "Cover letter paragraph 3"
+                                                    ],
+                                     "rationale":  "Contributor and mediation-team coordination is relevant, but formal host training, engagement and retention are not claimed."
+                                 },
+                                 {
+                                     "requirement_id":  "req_04",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "Atelier Horizon experience",
+                                                        "Selected Productions",
+                                                        "Professional Capabilities",
+                                                        "Cover letter paragraphs 2-3"
+                                                    ],
+                                     "rationale":  "The package demonstrates coordination of installation crews, contributors and mediation teams before and during live delivery."
+                                 },
+                                 {
+                                     "requirement_id":  "req_05",
+                                     "coverage":  "missing",
+                                     "placements":  [
+
+                                                    ],
+                                     "rationale":  "Uniform inventory, rotation and maintenance are unsupported and truthfully omitted."
+                                 },
+                                 {
+                                     "requirement_id":  "req_06",
+                                     "coverage":  "indirect",
+                                     "placements":  [
+                                                        "Maison des Cultures experience",
+                                                        "Cover letter paragraph 4"
+                                                    ],
+                                     "rationale":  "Welcome packs and operational handovers provide adjacent onboarding evidence, while interviews and candidate follow-up remain unclaimed."
+                                 },
+                                 {
+                                     "requirement_id":  "req_07",
+                                     "coverage":  "indirect",
+                                     "placements":  [
+                                                        "CV Community Engagement",
+                                                        "CV Professional Capabilities"
+                                                    ],
+                                     "rationale":  "Community and partner coordination support outreach potential, but school and student-union partnerships are not directly evidenced."
+                                 },
+                                 {
+                                     "requirement_id":  "req_08",
+                                     "coverage":  "indirect",
+                                     "placements":  [
+                                                        "Atelier Horizon experience",
+                                                        "Professional Capabilities",
+                                                        "Cover letter paragraph 4"
+                                                    ],
+                                     "rationale":  "Scheduling, contracts and administrative documentation are covered, while hours, absences and personnel-file ownership are explicitly treated as developmental."
+                                 },
+                                 {
+                                     "requirement_id":  "req_09",
+                                     "coverage":  "exact",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "Atelier Horizon experience",
+                                                        "Maison des Cultures experience",
+                                                        "Professional Capabilities",
+                                                        "Cover letter paragraph 2"
+                                                    ],
+                                     "rationale":  "Production calendars, risk and quality monitoring, feedback summaries and post-event reporting are directly presented."
+                                 },
+                                 {
+                                     "requirement_id":  "req_10",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "Maison des Cultures experience",
+                                                        "Professional Capabilities"
+                                                    ],
+                                     "rationale":  "Improved cross-team handovers and explicit process-improvement vocabulary credibly cover operational efficiency."
+                                 },
+                                 {
+                                     "requirement_id":  "req_11",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV Education"
+                                                    ],
+                                     "rationale":  "The MA in Cultural Project Management is a Bac+5-level relevant qualification, though not explicitly titled events management."
+                                 },
+                                 {
+                                     "requirement_id":  "req_12",
+                                     "coverage":  "exact",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "CV Experience",
+                                                        "Cover letter paragraphs 1-3"
+                                                    ],
+                                     "rationale":  "Four years, six exhibitions and more than 70 public events demonstrate closely similar event-project experience."
+                                 },
+                                 {
+                                     "requirement_id":  "req_13",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "CV Experience",
+                                                        "Professional Memberships",
+                                                        "Cover letter"
+                                                    ],
+                                     "rationale":  "Sustained event-production work, memberships and tailored motivation demonstrate a strong sector commitment."
+                                 },
+                                 {
+                                     "requirement_id":  "req_14",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "Atelier Horizon experience",
+                                                        "Cover letter paragraph 2"
+                                                    ],
+                                     "rationale":  "End-to-end ownership, concurrent schedules, substantial budgets and recurring risk reviews demonstrate organisation and autonomy."
+                                 },
+                                 {
+                                     "requirement_id":  "req_15",
+                                     "coverage":  "semantic",
+                                     "placements":  [
+                                                        "CV profile",
+                                                        "CV Experience",
+                                                        "Selected Productions",
+                                                        "Cover letter paragraphs 2-3"
+                                                    ],
+                                     "rationale":  "Concurrent multi-venue delivery and coordination across contributors, suppliers and internal teams demonstrate multitasking and teamwork."
+                                 },
+                                 {
+                                     "requirement_id":  "req_16",
+                                     "coverage":  "indirect",
+                                     "placements":  [
+                                                        "Atelier Horizon experience",
+                                                        "Professional Capabilities",
+                                                        "Cover letter paragraph 4"
+                                                    ],
+                                     "rationale":  "Decision logs, contracts and operational documentation demonstrate administrative rigour, but confidentiality and dedicated HR follow-up are not directly evidenced."
+                                 }
+                             ],
+    "repair_actions":  [
+
+                       ]
+}

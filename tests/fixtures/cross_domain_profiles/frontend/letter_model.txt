@@ -1,0 +1,6 @@
+Dear hiring team,
+
+I am applying for a frontend engineering role where accessible interfaces, sound component design and reliable delivery shape the user experience. My experience combines TypeScript product development, automated testing and close collaboration with design and backend teams.
+
+Kind regards,
+Noah Williams

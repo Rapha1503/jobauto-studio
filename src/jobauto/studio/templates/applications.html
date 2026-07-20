@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Applications dashboard · JobAuto Studio{% endblock %}
+{% block content %}
+<section class="applications-shell" data-status-url="/profiles/{{ item.profile.candidate_id }}/applications/status">
+  <div class="workflow-nav">
+    <a class="back" href="/profiles/{{ item.profile.candidate_id }}">&larr; Back to my profile</a>
+    <a class="dashboard-edit-link" href="/profiles/{{ item.profile.candidate_id }}">Start or resume a campaign</a>
+  </div>
+  <div class="applications-heading">
+    <div>
+      <p class="eyebrow">Application tracker</p>
+      <h1>Offers, documents and submissions</h1>
+      <p>One place to review the offer, the selected competencies, the tailored documents and the current application status.</p>
+    </div>
+    <div class="dashboard-refresh"><span class="live-dot" aria-hidden="true"></span><small id="dashboard-live-label">Live updates enabled</small></div>
+  </div>
+
+  <section class="dashboard-metrics" aria-label="Application summary">
+    <article><strong id="metric-offers">{{ dashboard.summary.offers }}</strong><span>offers evaluated</span></article>
+    <article><strong id="metric-ready">{{ dashboard.summary.ready }}</strong><span>document packs ready</span></article>
+    <article><strong id="metric-submitted">{{ dashboard.summary.submitted }}</strong><span>submitted</span></article>
+    <article><strong id="metric-attention">{{ dashboard.summary.attention }}</strong><span>need attention</span></article>
+  </section>
+
+  <div class="score-explainer">
+    <div><strong>Role/profile fit estimate</strong><span>Estimated during discovery from the role, your evidence and your saved preferences. It is not a CV ATS score.</span></div>
+    <div><strong>Baseline and final CV ATS estimates</strong><span>Both use the offer requirement contract. The baseline decides whether rewriting is useful; the final score reviews the real rendered CV. This is not an employer ATS score.</span></div>
+    <div><strong>Versioned and explainable</strong><span>JobAuto weights sourced must, important and nice requirements, distinguishes literal terms from semantic concepts, and shows the gaps that triggered or skipped adaptation.</span></div>
+  </div>
+
+  <section class="applications-board">
+    <div class="applications-board-head" aria-hidden="true">
+      <span>Offer</span><span>Match</span><span>Tailoring</span><span>Documents</span><span>Status</span>
+    </div>
+    <div id="application-rows">
+      {% for row in dashboard["items"] %}
+      <article class="application-dashboard-row" data-row-id="{{ row.row_id }}">
+        <div class="application-offer">
+          <strong>{{ row.company }}</strong>
+          <span>{{ row.role }}</span>
+          <a href="{{ row.offer_url }}" target="_blank">Open official offer &nearr;</a>
+          <details>
+            <summary>Full offer description</summary>
+            <p>{{ row.description }}</p>
+          </details>
+        </div>
+        <div class="application-scores">
+          <div><small>Role/profile fit</small><strong data-initial-fit>{{ row.initial_fit if row.initial_fit is not none else '—' }}</strong></div>
+          <div><small>Baseline CV ATS</small><strong data-baseline-ats>{{ row.baseline_ats if row.baseline_ats is not none else '—' }}</strong></div>
+          <div><small>Final CV ATS</small><strong data-final-ats>{{ row.final_ats if row.final_ats is not none else '—' }}</strong></div>
+          {% if row.cv_decision %}<small>CV: {{ row.cv_decision|replace('_', ' ') }}</small>{% endif %}
+          <details><summary>How to read this</summary><p>{{ row.initial_fit_rationale }}</p></details>
+        </div>
+        <div class="application-tailoring">
+          <strong data-change-count>{% if row.change_count %}{{ row.change_count }} visible changes{% elif row.run_id %}No content delta recorded{% else %}Not generated{% endif %}</strong>
+          {% if row.changed_sections %}<small>{{ row.changed_sections|join(' · ') }}</small>{% endif %}
+          {% if row.skills %}
+          <div class="dashboard-skill-tags">
+            {% for skill in row.skills[:6] %}<span>{{ skill }}</span>{% endfor %}
+            {% if row.skills|length > 6 %}<span>+{{ row.skills|length - 6 }}</span>{% endif %}
+          </div>
+          {% endif %}
+        </div>
+        <div class="application-documents" data-documents>
+          {% if row.documents_ready %}
+            <a class="compare-action" href="/runs/{{ row.run_id }}">Compare CVs</a>
+            <a href="/runs/{{ row.run_id }}/artifacts/cv" target="_blank">CV PDF</a>
+            <a href="/runs/{{ row.run_id }}/artifacts/letter" target="_blank">Letter PDF</a>
+          {% elif row.run_id %}
+            <a href="/runs/{{ row.run_id }}">Follow generation</a>
+          {% else %}
+            <span>Not selected for generation</span>
+          {% endif %}
+        </div>
+        <div class="application-status">
+          <span class="status-pill status-{{ row.status }}" data-status>{{ row.status|replace('_', ' ') }}</span>
+          <small data-status-detail>{% if row.blockers %}{{ row.blockers|join(' · ') }}{% elif row.run_phase %}{{ row.run_phase|replace('_', ' ') }}{% endif %}</small>
+        </div>
+      </article>
+      {% else %}
+      <div class="empty-dashboard">
+        <strong>No offer has been evaluated yet.</strong>
+        <span>Start a job search from your profile. Offers and tailored documents will appear here automatically.</span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+</section>
+<script>
+  const dashboardRoot = document.querySelector('.applications-shell');
+  let dashboardTimer = null;
+
+  function replaceDocuments(container, item) {
+    container.replaceChildren();
+    if (!item.run_id) {
+      const label = document.createElement('span');
+      label.textContent = 'Not selected for generation';
+      container.append(label);
+      return;
+    }
+    const primary = document.createElement('a');
+    primary.href = `/runs/${item.run_id}`;
+    primary.textContent = item.documents_ready ? 'Compare CVs' : 'Follow generation';
+    if (item.documents_ready) primary.className = 'compare-action';
+    container.append(primary);
+    if (!item.documents_ready) return;
+    for (const [label, kind] of [['CV PDF', 'cv'], ['Letter PDF', 'letter']]) {
+      const link = document.createElement('a');
+      link.href = `/runs/${item.run_id}/artifacts/${kind}`;
+      link.target = '_blank';
+      link.textContent = label;
+      container.append(link);
+    }
+  }
+
+  async function refreshDashboard() {
+    try {
+      const response = await fetch(dashboardRoot.dataset.statusUrl, {cache: 'no-store'});
+      if (!response.ok) throw new Error('status unavailable');
+      const dashboard = await response.json();
+      const renderedIds = [...document.querySelectorAll('[data-row-id]')].map(row => row.dataset.rowId).sort();
+      const incomingIds = dashboard.items.map(item => String(item.row_id)).sort();
+      if (renderedIds.join('|') !== incomingIds.join('|')) {
+        window.location.reload();
+        return;
+      }
+      for (const key of ['offers', 'ready', 'submitted', 'attention']) {
+        document.querySelector(`#metric-${key}`).textContent = dashboard.summary[key];
+      }
+      dashboard.items.forEach(item => {
+        const row = document.querySelector(`[data-row-id="${item.row_id}"]`);
+        if (!row) return;
+        row.querySelector('[data-initial-fit]').textContent = item.initial_fit ?? '—';
+        row.querySelector('[data-baseline-ats]').textContent = item.baseline_ats ?? '—';
+        row.querySelector('[data-final-ats]').textContent = item.final_ats ?? '—';
+        const status = row.querySelector('[data-status]');
+        status.textContent = item.status.replaceAll('_', ' ');
+        status.className = `status-pill status-${item.status}`;
+        row.querySelector('[data-status-detail]').textContent = item.blockers.length
+          ? item.blockers.join(' · ')
+          : (item.run_phase ? item.run_phase.replaceAll('_', ' ') : '');
+        const changes = row.querySelector('[data-change-count]');
+        changes.textContent = item.change_count ? `${item.change_count} visible changes` : (item.run_id ? 'No content delta recorded' : 'Not generated');
+        replaceDocuments(row.querySelector('[data-documents]'), item);
+      });
+      document.querySelector('#dashboard-live-label').textContent = `Updated ${new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'})}`;
+    } catch (_error) {
+      document.querySelector('#dashboard-live-label').textContent = 'Reconnecting automatically';
+    }
+    window.clearTimeout(dashboardTimer);
+    dashboardTimer = window.setTimeout(refreshDashboard, 3000);
+  }
+
+  dashboardTimer = window.setTimeout(refreshDashboard, 1500);
+</script>
+{% endblock %}
