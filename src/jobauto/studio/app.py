@@ -448,6 +448,9 @@ def create_studio_app(
         return {
             "campaign": campaign,
             "applications": applications,
+            "not_selected": [
+                offer for offer in campaign["offers"] if offer["decision"] != "selected"
+            ],
             "receipts": receipts,
             "source_cv_url": (
                 "/demo/files/source-cv.pdf" if (demo_root / "source-cv.pdf").is_file() else None

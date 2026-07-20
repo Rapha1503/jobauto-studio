@@ -67,7 +67,9 @@ def test_layout_override_preserves_preamble_and_line_endings() -> None:
     rendered = apply_cv_layout(source, choice)
 
     assert isinstance(rendered, bytes)
-    assert rendered.startswith(b"\\documentclass{article}\r\n\\begin{document}\r\n")
+    assert rendered.startswith(b"\\documentclass{article}\r\n% JOBAUTO_PDF_TEXT_MAPPING\r\n")
+    assert rendered.index(b"% JOBAUTO_PDF_TEXT_MAPPING") < rendered.index(b"\\begin{document}")
+    assert b"\\fi\r\n\\begin{document}\r\n" in rendered
     assert b"% JOBAUTO_LAYOUT\r\n\\fontsize{12}{18}\\selectfont" in rendered
     assert rendered.endswith(b"Hello\r\n\\end{document}\r\n")
 

@@ -25,6 +25,12 @@ The public repository is exported with clean history and generic contributor
 metadata. This chronology describes the meaningful extension while avoiding
 publication of the earlier personal repository history.
 
+The public commit dates establish when the sanitized release was published;
+they do not independently prove the day-by-day chronology above. The submitted
+Codex `/feedback` Session ID and the captured GPT-5.6 traces are the supporting
+Build Week records. This document is a scope disclosure, not a substitute for
+those records.
+
 The public branch removes the personal profile, application history, private
 templates and user-specific runtime modules from the distributable product. It
 keeps synthetic examples only.

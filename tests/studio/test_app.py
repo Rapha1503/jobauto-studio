@@ -92,6 +92,12 @@ def test_checked_demo_replays_non_technical_campaign_and_serves_artifacts(
     assert "Maya Laurent's application campaign" in response.text
     assert "Verified non-technical replay" in response.text
     assert "Five reviewed document packs" in response.text
+    assert "Why this application matched" in response.text
+    assert "End-to-end event logistics and on-site delivery" in response.text
+    assert "Four offers kept outside this campaign" in response.text
+    assert "below the five-offer campaign cutoff" in response.text
+    assert "Event Studio Meridian" in response.text
+    assert "UMDH - Une Marque & Des Hommes" not in response.text
     assert response.text.count("sandbox verified") == 5
     assert "Legacy Private Candidate" not in response.text
     assert "Legacy Private Employer" not in response.text

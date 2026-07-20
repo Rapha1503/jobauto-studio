@@ -82,17 +82,25 @@ def apply_cv_layout(tex: str | bytes, choice: CvLayoutChoice) -> str | bytes:
     if marker not in text:
         raise ValueError("CV source has no \\begin{document} marker")
     newline = "\r\n" if "\r\n" in text else "\n"
-    override = newline.join(
+    pdf_text_mapping = newline.join(
         [
             _PDF_TEXT_MAPPING_MARKER,
             r"\ifdefined\pdfgentounicode",
             r"\IfFileExists{glyphtounicode.tex}{\input{glyphtounicode}\pdfgentounicode=1}{}",
             r"\fi",
+        ]
+    )
+    layout_override = newline.join(
+        [
             _LAYOUT_MARKER,
             rf"\fontsize{{{choice.font_size_pt:g}}}{{{choice.baseline_skip_pt:g}}}\selectfont",
         ]
     )
-    rendered = text.replace(marker, marker + newline + override, 1)
+    rendered = text.replace(
+        marker,
+        pdf_text_mapping + newline + marker + newline + layout_override,
+        1,
+    )
     if not is_bytes:
         return rendered
     encoded = rendered.encode("utf-8")

@@ -40,7 +40,7 @@
     <article class="panel demo-application-card">
       <div class="demo-application-title">
         <span>{{ '%02d'|format(loop.index) }}</span>
-        <div><strong>{{ item.role }}</strong><small>{{ item.company }}</small></div>
+        <div><strong>{{ item.role }}</strong><small>{{ item.display_company }}</small></div>
       </div>
       <div class="demo-score-grid">
         <div><small>Role/profile fit</small><strong>{{ item.fit_score }}</strong></div>
@@ -48,6 +48,14 @@
         <div><small>ATS readiness</small><strong>{{ item.final_review.ats_score }}</strong></div>
         <div><small>Adaptation</small><strong>{{ item.final_review.adaptation_score }}</strong></div>
       </div>
+      <details class="demo-match-details">
+        <summary>Why this application matched</summary>
+        <div class="demo-match-grid">
+          <div><small>Captured offer signals</small><ul>{% for signal in item.offer_signals %}<li>{{ signal }}</li>{% endfor %}</ul></div>
+          <div><small>Evidence used</small><p>{{ item.match_explanation }}</p></div>
+          <div><small>Truthful boundary</small><p>{{ item.truthful_gap }}</p></div>
+        </div>
+      </details>
       <div class="demo-artifact-links">
         <a class="compare-action" href="{{ item.cv_url }}" target="_blank">CV PDF</a>
         <a href="{{ item.letter_url }}" target="_blank">Letter PDF</a>
@@ -65,8 +73,19 @@
     {% endfor %}
   </section>
 
+  {% if demo.not_selected %}
+  <section class="panel demo-not-selected">
+    <div><p class="panel-kicker">Full batch</p><h2>Four offers kept outside this campaign</h2><p>The campaign selected the five strongest matches; the remaining eligible signals stay visible instead of disappearing from the replay.</p></div>
+    <div class="demo-not-selected-list">
+      {% for item in demo.not_selected %}
+      <article><div><strong>{{ item.role }}</strong><small>{{ item.display_company }} · fit {{ item.fit_score }}</small></div><p>{{ item.selection_reason }}</p></article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
   <section class="panel demo-boundary">
-    <div><p class="panel-kicker">Chrome proof</p><h2>Exact files, hashes and receipts</h2><p>The checked Chrome Extension run filled the synthetic form, uploaded the approved PDFs and persisted five hash-verified sandbox receipts. It did not submit to a real employer.</p></div>
+    <div><p class="panel-kicker">Chrome proof</p><h2>Exact files, hashes and receipts</h2><p>One detailed Chrome Extension run records the filled synthetic form and exact uploaded PDFs. The batch also preserves five sandbox receipt records with matching document hashes. It did not submit to a real employer.</p></div>
     <div class="demo-artifact-links"><a href="/demo/files/receipts-summary.json" target="_blank">Open receipt manifest</a><a href="/demo/files/visuals/five-tailored-cvs.png" target="_blank">View all tailored CVs</a><a href="/demo/files/visuals/five-tailored-letters.png" target="_blank">View all letters</a></div>
   </section>
 </section>

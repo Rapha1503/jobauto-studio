@@ -30,8 +30,10 @@ is the simpler judging path.
 
 JobAuto existed before the submission period. The submission must therefore
 describe only the meaningful Build Week extension as the judged work and link
-to [`BUILD_WEEK_SCOPE.md`](BUILD_WEEK_SCOPE.md), the dated Git history and the
-captured GPT-5.6 agent traces. Do not present the earlier personal automation as
+to [`BUILD_WEEK_SCOPE.md`](BUILD_WEEK_SCOPE.md), the representative Codex
+`/feedback` Session ID and the captured GPT-5.6 agent traces. The public history
+is intentionally a sanitized export and must not be presented as the sole proof
+of the internal chronology. Do not present the earlier personal automation as
 new work.
 
 ## Judging alignment

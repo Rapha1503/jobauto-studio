@@ -8,9 +8,17 @@
   "offers": [
     {
       "company": "UMDH - Une Marque & Des Hommes",
+      "display_company": "Event Studio Meridian",
       "role": "Charge(e) de Production Evenementielle",
       "fit_score": 92,
       "decision": "selected",
+      "offer_signals": [
+        "End-to-end event logistics and on-site delivery",
+        "Production budgets, schedules and supplier coordination",
+        "Cross-functional delivery in a premium event context"
+      ],
+      "match_explanation": "More than 70 delivered events, production budgets up to EUR 180,000 and multi-venue technical coordination provide direct evidence for the central delivery requirements.",
+      "truthful_gap": "Supplier negotiation, formal safety ownership and prior luxury-agency experience are not claimed.",
       "run_id": "maya-laurent-ac33d313-v4-c621043393df",
       "final_review_score": 92,
       "cv_pages": 1,
@@ -18,9 +26,17 @@
     },
     {
       "company": "La Belle Equipe",
+      "display_company": "Collective North",
       "role": "Chef de Projet Evenementiel (H/F)",
       "fit_score": 86,
       "decision": "selected",
+      "offer_signals": [
+        "Event delivery from brief through opening",
+        "Schedules, budgets, logistics and production documentation",
+        "On-site contributor and team coordination"
+      ],
+      "match_explanation": "The candidate's exhibition and public-programme work demonstrates end-to-end planning, live delivery and coordination across technical and visitor-facing teams.",
+      "truthful_gap": "Formal recruiting, host-team retention and uniform management are not claimed.",
       "run_id": "maya-laurent-ac33d313-v4-2e67431b5124",
       "final_review_score": 92,
       "cv_pages": 1,
@@ -28,9 +44,17 @@
     },
     {
       "company": "The Galion Project",
+      "display_company": "Forum Atelier",
       "role": "Event & Content Project Junior",
       "fit_score": 84,
       "decision": "selected",
+      "offer_signals": [
+        "Delivery of varied event and content formats",
+        "Venue, travel, supplier and production logistics",
+        "Budget monitoring and event operations"
+      ],
+      "match_explanation": "Talks, workshops, performances and touring installations provide transferable evidence for varied-format event delivery and operational coordination.",
+      "truthful_gap": "Hivebrite, HubSpot, accommodation, catering, margins and invoicing are not claimed.",
       "run_id": "maya-laurent-ac33d313-v4-ecbcf439790e",
       "final_review_score": 92,
       "cv_pages": 1,
@@ -38,9 +62,17 @@
     },
     {
       "company": "Gingko Biloba",
+      "display_company": "Touring Arts Office",
       "role": "Assistant(e) d'administratrice de production",
       "fit_score": 82,
       "decision": "selected",
+      "offer_signals": [
+        "Touring-production logistics and venue adaptation",
+        "Budgets, contracts and production administration",
+        "Financial and supplier workflow follow-up"
+      ],
+      "match_explanation": "Touring installations, lender agreements, supplier consultations and documented budget control support the production-administration core of the role.",
+      "truthful_gap": "Payroll, social and tax administration, WordPress and specialist accounting tools are not claimed.",
       "run_id": "maya-laurent-ac33d313-v4-9cdd41f7a9ee",
       "final_review_score": 90,
       "cv_pages": 1,
@@ -48,9 +80,17 @@
     },
     {
       "company": "3D Family Production",
+      "display_company": "StageWorks Production",
       "role": "Charge(e) de production et administration",
       "fit_score": 79,
       "decision": "selected",
+      "offer_signals": [
+        "Concurrent production administration and follow-up",
+        "Contracts, touring documentation and formalities",
+        "Budgets, invoices, payments and funding support"
+      ],
+      "match_explanation": "Concurrent productions, centralised records, contract-adjacent work and budget control provide strong evidence for production follow-up and financial documentation.",
+      "truthful_gap": "Assignment-contract ownership, named touring formalities, invoicing, payment reminders and grant applications are not claimed.",
       "run_id": "maya-laurent-ac33d313-v4-d4a99196d517",
       "final_review_score": 91,
       "cv_pages": 1,
@@ -58,27 +98,35 @@
     },
     {
       "company": "MCI group France",
+      "display_company": "Health Events Agency",
       "role": "Chef de Projets Senior Sante (H/F)",
       "fit_score": 76,
-      "decision": "not_selected"
+      "decision": "not_selected",
+      "selection_reason": "Eligible signal, but seniority and score placed it below the five-offer campaign cutoff."
     },
     {
       "company": "Myphotoagency",
+      "display_company": "Creative Project Studio",
       "role": "Chef.fe de projet",
       "fit_score": 72,
-      "decision": "not_selected"
+      "decision": "not_selected",
+      "selection_reason": "Eligible signal, but the more generic project scope ranked below the five-offer campaign cutoff."
     },
     {
       "company": "SESAN",
+      "display_company": "Media Production Network",
       "role": "Charge de production visuelle et audiovisuelle (H/F)",
       "fit_score": 66,
-      "decision": "not_selected"
+      "decision": "not_selected",
+      "selection_reason": "The audiovisual-production emphasis was less supported than the selected cultural-production roles."
     },
     {
       "company": "France Travail employer not disclosed",
+      "display_company": "Employer not disclosed",
       "role": "Chef de projet evenementiel (H/F)",
       "fit_score": 61,
-      "decision": "not_selected"
+      "decision": "not_selected",
+      "selection_reason": "Lower fit and incomplete employer context placed it below the five-offer campaign cutoff."
     }
   ]
 }

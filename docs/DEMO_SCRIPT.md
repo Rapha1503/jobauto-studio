@@ -17,7 +17,9 @@ application is submitted.
 - Record at 1080p with readable browser zoom and microphone audio.
 - Use English narration and keep the final video strictly under three minutes.
 - Do not show local paths, terminal secrets, personal browser data, unrelated
-  tabs, real employer names or third-party logos. Use no copyrighted music.
+  tabs, real employer names or third-party logos. The checked replay displays
+  neutral employer aliases; keep captured letters containing real employer
+  names closed during the recording. Use no copyrighted music.
 
 ## Timeline
 
@@ -26,7 +28,7 @@ application is submitted.
 | 0:00-0:15 | JobAuto home | "Job applications are repetitive, but blindly rewriting a CV is risky. JobAuto gives Codex a candidate-controlled profile and automates the workflow from search to reviewed documents and a traceable Chrome handoff." Click **Explore the checked demo**. |
 | 0:15-0:35 | Checked demo summary | Show the synthetic cultural-production candidate, nine discovered offers, five selected packages and five receipts. Explain that this is a packaged replay of one continuous checked campaign, not a staged live generation. |
 | 0:35-0:58 | Original versus tailored CV | Compare the two real English PDFs. Explain that JobAuto preserves the candidate source, lets GPT-5.6 adapt only authorized content and uses deterministic code for one-page rendering and file integrity. |
-| 0:58-1:28 | One application card | Open one CV, letter, final review and agent trace. Show ATS readiness, adaptation quality, model executions and token estimate. Explain that offer analysis, writing and final supervision are separate agent responsibilities. |
+| 0:58-1:28 | One application card | Expand **Why this application matched**, then open the CV, final review and agent trace. Keep the letter link visible without opening its captured employer name. Show ATS readiness, adaptation quality, model executions and token estimate. Explain that offer analysis, writing and final supervision are separate agent responsibilities. |
 | 1:28-1:48 | Five-package batch | Scroll through all five cards. Emphasize that one non-IT profile produced five independently reviewed applications rather than one reusable generic document. |
 | 1:48-2:08 | Product setup | Open **Create my profile**. Show `.tex`, PDF and no-file entry points plus the four runtime checks. Explain that the user owns facts, adaptation permissions, search preferences and submission policy. |
 | 2:08-2:30 | How Codex built it | "Codex audited my earlier personal workflow, extracted a generic candidate boundary, implemented Studio and the plugin contract, then tested the real PDFs, browser handoffs and public package. GPT-5.6 is also the runtime for search, strategy, writing, review and repair." |

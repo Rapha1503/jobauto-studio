@@ -22,7 +22,7 @@ Use, and it did not submit an application to an employer.
    is deliberately not an employer submission.
 
 The browser confirmation is preserved in
-[`confirmation.png`](confirmation.png), and the sanitized receipt plus exact
+[`confirmation.jpg`](confirmation.jpg), and the sanitized receipt plus exact
 artifact hashes are recorded in [`receipt.json`](receipt.json).
 
 ## Observed prerequisite

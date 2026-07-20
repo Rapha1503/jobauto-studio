@@ -1,7 +1,11 @@
 import io
+import struct
 import tarfile
+import zlib
 from pathlib import Path
 from zipfile import ZipFile
+
+from pypdf import PdfWriter
 
 from jobauto.release_audit import audit_release_path
 
@@ -25,6 +29,43 @@ def test_release_audit_scans_wheel_members(tmp_path: Path) -> None:
     leaks = audit_release_path(wheel)
 
     assert [(item.source, item.kind) for item in leaks] == [("jobauto/leak.py", "api_secret")]
+
+
+def test_release_audit_scans_pdf_metadata_inside_wheel(tmp_path: Path) -> None:
+    private_email = "private@" + "candidate.invalid"
+    pdf = io.BytesIO()
+    writer = PdfWriter()
+    writer.add_blank_page(width=72, height=72)
+    writer.add_metadata({"/Subject": f"Contact {private_email}"})
+    writer.write(pdf)
+    wheel = tmp_path / "jobauto-test.whl"
+    with ZipFile(wheel, "w") as archive:
+        archive.writestr("jobauto/demo.pdf", pdf.getvalue())
+
+    leaks = audit_release_path(wheel)
+
+    assert [(item.source, item.kind) for item in leaks] == [("jobauto/demo.pdf", "email")]
+
+
+def test_release_audit_scans_png_text_metadata(tmp_path: Path) -> None:
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        return (
+            struct.pack(">I", len(data))
+            + kind
+            + data
+            + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+        )
+
+    private_email = b"private@" + b"candidate.invalid"
+    png = (
+        b"\x89PNG\r\n\x1a\n" + chunk(b"tEXt", b"Comment\x00" + private_email) + chunk(b"IEND", b"")
+    )
+    path = tmp_path / "proof.png"
+    path.write_bytes(png)
+
+    leaks = audit_release_path(path)
+
+    assert [(item.source, item.kind) for item in leaks] == [("proof.png", "email")]
 
 
 def test_release_audit_scans_sdist_members_instead_of_compressed_bytes(tmp_path: Path) -> None:
