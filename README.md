@@ -64,6 +64,11 @@ Requirements:
 - a working LaTeX distribution with `pdflatex`;
 - Codex CLI authenticated on the machine.
 
+On a minimal Debian or Ubuntu LaTeX installation, install `cm-super` and
+`poppler-utils` as well. `cm-super` keeps the Computer Modern T1 metrics while
+making PDF text extraction reliable; JobAuto rejects a rendered document whose
+identity or adapted content cannot be recovered.
+
 ```powershell
 git clone https://github.com/Rapha1503/jobauto-studio.git
 cd jobauto-studio
