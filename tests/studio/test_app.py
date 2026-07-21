@@ -924,6 +924,21 @@ class FakeApplicationService:
                     "editorial_score": 93,
                     "adaptation_score": 92,
                     "blocking_issues": [],
+                    "ats_breakdown": {
+                        "model": "jobauto_ats_readiness_v1",
+                        "score": 96,
+                        "weighted_requirement_score": 96,
+                        "exact_term_score": 100,
+                        "priority_scores": {"must": 96, "important": 100, "nice": 100},
+                        "critical_requirement_ids": [],
+                        "weak_central_requirement_ids": [],
+                        "parseable": True,
+                        "role_positioning_matches": True,
+                        "language_matches": True,
+                        "ready_without_cv_changes": True,
+                        "adaptation_recommended": False,
+                        "decision_reasons": ["The CV covers every central requirement strongly."],
+                    },
                     "letter_argument": {
                         criterion: {
                             "state": "pass",
@@ -984,6 +999,18 @@ def test_studio_launches_the_injected_application_service(tmp_path: Path) -> Non
     status = client.get("/runs/alex-morgan-studio-test/status")
     assert status.json()["status"] == "completed"
     assert status.json()["adaptation_summary"]["project_plan"]["decision"] == "reframe"
+    assert status.json()["adaptation_summary"]["requirements_by_id"]["req_python"] == {
+        "requirement": "Build Python and SQL pipelines",
+        "priority": "must",
+        "matching_mode": "semantic_concept",
+        "ats_terms": [],
+        "counts_toward_ats": True,
+    }
+    assert status.json()["adaptation_summary"]["ats_scored_requirement_counts"] == {
+        "must": 1,
+        "important": 0,
+        "nice": 0,
+    }
     page = client.get("/runs/alex-morgan-studio-test")
     assert page.status_code == 200
     assert "Tracked application run" in page.text
@@ -1001,7 +1028,10 @@ def test_studio_launches_the_injected_application_service(tmp_path: Path) -> Non
     assert "total_tokens_estimate" in page.text
     assert "ATS and document review" in page.text
     assert "94/100" in page.text
-    assert "ATS 96" in page.text
+    assert "Overall supervisor quality 94/100" in page.text
+    assert "JobAuto CV ATS 96" in page.text
+    assert "Why the final CV ATS estimate is 96, not 100" in page.text
+    assert "important N/A" in page.text
     assert "Letter argument" in page.text
     assert "target specificity" in page.text
     assert "The rendered letter provides concrete support." in page.text

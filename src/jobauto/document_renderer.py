@@ -38,6 +38,8 @@ from jobauto.source_preserving_cv import render_source_preserving_cv
 
 _EMAIL_PATTERN = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.IGNORECASE)
 _PHONE_PATTERN = re.compile(r"\+?\d(?:[\s().-]*\d){8,}")
+_COMPACT_SKILL_LINE_FLOOR = 110
+_CV_SECTION_SPACING_TARGET_COVERAGE_RATIO = 0.90
 
 
 @dataclass(frozen=True)
@@ -49,6 +51,12 @@ class RenderedDocument:
     extracted_text_sha256: str
     pdf_sha256: str
     layout_metrics: dict[str, int | float | None]
+
+
+@dataclass(frozen=True)
+class _SingleLineRow:
+    label: str
+    text: str
 
 
 class DocumentRenderer:
@@ -80,8 +88,20 @@ class DocumentRenderer:
                 snapshot.adaptation_policy,
                 locale=snapshot.profile.locale,
             )
-        rendered = self._compile_cv_with_readable_layout(snapshot, tex, output_dir)
+        single_line_rows = _cv_single_line_rows(snapshot, draft, tex)
+        rendered = self._compile_cv_with_readable_layout(
+            snapshot,
+            tex,
+            output_dir,
+            single_line_rows=single_line_rows,
+        )
         _validate_rendered_cv_fragments(snapshot, draft, rendered.extracted_text)
+        if "skills.section" in draft.provenance and source_skill_line_budget(snapshot) is not None:
+            _validate_skill_categories_use_single_pdf_lines(
+                draft.document.skills,
+                rendered.extracted_text,
+            )
+        _validate_single_line_rows(single_line_rows, rendered.extracted_text)
         return rendered
 
     def _compile_cv_with_readable_layout(
@@ -89,6 +109,8 @@ class DocumentRenderer:
         snapshot: CandidateSnapshot,
         tex: str | bytes,
         output_dir: Path,
+        *,
+        single_line_rows: tuple[_SingleLineRow, ...] = (),
     ) -> RenderedDocument:
         layout = snapshot.adaptation_policy.documents["cv"].layout
         if layout is None:
@@ -97,30 +119,79 @@ class DocumentRenderer:
         trial_root = output_dir / ".layout-trials"
         shutil.rmtree(trial_root, ignore_errors=True)
         layout_choices = cv_layout_choices(layout)
+        choices_by_font: dict[float, list[CvLayoutChoice]] = {}
+        for choice in layout_choices:
+            choices_by_font.setdefault(choice.font_size_pt, []).append(choice)
         selected: tuple[str | bytes, CvLayoutChoice, int] | None = None
         last_overflow: ValueError | None = None
+        last_wrapped: list[_SingleLineRow] = []
+        compiled_trials = 0
+
+        def compile_trial(
+            choice: CvLayoutChoice,
+        ) -> tuple[str | bytes, RenderedDocument] | None:
+            nonlocal compiled_trials, last_overflow
+            compiled_trials += 1
+            candidate = apply_cv_layout(tex, choice)
+            try:
+                rendered = self._compile_and_inspect(
+                    snapshot,
+                    candidate,
+                    trial_root / f"trial-{compiled_trials}",
+                    stem="cv",
+                    maximum_pages=1,
+                )
+            except ValueError as exc:
+                if "page count exceeds policy" not in str(exc):
+                    raise
+                last_overflow = exc
+                return None
+            return candidate, rendered
+
         try:
-            for index, choice in enumerate(layout_choices, start=1):
-                candidate = apply_cv_layout(tex, choice)
-                try:
-                    self._compile_and_inspect(
-                        snapshot,
-                        candidate,
-                        trial_root / f"trial-{index}",
-                        stem="cv",
-                        maximum_pages=1,
-                    )
-                except ValueError as exc:
-                    if "page count exceeds policy" not in str(exc):
-                        raise
-                    last_overflow = exc
+            for font_size in sorted(choices_by_font, reverse=True):
+                font_choices = sorted(
+                    choices_by_font[font_size],
+                    key=lambda item: item.line_height_ratio,
+                    reverse=True,
+                )
+                compact_choice = font_choices[-1]
+                compact_trial = compile_trial(compact_choice)
+                if compact_trial is None:
                     continue
-                selected = (candidate, choice, index)
+                compact_candidate, compact_rendered = compact_trial
+                last_wrapped = _wrapped_single_line_rows(
+                    single_line_rows,
+                    compact_rendered.extracted_text,
+                )
+                if last_wrapped:
+                    continue
+
+                selected = (compact_candidate, compact_choice, compiled_trials)
+                ascending_choices = list(reversed(font_choices))
+                lower = 1
+                upper = len(ascending_choices) - 1
+                while lower <= upper:
+                    middle = (lower + upper) // 2
+                    choice = ascending_choices[middle]
+                    comfortable_trial = compile_trial(choice)
+                    if comfortable_trial is None:
+                        upper = middle - 1
+                        continue
+                    comfortable_candidate, _comfortable_rendered = comfortable_trial
+                    selected = (comfortable_candidate, choice, compiled_trials)
+                    lower = middle + 1
                 break
         finally:
             shutil.rmtree(trial_root, ignore_errors=True)
 
         if selected is None:
+            if last_wrapped:
+                raise ValueError(
+                    "cv compact title or competency row cannot fit on one rendered PDF line "
+                    "within the configured readability bounds: "
+                    + ", ".join(row.label for row in last_wrapped)
+                )
             raise ValueError(
                 "cv cannot fit on one page within the configured readability bounds"
             ) from last_overflow
@@ -136,7 +207,7 @@ class DocumentRenderer:
         section_spacing_pt = 0.0
         section_spacing_trials = 0
         coverage = rendered.layout_metrics.get("vertical_coverage_ratio")
-        if isinstance(coverage, float):
+        if isinstance(coverage, float) and coverage < _CV_SECTION_SPACING_TARGET_COVERAGE_RATIO:
             layout_candidate = candidate
             section_commands = {
                 block.detector.split(":", 1)[1].split("+", 1)[0]
@@ -375,6 +446,145 @@ def _validate_rendered_cv_fragments(
     ]
     if missing:
         raise ValueError(f"cv PDF is missing adapted semantic content: {missing}")
+
+
+def _validate_skill_categories_use_single_pdf_lines(
+    skill_sections: dict[str, list[str]],
+    extracted_text: str,
+) -> None:
+    """Reject an adapted competency row that physically wraps in the rendered PDF."""
+
+    rendered_lines = [
+        _normalize_matching_text(line) for line in extracted_text.splitlines() if line.strip()
+    ]
+    wrapped: list[str] = []
+    for category, items in skill_sections.items():
+        expected = _normalize_matching_text(f"{category}: {', '.join(items)}")
+        category_prefix = _normalize_matching_text(category)
+        for index, line in enumerate(rendered_lines):
+            if not line.startswith(category_prefix):
+                continue
+            if expected in line:
+                break
+            combined = line
+            for continuation in rendered_lines[index + 1 : index + 4]:
+                combined = f"{combined} {continuation}"
+                if expected in combined:
+                    wrapped.append(category)
+                    break
+            break
+    if wrapped:
+        raise ValueError(
+            "cv skill category wraps beyond one rendered PDF line: " + ", ".join(wrapped)
+        )
+
+
+def _cv_single_line_rows(
+    snapshot: CandidateSnapshot,
+    draft: CvDocumentDraft,
+    tex: str | bytes,
+) -> tuple[_SingleLineRow, ...]:
+    """Return compact rows whose source-CV presentation requires one PDF line."""
+
+    rows: list[_SingleLineRow] = []
+    if "skills.section" in draft.provenance and source_skill_line_budget(snapshot) is not None:
+        rows.extend(
+            _SingleLineRow(category, f"{category}: {', '.join(items)}")
+            for category, items in draft.document.skills.items()
+        )
+    rows.extend(
+        _SingleLineRow(project.title, f"{project.title} | {project.stack}")
+        for project in draft.document.projects
+        if project.stack
+    )
+
+    if snapshot.profile.cv_backend is CvBackend.SOURCE_PRESERVING:
+        source = tex.decode("utf-8-sig") if isinstance(tex, bytes) else tex
+        for line in source.splitlines():
+            if "|" not in line or "\\textbf{" not in line or "\\textit{" not in line:
+                continue
+            visible = _visible_latex_row(line)
+            if "|" not in visible:
+                continue
+            label = visible.split("|", 1)[0].strip()
+            if label:
+                rows.append(_SingleLineRow(label, visible))
+
+    unique: list[_SingleLineRow] = []
+    seen: set[str] = set()
+    for row in rows:
+        key = _normalize_matching_text(row.text)
+        if key and key not in seen:
+            unique.append(row)
+            seen.add(key)
+    return tuple(unique)
+
+
+def _wrapped_single_line_rows(
+    rows: tuple[_SingleLineRow, ...],
+    extracted_text: str,
+) -> list[_SingleLineRow]:
+    rendered_lines = [
+        _normalize_matching_text(line) for line in extracted_text.splitlines() if line.strip()
+    ]
+    wrapped: list[_SingleLineRow] = []
+    for row in rows:
+        expected = _normalize_matching_text(row.text)
+        if any(expected in line for line in rendered_lines):
+            continue
+        for index, line in enumerate(rendered_lines):
+            combined = line
+            for continuation in rendered_lines[index + 1 : index + 4]:
+                combined = f"{combined} {continuation}"
+                if expected in combined:
+                    wrapped.append(row)
+                    break
+            if row in wrapped:
+                break
+    return wrapped
+
+
+def _validate_single_line_rows(
+    rows: tuple[_SingleLineRow, ...],
+    extracted_text: str,
+) -> None:
+    wrapped = _wrapped_single_line_rows(rows, extracted_text)
+    if wrapped:
+        raise ValueError(
+            "cv compact title or competency row wraps beyond one rendered PDF line: "
+            + ", ".join(row.label for row in wrapped)
+        )
+
+
+def source_skill_line_budget(snapshot: CandidateSnapshot) -> int | None:
+    """Derive a competency-row budget from the imported source CV, when it has row semantics."""
+
+    if snapshot.profile.cv_backend is not CvBackend.SOURCE_PRESERVING:
+        return None
+    mapping = snapshot.cv_mapping
+    if mapping is None:
+        return None
+    skills_block = next(
+        (block for block in mapping.blocks if block.kind.value == "skills"),
+        None,
+    )
+    if skills_block is None:
+        return None
+    source = snapshot.cv_template_bytes[skills_block.start_byte : skills_block.end_byte].decode(
+        "utf-8"
+    )
+    source_rows = [line for line in source.splitlines() if "\\textbf{" in line and ":" in line]
+    if not source_rows:
+        return None
+    visible_lengths = [len(_visible_latex_row(row)) for row in source_rows]
+    return max(_COMPACT_SKILL_LINE_FLOOR, *visible_lengths)
+
+
+def _visible_latex_row(value: str) -> str:
+    text = re.sub(r"\\textbf\{([^{}]*)\}", r"\1", value)
+    text = re.sub(r"\\\\(?:\[[^\]]*\])?\s*$", "", text)
+    text = re.sub(r"\\[A-Za-z@]+\*?", " ", text)
+    return " ".join(text.translate(str.maketrans({"{": " ", "}": " "})).split())
 
 
 def _normalize_matching_text(value: str) -> str:

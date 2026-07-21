@@ -4,6 +4,7 @@ import shutil
 from pathlib import Path
 
 from jobauto.application_service import RunApplicationService, RunRequest
+from jobauto.ats import RESIDUAL_ATS_GAP_BLOCKER
 from jobauto.candidate_snapshot import CandidateProfileRepository
 from jobauto.document_patch import (
     CandidateDocumentDraft,
@@ -11,6 +12,7 @@ from jobauto.document_patch import (
     CvFieldChange,
     apply_cv_patch,
 )
+from jobauto.document_renderer import DocumentRenderer
 from jobauto.models import (
     ApplicationBrief,
     CandidateApplicationReview,
@@ -55,6 +57,7 @@ class StubCandidatePipeline:
         self.approve = approve
         self.approve_after_repair = approve_after_repair
         self.repairs = 0
+        self.render_repairs = 0
         self.review_gap_flags: list[bool] = []
 
     def generate_candidate_documents(self, _row, _offer_text, *, project_lab_context=""):
@@ -134,6 +137,80 @@ class StubCandidatePipeline:
     ):
         self.repairs += 1
         return package
+
+    def repair_rendering_failure(
+        self,
+        _row,
+        package,
+        *,
+        surface,
+        error,
+        offer_text,
+    ):
+        del surface, error, offer_text
+        self.render_repairs += 1
+        return package
+
+
+class FailSecondCvRenderRenderer(DocumentRenderer):
+    def __init__(self) -> None:
+        super().__init__()
+        self.cv_calls = 0
+
+    def render_cv(self, snapshot, draft, output_dir):
+        self.cv_calls += 1
+        if self.cv_calls == 2:
+            raise ValueError("cv skill category wraps beyond one rendered PDF line")
+        return super().render_cv(snapshot, draft, output_dir)
+
+
+class RegressingAtsRepairPipeline(StubCandidatePipeline):
+    def review_candidate_documents(
+        self,
+        _row,
+        _package,
+        cv_rendered,
+        letter_rendered,
+        _offer_text,
+        *,
+        block_on_improvable_gap=True,
+    ):
+        self.review_gap_flags.append(block_on_improvable_gap)
+        assert len(cv_rendered.pdf_sha256) == 64
+        assert len(letter_rendered.pdf_sha256) == 64
+        if self.repairs == 0:
+            return CandidateApplicationReview(
+                approved=False,
+                score=94,
+                ats_score=92,
+                editorial_score=95,
+                adaptation_score=94,
+                blocking_issues=[RESIDUAL_ATS_GAP_BLOCKER],
+                warnings=[],
+                letter_argument=_passing_letter_argument(),
+                requirement_coverage=[],
+                repair_actions=[
+                    CandidateRepairAction(
+                        surface="cv",
+                        instruction=(
+                            "Repair only these remaining improvable central requirements: "
+                            "req_01. Preserve every accepted CV and letter element."
+                        ),
+                    )
+                ],
+            )
+        return CandidateApplicationReview(
+            approved=True,
+            score=93,
+            ats_score=70,
+            editorial_score=94,
+            adaptation_score=94,
+            blocking_issues=[],
+            warnings=[],
+            letter_argument=_passing_letter_argument(),
+            requirement_coverage=[],
+            repair_actions=[],
+        )
 
 
 def test_application_service_runs_one_offer_to_hashed_pdfs(tmp_path: Path) -> None:
@@ -297,6 +374,125 @@ def test_application_service_rerenders_and_reviews_one_successful_repair(
         "completed",
     ]
     assert (completed.run_dir / "review-1.json").is_file()
+    assert (completed.run_dir / "review-2.json").is_file()
+
+
+def test_application_service_allows_only_one_score_driven_ats_repair(
+    tmp_path: Path,
+) -> None:
+    holder = {}
+
+    def factory(snapshot, _context):
+        pipeline = StubCandidatePipeline(snapshot, approve=False, approve_after_repair=True)
+        holder["pipeline"] = pipeline
+        return pipeline
+
+    service = RunApplicationService(
+        repository=CandidateProfileRepository(_profiles_root()),
+        store=RunStore(tmp_path / "runs"),
+        pipeline_factory=factory,
+    )
+    run_id = service.start(
+        RunRequest(
+            profile_path=_profiles_root() / "example" / "profile.yaml",
+            offer_text="GridCo seeks a Data Engineer to build reliable Python and SQL pipelines.",
+            max_repairs=3,
+        )
+    )
+
+    completed = service.execute(run_id)
+
+    assert completed.status == "completed"
+    assert holder["pipeline"].repairs == 1
+    assert holder["pipeline"].review_gap_flags == [True, False]
+
+
+def test_application_service_keeps_the_stronger_pre_repair_ats_attempt(
+    tmp_path: Path,
+) -> None:
+    service = RunApplicationService(
+        repository=CandidateProfileRepository(_profiles_root()),
+        store=RunStore(tmp_path / "runs"),
+        pipeline_factory=lambda snapshot, _context: RegressingAtsRepairPipeline(snapshot),
+    )
+    run_id = service.start(
+        RunRequest(
+            profile_path=_profiles_root() / "example" / "profile.yaml",
+            offer_text="GridCo seeks a Data Engineer to build reliable Python and SQL pipelines.",
+            max_repairs=2,
+        )
+    )
+
+    completed = service.execute(run_id)
+
+    assert completed.status == "completed"
+    assert completed.review["approved"] is True
+    assert completed.review["ats_score"] == 92
+    assert "attempt-1" in completed.artifacts["cv"]["pdf_path"]
+    assert (completed.run_dir / "selected-review.json").is_file()
+
+
+def test_demo_fast_accepts_a_residual_ats_gap_without_a_repair(tmp_path: Path) -> None:
+    pipeline_holder = {}
+
+    def factory(snapshot, _context):
+        pipeline = RegressingAtsRepairPipeline(snapshot)
+        pipeline_holder["pipeline"] = pipeline
+        return pipeline
+
+    service = RunApplicationService(
+        repository=CandidateProfileRepository(_profiles_root()),
+        store=RunStore(tmp_path / "runs"),
+        pipeline_factory=factory,
+    )
+    run_id = service.start(
+        RunRequest(
+            profile_path=_profiles_root() / "example" / "profile.yaml",
+            offer_text="GridCo seeks a Data Engineer to build reliable Python and SQL pipelines.",
+            max_repairs=1,
+            demo_fast=True,
+        )
+    )
+
+    completed = service.execute(run_id)
+
+    assert completed.status == "completed"
+    assert completed.review["approved"] is True
+    assert completed.review["ats_score"] == 92
+    assert pipeline_holder["pipeline"].repairs == 0
+
+
+def test_render_repair_budget_is_independent_from_content_repairs(tmp_path: Path) -> None:
+    holder = {}
+    renderer = FailSecondCvRenderRenderer()
+
+    def factory(snapshot, _context):
+        pipeline = StubCandidatePipeline(snapshot, approve=False, approve_after_repair=True)
+        holder["pipeline"] = pipeline
+        return pipeline
+
+    service = RunApplicationService(
+        repository=CandidateProfileRepository(_profiles_root()),
+        store=RunStore(tmp_path / "runs"),
+        pipeline_factory=factory,
+        renderer=renderer,
+    )
+    run_id = service.start(
+        RunRequest(
+            profile_path=_profiles_root() / "example" / "profile.yaml",
+            offer_text="GridCo seeks a Data Engineer to build reliable Python and SQL pipelines.",
+            max_repairs=1,
+        )
+    )
+
+    completed = service.execute(run_id)
+
+    assert completed.status == "completed"
+    assert holder["pipeline"].repairs == 1
+    assert holder["pipeline"].render_repairs == 1
+    assert renderer.cv_calls == 3
+    assert holder["pipeline"].review_gap_flags == [True, False]
+    assert (completed.run_dir / "candidate-package-3.json").is_file()
     assert (completed.run_dir / "review-2.json").is_file()
 
 

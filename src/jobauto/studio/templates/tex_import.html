@@ -37,8 +37,8 @@
     <header><div><p class="panel-kicker">Adaptation style</p><h2>How closely should JobAuto follow this CV?</h2></div><span class="hash">change later</span></header>
     <div class="adaptation-presets" role="radiogroup" aria-label="CV adaptation style">
       <button type="button" data-preset="conservative"><strong>Conservative</strong><span>Keep the wording. Only align the target role and essential keywords.</span><small>Example: project descriptions stay unchanged.</small></button>
-      <button type="button" data-preset="balanced"><strong>Balanced <em>Recommended</em></strong><span>Keep every fact and the CV structure, but adapt the professional angle.</span><small>Example: select the best projects and emphasize the relevant parts.</small></button>
-      <button type="button" data-preset="flexible"><strong>Flexible</strong><span>Rewrite adaptable sections using only information approved in your profile.</span><small>Example: reorganize a summary or project description, without inventing facts.</small></button>
+      <button type="button" data-preset="balanced"><strong>Balanced <em>Recommended</em></strong><span>Keep experience wording close and preserve project identities, while adapting the professional angle.</span><small>Select, reorder and reframe approved evidence. No new or derived project from this preset alone.</small></button>
+      <button type="button" data-preset="flexible"><strong>Flexible</strong><span>Recompose adaptable sections from approved evidence while keeping identity, education and languages fixed.</span><small>May reorganize skills and projects; derivation or creation still requires the separate Project Lab permission.</small></button>
     </div>
     <details class="advanced-mapping">
       <summary>Advanced: customize a specific section</summary>
@@ -142,18 +142,13 @@
     try { await saveMapping(); } catch (_error) {}
   });
 
-  const lockedKinds = new Set(['identity', 'education', 'languages', 'interests']);
-  const presetValues = {
-    conservative: {summary: 'very_faithful', experience: 'very_faithful', projects: 'very_faithful', skills: 'very_faithful', other: 'very_faithful'},
-    balanced: {summary: 'adaptable', experience: 'very_faithful', projects: 'adaptable', skills: 'adaptable', other: 'very_faithful'},
-    flexible: {summary: 'highly_adaptable', experience: 'adaptable', projects: 'highly_adaptable', skills: 'highly_adaptable', other: 'adaptable'}
-  };
+  const presetValues = {{ adaptation_presets | tojson }};
 
   function syncPresetIndicator() {
     const rows = [...document.querySelectorAll('.mapping-row')];
     const matchingPreset = Object.entries(presetValues).find(([, values]) => rows.every(row => {
       const kind = row.querySelector('[name=kind]').value;
-      const expected = lockedKinds.has(kind) ? 'locked' : (values[kind] || values.other);
+      const expected = values[kind] || values.other;
       return row.querySelector('[name=fidelity]').value === expected;
     }))?.[0];
     document.querySelectorAll('[data-preset]').forEach(item => {
@@ -164,7 +159,7 @@
   document.querySelectorAll('[data-preset]').forEach(button => button.addEventListener('click', () => {
     document.querySelectorAll('.mapping-row').forEach(row => {
       const kind = row.querySelector('[name=kind]').value;
-      row.querySelector('[name=fidelity]').value = lockedKinds.has(kind) ? 'locked' : (presetValues[button.dataset.preset][kind] || presetValues[button.dataset.preset].other);
+      row.querySelector('[name=fidelity]').value = presetValues[button.dataset.preset][kind] || presetValues[button.dataset.preset].other;
     });
     syncPresetIndicator();
     status.textContent = `${button.querySelector('strong').textContent} adaptation selected.`;

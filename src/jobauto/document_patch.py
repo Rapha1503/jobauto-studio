@@ -18,6 +18,11 @@ from jobauto.source_preserving_cv import LatexCvPatch
 
 CvSectionId = str
 
+_ITEMIZE_GROUP_PATTERN = re.compile(
+    r"\\begin\{itemize\}(?:\s*\[[^\]]*\])?(.*?)\\end\{itemize\}",
+    re.DOTALL,
+)
+
 
 class CvFieldChange(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -198,6 +203,41 @@ def editable_cv_source_index(snapshot: CandidateSnapshot) -> dict[str, CvFieldRe
     }
 
 
+def source_preserving_item_groups(
+    snapshot: CandidateSnapshot,
+    section_id: Literal["experience"],
+) -> tuple[tuple[str, ...], ...]:
+    """Map flattened semantic bullet IDs back to distinct LaTeX list groups."""
+
+    mapping = snapshot.cv_mapping
+    if mapping is None:
+        return ()
+    block = next(
+        (candidate for candidate in mapping.blocks if candidate.kind.value == section_id),
+        None,
+    )
+    if block is None:
+        return ()
+    source = snapshot.cv_template_bytes[block.start_byte : block.end_byte].decode("utf-8")
+    counts = [
+        len(re.findall(r"\\item(?![A-Za-z@])(?:\s*\[[^\]]*\])?", match.group(1)))
+        for match in _ITEMIZE_GROUP_PATTERN.finditer(source)
+    ]
+    source_ids = tuple(
+        f"{section_id}.{entry_index}.bullet.{bullet_index}"
+        for entry_index, entry in enumerate(getattr(snapshot.cv_source, section_id))
+        for bullet_index, _bullet in enumerate(entry.bullets)
+    )
+    if not counts or any(count == 0 for count in counts) or sum(counts) != len(source_ids):
+        return ()
+    groups: list[tuple[str, ...]] = []
+    offset = 0
+    for count in counts:
+        groups.append(source_ids[offset : offset + count])
+        offset += count
+    return tuple(groups)
+
+
 def apply_cv_patch(
     snapshot: CandidateSnapshot,
     patch: CvAdaptationPatch,
@@ -214,6 +254,16 @@ def apply_cv_patch(
     provenance: dict[str, tuple[str, ...]] = {}
     changed_sections: dict[str, list[str]] = {}
     changed_source_blocks: dict[str, str] = {}
+    experience_groups = source_preserving_item_groups(snapshot, "experience")
+    experience_group_by_source = {
+        source_id: group_index
+        for group_index, group in enumerate(experience_groups, start=1)
+        for source_id in group
+    }
+    experience_group_by_fact = _experience_fact_group_index(
+        snapshot,
+        experience_groups,
+    )
 
     for change in patch.changes:
         try:
@@ -223,6 +273,20 @@ def apply_cv_patch(
         unknown_facts = sorted(set(change.fact_ids) - allowed_fact_ids)
         if unknown_facts:
             raise ValueError(f"Unknown candidate fact IDs: {unknown_facts}")
+        target_group = experience_group_by_source.get(change.source_id)
+        if target_group is not None:
+            foreign_facts = sorted(
+                fact_id
+                for fact_id in change.fact_ids
+                if fact_id in experience_group_by_fact
+                and experience_group_by_fact[fact_id] != target_group
+            )
+            if foreign_facts:
+                raise ValueError(
+                    "CV experience evidence crosses source heading groups: "
+                    f"target={change.source_id}, expected_group={target_group}, "
+                    f"foreign_fact_ids={foreign_facts}"
+                )
         try:
             section_policy = cv_policy.sections[field_ref.section_id]
         except KeyError as exc:
@@ -299,15 +363,21 @@ def apply_cv_patch(
 
     for section_id, fact_ids in changed_sections.items():
         section_policy = cv_policy.sections[section_id]
+        protected_claim_ids = snapshot.protected_claim_ids_with_values(
+            section_policy.protected_fact_ids
+        )
+        validation_fact_ids = list(dict.fromkeys([*fact_ids, *protected_claim_ids]))
+        rendered_section = _section_text(draft, section_id)
         violations = validate_section_change(
             section_policy,
             _section_text(source, section_id),
-            _section_text(draft, section_id),
-            used_fact_ids=list(dict.fromkeys(fact_ids)),
+            rendered_section,
+            used_fact_ids=validation_fact_ids,
         )
         if violations:
             details = "; ".join(f"{item.code}: {item.message}" for item in violations)
             raise ValueError(f"CV section {section_id} violates adaptation policy: {details}")
+        snapshot.require_protected_claim_values(rendered_section, protected_claim_ids)
 
     result = CvDocumentDraft(
         document=draft,
@@ -422,19 +492,22 @@ def validate_cv_document(
         after = _section_text(draft.document, section_id)
         if before == after:
             continue
+        protected_claim_ids = snapshot.protected_claim_ids_with_values(
+            section_policy.protected_fact_ids
+        )
+        validation_fact_ids = list(
+            dict.fromkeys([*facts_by_section.get(section_id, []), *protected_claim_ids])
+        )
         violations = validate_section_change(
             section_policy,
             before,
             after,
-            used_fact_ids=list(dict.fromkeys(facts_by_section.get(section_id, []))),
+            used_fact_ids=validation_fact_ids,
         )
         if violations:
             details = "; ".join(f"{item.code}: {item.message}" for item in violations)
             raise ValueError(f"CV section {section_id} violates adaptation policy: {details}")
-        snapshot.require_protected_claim_values(
-            after,
-            list(dict.fromkeys(facts_by_section.get(section_id, []))),
-        )
+        snapshot.require_protected_claim_values(after, protected_claim_ids)
 
 
 def _require_distinct_structured_sections(document: CvSourceDocument) -> None:
@@ -481,6 +554,30 @@ def _normalized_section_item(value: str) -> str:
             if not unicodedata.combining(character)
         ).split()
     )
+
+
+def _experience_fact_group_index(
+    snapshot: CandidateSnapshot,
+    groups: tuple[tuple[str, ...], ...],
+) -> dict[str, int]:
+    if len(groups) < 2:
+        return {}
+    index = index_cv_source(snapshot.cv_source)
+    normalized_groups: dict[str, set[int]] = {}
+    for group_index, source_ids in enumerate(groups, start=1):
+        for source_id in source_ids:
+            normalized = _normalized_section_item(
+                str(_field_value(snapshot.cv_source, index[source_id]))
+            )
+            if normalized:
+                normalized_groups.setdefault(normalized, set()).add(group_index)
+    result: dict[str, int] = {}
+    for fact in snapshot.facts.facts:
+        normalized = _normalized_section_item(fact.claim)
+        matched_groups = normalized_groups.get(normalized, set())
+        if len(matched_groups) == 1:
+            result[fact.fact_id] = next(iter(matched_groups))
+    return result
 
 
 def changed_cv_fragments(

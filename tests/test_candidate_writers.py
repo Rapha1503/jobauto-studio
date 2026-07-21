@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 import jobauto.candidate_pipeline as candidate_pipeline_module
+from jobauto.adaptation_policy import FidelityLevel, SectionPolicy
 from jobauto.candidate_context import CandidateContext
 from jobauto.candidate_pipeline import (
     CandidatePipeline,
@@ -15,6 +17,7 @@ from jobauto.candidate_pipeline import (
     _brief_repair_requires_full_offer,
     _letter_argument_excerpts_are_grounded,
     _materialize_planned_skills,
+    _project_ids_already_visible_in_experience,
 )
 from jobauto.candidate_snapshot import CandidateProfileRepository
 from jobauto.codex_client import GenerationPhase
@@ -46,6 +49,7 @@ from jobauto.models import (
     prewrite_fit_gaps,
     validate_application_brief_contract,
 )
+from jobauto.project_bank import ProjectBank
 
 
 def _letter_argument(
@@ -105,6 +109,41 @@ def test_review_approval_depends_on_blockers_not_an_arbitrary_score_threshold() 
     assert document_review.approved is True
 
 
+def test_skill_line_render_failure_requests_semantic_content_repair() -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    snapshot = CandidateProfileRepository(project_root / "config" / "profiles").load_snapshot(
+        project_root / "config" / "profiles" / "example" / "profile.yaml"
+    )
+    pipeline = object.__new__(CandidatePipeline)
+    pipeline._candidate_snapshot = snapshot
+    captured = {}
+
+    def repair(_row, package, review, _offer_text):
+        captured["review"] = review
+        return package
+
+    pipeline.repair_candidate_documents = repair
+    package = object()
+    result = pipeline.repair_rendering_failure(
+        ApplicationRow(
+            excel_row=1,
+            company="GridCo",
+            role="Data Engineer",
+            url="https://example.test/jobs/data-engineer",
+        ),
+        package,
+        surface="cv",
+        error="cv skill category wraps beyond one rendered PDF line: ML evaluation",
+        offer_text="GridCo seeks a Data Engineer with Python and SQL experience.",
+    )
+
+    assert result is package
+    review = captured["review"]
+    assert review.repair_actions[0].surface == "cv"
+    assert "ML evaluation" in review.repair_actions[0].instruction
+    assert "Shorten only" in review.repair_actions[0].instruction
+
+
 def test_approved_review_requires_a_complete_letter_argument() -> None:
     with pytest.raises(ValueError, match="complete letter argument"):
         CandidateApplicationReview(
@@ -139,6 +178,16 @@ def test_letter_argument_grounding_tolerates_pdf_line_hyphenation() -> None:
         assessment,
         "Unrelated regulatory text",
     )
+
+
+def test_project_already_rendered_in_experience_is_not_a_second_project_slot() -> None:
+    snapshot = _snapshot()
+    project = snapshot.project_bank.entries[0].model_copy(
+        update={"cv_bullets": [snapshot.cv_source.experience[0].bullets[0]]}
+    )
+    project_bank = ProjectBank(entries=[project])
+
+    assert _project_ids_already_visible_in_experience(snapshot, project_bank) == {project.id}
 
 
 def test_letter_argument_gap_requires_a_letter_repair_action() -> None:
@@ -443,6 +492,55 @@ def test_reviewed_skill_plan_is_materialized_without_writer_reinterpretation() -
     assert "identity.current" in materialized.skills.fact_ids
 
 
+def test_reviewed_skill_plan_shape_is_never_silently_discarded() -> None:
+    snapshot = _snapshot()
+    policy = snapshot.adaptation_policy
+    cv_policy = policy.documents["cv"]
+    balanced_sections = dict(cv_policy.sections)
+    balanced_sections["skills"] = SectionPolicy(fidelity=FidelityLevel.ADAPTABLE)
+    balanced_policy = policy.model_copy(
+        update={
+            "documents": {
+                **policy.documents,
+                "cv": cv_policy.model_copy(update={"sections": balanced_sections}),
+            }
+        }
+    )
+    balanced_snapshot = replace(snapshot, _adaptation_policy=balanced_policy)
+
+    with pytest.raises(ValueError, match="source group count"):
+        _materialize_planned_skills(CvAdaptationPatch(), _brief(), balanced_snapshot)
+
+
+def test_balanced_project_fidelity_rejects_derive_or_create_modes() -> None:
+    snapshot = _snapshot()
+    policy = snapshot.adaptation_policy
+    cv_policy = policy.documents["cv"]
+    balanced_sections = dict(cv_policy.sections)
+    balanced_sections["projects"] = SectionPolicy(fidelity=FidelityLevel.ADAPTABLE)
+    balanced_policy = policy.model_copy(
+        update={
+            "documents": {
+                **policy.documents,
+                "cv": cv_policy.model_copy(update={"sections": balanced_sections}),
+            }
+        }
+    )
+    balanced_snapshot = replace(snapshot, _adaptation_policy=balanced_policy)
+    pipeline = CandidatePipeline(
+        object(),
+        balanced_snapshot.facts,
+        candidate_snapshot=balanced_snapshot,
+        project_bank=balanced_snapshot.project_bank,
+    )
+
+    with pytest.raises(BriefContractViolation) as caught:
+        pipeline._validate_lean_brief_fact_ids(_brief())
+
+    assert caught.value.code == "project_plan_fidelity"
+    assert caught.value.repair_fields == ("project_plan",)
+
+
 def test_prewrite_semantic_review_gets_one_targeted_repair_before_final_documents(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -591,6 +689,34 @@ class UngroundedReviewLlm(CandidateWriterLlm):
         return result
 
 
+class PersistentlyMalformedReviewLlm(CandidateWriterLlm):
+    def __init__(self) -> None:
+        super().__init__()
+        self.review_attempts = 0
+
+    def complete_json(self, prompt, response_model, phase, **kwargs):
+        result = super().complete_json(prompt, response_model, phase, **kwargs)
+        if response_model is CandidateApplicationReview:
+            self.review_attempts += 1
+            return result.model_copy(
+                update={
+                    "letter_argument": _letter_argument(
+                        excerpt="A paraphrase that is absent from the rendered letter."
+                    ),
+                    "requirement_coverage": [
+                        RenderedRequirementCoverage(
+                            requirement_id="req.python",
+                            coverage="semantic",
+                            placements=["CV"],
+                            supporting_excerpts=["A paraphrase absent from the CV"],
+                            rationale="The reviewer intended to cite visible Python evidence.",
+                        )
+                    ],
+                }
+            )
+        return result
+
+
 class PolicyRepairLlm(CandidateWriterLlm):
     def __init__(self) -> None:
         super().__init__()
@@ -715,6 +841,8 @@ def test_candidate_writers_return_snapshot_bound_patch_letter_and_review(
     assert "tone_and_naturalness" in prompts
     assert "supporting_excerpt" in prompts
     assert "would welcome the opportunity does not pass" in prompts
+    assert "does not require a pre-existing personal attachment" in prompts
+    assert "never request unsupported passion, affinity or biography" in prompts
     assert "do not add filler or lengthen the letter merely to fill the page" in prompts
     assert "do not use an internal project title that has no meaning" in prompts
     assert "missing or unsupported offer requirement" in prompts
@@ -867,6 +995,65 @@ def test_candidate_review_retries_an_ungrounded_letter_excerpt() -> None:
     assert review.approved is True
     assert llm.review_attempts == 2
     assert "INVALID STRUCTURED REVIEW" in llm.prompts[-1]
+
+
+def test_candidate_review_fail_soft_normalizes_persistent_traceability_errors() -> None:
+    snapshot = _snapshot()
+    llm = PersistentlyMalformedReviewLlm()
+    pipeline = CandidatePipeline.for_candidate(
+        llm,
+        snapshot,
+        CandidateContext.from_snapshot(snapshot),
+    )
+    row = ApplicationRow(
+        excel_row=1,
+        company="GridCo",
+        role="Data Engineer",
+        url="https://example.test/jobs/data-engineer",
+    )
+    package = pipeline.generate_candidate_documents(row, "Offer", brief=_brief())
+    cv_rendered = SimpleNamespace(
+        pdf_path=Path("cv.pdf"),
+        pdf_sha256="a" * 64,
+        extracted_text_sha256="b" * 64,
+        layout_metrics={},
+        extracted_text="Python pipelines for energy data.",
+    )
+    letter_rendered = SimpleNamespace(
+        pdf_path=Path("letter.pdf"),
+        pdf_sha256="c" * 64,
+        extracted_text_sha256="d" * 64,
+        layout_metrics={},
+        extracted_text=(
+            "I am applying for the Data Engineer role at GridCo. My experience building "
+            "analytics pipelines connects directly to reliable operational data products."
+        ),
+    )
+
+    review = pipeline.review_candidate_documents(
+        row,
+        package,
+        cv_rendered,
+        letter_rendered,
+        "Offer",
+        block_on_improvable_gap=False,
+    )
+
+    assert review.approved is True
+    assert llm.review_attempts == 2
+    assert [item.requirement_id for item in review.requirement_coverage] == [
+        "req.python",
+        "req.energy",
+    ]
+    assert review.requirement_coverage[0].coverage == "missing"
+    assert review.requirement_coverage[1].coverage == "missing"
+    assert all(
+        criterion.supporting_excerpt in letter_rendered.extracted_text
+        for criterion in review.letter_argument.criteria
+    )
+    assert any(
+        "normalized incomplete supervisor traceability" in warning for warning in review.warnings
+    )
 
 
 def test_candidate_writer_repairs_a_structured_policy_violation_before_rendering() -> None:
@@ -1126,6 +1313,7 @@ def test_candidate_repair_can_target_only_the_letter_argument() -> None:
     assert repaired.letter.closing.endswith("Alex Morgan")
     assert llm.calls[calls_before_repair:] == [(CandidateLetterDraft, GenerationPhase.REPAIR)]
     assert "generic motivation" in llm.prompts[-1].casefold()
+    assert "do not return the current letter unchanged" in llm.prompts[-1].casefold()
 
 
 def test_candidate_letter_rejects_unverified_or_unknown_fact() -> None:

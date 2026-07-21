@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from pypdf import PdfReader
 
-from jobauto.adaptation_policy import FidelityLevel
+from jobauto.adaptation_policy import STUDIO_ADAPTATION_PRESETS, FidelityLevel
 from jobauto.build import compile_latex
 from jobauto.latex_cv_source import (
     TexBlockCorrection,
@@ -48,8 +48,8 @@ def test_analyze_latex_cv_preserves_source_identity_and_detects_semantic_blocks(
         TexBlockKind.SKILLS,
     ]
     assert mapping.blocks[1].detector == "semantic-command:cvsection"
-    assert mapping.blocks[0].policy.fidelity is FidelityLevel.VERY_FAITHFUL
-    assert mapping.blocks[1].policy.fidelity is FidelityLevel.ADAPTABLE
+    assert mapping.blocks[0].policy.fidelity is STUDIO_ADAPTATION_PRESETS["balanced"]["identity"]
+    assert mapping.blocks[1].policy.fidelity is STUDIO_ADAPTATION_PRESETS["balanced"]["summary"]
     assert (
         mapping.preamble_sha256 == hashlib.sha256(SOURCE[: mapping.preamble_end_byte]).hexdigest()
     )
@@ -281,8 +281,8 @@ def test_mapping_load_migrates_pre_policy_sidecar(tmp_path: Path) -> None:
 
     migrated = type(mapping).load(path)
 
-    assert migrated.blocks[0].policy.fidelity is FidelityLevel.VERY_FAITHFUL
-    assert migrated.blocks[1].policy.fidelity is FidelityLevel.ADAPTABLE
+    assert migrated.blocks[0].policy.fidelity is STUDIO_ADAPTATION_PRESETS["balanced"]["identity"]
+    assert migrated.blocks[1].policy.fidelity is STUDIO_ADAPTATION_PRESETS["balanced"]["summary"]
 
 
 def test_import_rejects_unreasonably_large_tex_source() -> None:

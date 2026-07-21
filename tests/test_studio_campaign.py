@@ -50,6 +50,17 @@ def test_description_experience_parser_reads_candidate_requirements_only() -> No
     )
 
 
+def test_description_experience_parser_keeps_requirement_heading_context() -> None:
+    description = """CANDIDATE REQUIREMENTS
+Technical Experience: 5-6+ years of experience building production pipelines.
+Adaptability & Ownership: Work independently in a fast-moving environment.
+WHY JOIN US
+Our team brings 20 years of experience to customers.
+"""
+
+    assert _parse_description_experience_years(description) == 6
+
+
 def test_run_observability_counts_terminal_calls_once() -> None:
     run = type(
         "ObservedRun",
@@ -100,6 +111,51 @@ def test_campaign_offer_fallback_rejects_experience_gap_hidden_in_description() 
     assert offer.experience_years == 5
     assert evaluation.eligible is False
     assert any(item.criterion == "experience_years" for item in evaluation.blockers)
+
+
+def test_demo_campaign_keeps_an_experience_stretch_and_prepares_only_best_offer(
+    tmp_path: Path,
+) -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    profile_path = project_root / "config" / "profiles" / "example" / "profile.yaml"
+    application = FakeApplicationService(tmp_path / "runs")
+    service = StudioCampaignService(
+        repository=CandidateProfileRepository(project_root / "config" / "profiles"),
+        application_service=application,
+        store=StudioCampaignStore(tmp_path / "campaigns"),
+        demo_fast=True,
+    )
+    record = service.create(
+        profile_path=profile_path,
+        tracker_path=_empty_tracker(tmp_path / "tracker.xlsx"),
+        candidates=[
+            {
+                "company": "Best Stretch",
+                "role": "Data Engineer",
+                "url": "https://example.test/jobs/best-stretch",
+                "description": _full_description("Requires 5 years of experience."),
+                "experience_required": "5 years",
+                "semantic_fit_score": 95,
+            },
+            {
+                "company": "Reserve",
+                "role": "Analytics Engineer",
+                "url": "https://example.test/jobs/reserve",
+                "description": _full_description("Open to early-career candidates."),
+                "experience_required": "0-2 years",
+                "semantic_fit_score": 90,
+            },
+        ],
+        limit=2,
+    )
+
+    assert record.demo_fast is True
+    assert record.selected_count == 1
+    assert record.reserve_count == 1
+    assert record.items[0].decision == "selected"
+    assert "ranked stretch" in " ".join(record.items[0].reasons)
+    assert application.requests[0].demo_fast is True
+    assert application.requests[0].max_repairs == 1
 
 
 class FakeApplicationService:
@@ -172,6 +228,24 @@ class BlockingFirstApplicationService(FakeApplicationService):
             self.records[run_id] = record
             return record
         return super().execute(run_id)
+
+
+class AlwaysBlockingApplicationService(FakeApplicationService):
+    def __init__(self, root: Path) -> None:
+        super().__init__(root)
+        self.executions: list[str] = []
+
+    def execute(self, run_id: str) -> RunRecord:
+        self.executions.append(run_id)
+        record = self.records[run_id].model_copy(
+            update={
+                "status": "blocked",
+                "current_phase": "blocked",
+                "blockers": ["terminal candidate fit gap: req_critical"],
+            }
+        )
+        self.records[run_id] = record
+        return record
 
 
 class CancellingAfterFirstApplicationService(FakeApplicationService):
@@ -413,6 +487,106 @@ def test_campaign_stops_between_applications_and_can_resume(tmp_path: Path) -> N
     assert all(
         item.run_status == "completed" for item in completed.items if item.decision == "selected"
     )
+
+
+def test_campaign_resume_requeues_a_terminal_run_without_duplicating_tracker_rows(
+    tmp_path: Path,
+) -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    profile_path = project_root / "config" / "profiles" / "example" / "profile.yaml"
+    tracker = _empty_tracker(tmp_path / "tracker.xlsx")
+    application = FakeApplicationService(tmp_path / "runs")
+    store = StudioCampaignStore(tmp_path / "campaigns")
+    service = StudioCampaignService(
+        repository=CandidateProfileRepository(project_root / "config" / "profiles"),
+        application_service=application,
+        store=store,
+    )
+    record = service.create(
+        profile_path=profile_path,
+        tracker_path=tracker,
+        candidates=[
+            {
+                "company": "Grid Systems",
+                "role": "Data Engineer",
+                "url": "https://example.test/jobs/data-engineer",
+                "description": _full_description("Retry"),
+                "location": "Toulouse, France",
+                "contract_type": "permanent",
+            }
+        ],
+        limit=1,
+        today=date(2026, 7, 17),
+    )
+    item = record.items[0]
+    original_run_id = item.run_id
+    original_excel_row = item.excel_row
+    item.run_status = "failed"
+    item.run_phase = "failed"
+    item.run_blockers = ["old failure"]
+    store.save(record.model_copy(update={"status": "partial", "items": record.items}))
+
+    resumed = service.resume(record.campaign_id)
+
+    retried = resumed.items[0]
+    assert retried.run_id != original_run_id
+    assert retried.run_status == "pending"
+    assert retried.run_phase == "pending"
+    assert retried.run_blockers == []
+    assert retried.excel_row == original_excel_row
+    assert len(application.requests) == 2
+    workbook = load_workbook(tracker, read_only=True)
+    try:
+        assert workbook["Postulations"].max_row == 2
+    finally:
+        workbook.close()
+
+    completed = service.execute(record.campaign_id)
+    assert completed.status == "completed"
+    assert completed.items[0].run_status == "completed"
+
+
+def test_campaign_resume_can_recover_a_running_record_after_process_restart(
+    tmp_path: Path,
+) -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    profile_path = project_root / "config" / "profiles" / "example" / "profile.yaml"
+    tracker = _empty_tracker(tmp_path / "tracker.xlsx")
+    application = FakeApplicationService(tmp_path / "runs")
+    store = StudioCampaignStore(tmp_path / "campaigns")
+    service = StudioCampaignService(
+        repository=CandidateProfileRepository(project_root / "config" / "profiles"),
+        application_service=application,
+        store=store,
+    )
+    record = service.create(
+        profile_path=profile_path,
+        tracker_path=tracker,
+        candidates=[
+            {
+                "company": "Grid Systems",
+                "role": "Data Engineer",
+                "url": "https://example.test/jobs/data-engineer",
+                "description": _full_description("Interrupted"),
+                "location": "Toulouse, France",
+                "contract_type": "permanent",
+            }
+        ],
+        limit=1,
+        today=date(2026, 7, 17),
+    )
+    item = record.items[0]
+    old_run_id = item.run_id
+    item.run_status = "running"
+    item.run_phase = "agent:cv_writer:running"
+    store.save(record.model_copy(update={"status": "running", "items": record.items}))
+
+    resumed = service.resume(record.campaign_id, allow_interrupted=True)
+
+    assert resumed.status == "ready"
+    assert resumed.items[0].run_id != old_run_id
+    assert resumed.items[0].run_status == "pending"
+    assert resumed.items[0].excel_row == item.excel_row
 
 
 def test_campaign_prefers_semantic_role_fit_over_incidental_keyword_overlap(
@@ -733,6 +907,47 @@ def test_campaign_promotes_next_ranked_offer_when_first_run_is_blocked(
         "Promoted after an earlier candidate did not produce documents."
     ]
     assert completed.items[2].decision == "not_selected"
+
+
+def test_demo_campaign_stops_after_one_fallback_instead_of_draining_reserves(
+    tmp_path: Path,
+) -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    profile_path = project_root / "config" / "profiles" / "example" / "profile.yaml"
+    tracker = _tracker(tmp_path / "tracker.xlsx", "https://example.test/existing")
+    application = AlwaysBlockingApplicationService(tmp_path / "runs")
+    service = StudioCampaignService(
+        repository=CandidateProfileRepository(project_root / "config" / "profiles"),
+        application_service=application,
+        store=StudioCampaignStore(tmp_path / "campaigns"),
+        demo_fast=True,
+    )
+    record = service.create(
+        profile_path=profile_path,
+        tracker_path=tracker,
+        candidates=[
+            {
+                "company": company,
+                "role": "Data Engineer",
+                "url": f"https://example.test/{company.casefold()}",
+                "description": _full_description(company),
+                "location": "Toulouse",
+                "contract_type": "permanent",
+            }
+            for company in ("First", "Second", "Third", "Fourth")
+        ],
+        limit=3,
+        today=date(2026, 7, 17),
+    )
+
+    completed = service.execute(record.campaign_id)
+
+    assert completed.status == "partial"
+    assert application.executions == ["run-00000001", "run-00000002"]
+    assert len(application.requests) == 2
+    assert completed.items[0].run_status == "blocked"
+    assert completed.items[1].run_status == "blocked"
+    assert all(item.run_id is None for item in completed.items[2:])
 
 
 def test_campaign_ranking_comes_from_the_selected_candidate_profile(tmp_path: Path) -> None:

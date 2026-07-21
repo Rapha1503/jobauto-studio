@@ -3,7 +3,11 @@ from pathlib import Path
 import pytest
 from test_profile_extraction import _extraction
 
-from jobauto.adaptation_policy import FidelityLevel, SectionPolicy
+from jobauto.adaptation_policy import (
+    STUDIO_ADAPTATION_PRESETS,
+    FidelityLevel,
+    SectionPolicy,
+)
 from jobauto.candidate_context import CandidateContext, ContextPurpose
 from jobauto.candidate_draft import CandidateDraft, DraftStatus, SkillEvidence
 from jobauto.candidate_export import _adaptation_policy_payload, export_candidate_draft
@@ -116,6 +120,57 @@ def test_validated_draft_exports_one_source_preserving_snapshot(tmp_path: Path) 
     assert education_block["fidelity"] == "locked"
 
 
+def test_project_can_be_hidden_from_baseline_but_selected_for_tailored_cv(
+    tmp_path: Path,
+) -> None:
+    fixture = Path(__file__).parent / "fixtures" / "cv" / "synthetic_cv_fr.tex"
+    source = fixture.read_bytes()
+    draft, mapping = _validated_draft(source, fixture.name)
+    bonus_project = draft.projects[0].model_copy(
+        update={"project_id": "bonus", "visible_by_default": False, "cv_eligible": True}
+    )
+    draft = draft.model_copy(update={"projects": [bonus_project]})
+
+    _profile_path, snapshot = export_candidate_draft(
+        draft=draft,
+        tex_source=source,
+        mapping=mapping,
+        profiles_root=tmp_path / "profiles",
+    )
+
+    assert snapshot.project_bank.entries[0].visibility == "cv_project"
+    assert snapshot.cv_source.projects == []
+
+
+def test_reexport_refreshes_existing_candidate_profile_files(tmp_path: Path) -> None:
+    fixture = Path(__file__).parent / "fixtures" / "cv" / "synthetic_cv_fr.tex"
+    source = fixture.read_bytes()
+    draft, mapping = _validated_draft(source, fixture.name)
+    profiles_root = tmp_path / "profiles"
+    profile_path, first_snapshot = export_candidate_draft(
+        draft=draft,
+        tex_source=source,
+        mapping=mapping,
+        profiles_root=profiles_root,
+    )
+    updated_project = draft.projects[0].model_copy(
+        update={"visible_by_default": False, "cv_eligible": True}
+    )
+    updated_draft = draft.model_copy(update={"projects": [updated_project]})
+
+    updated_path, updated_snapshot = export_candidate_draft(
+        draft=updated_draft,
+        tex_source=source,
+        mapping=mapping,
+        profiles_root=profiles_root,
+    )
+
+    assert updated_path == profile_path
+    assert updated_snapshot.snapshot_hash != first_snapshot.snapshot_hash
+    assert updated_snapshot.project_bank.entries[0].visibility == "cv_project"
+    assert updated_snapshot.cv_source.projects == []
+
+
 def test_export_protects_metrics_only_when_the_candidate_requests_it(tmp_path: Path) -> None:
     fixture = Path(__file__).parent / "fixtures" / "cv" / "synthetic_cv_fr.tex"
     source = fixture.read_bytes()
@@ -176,7 +231,7 @@ def test_optional_metric_value_remains_immutable_when_used(tmp_path: Path) -> No
         )
 
 
-def _export_exhibition_profile_with_metric(tmp_path: Path):
+def _export_exhibition_profile_with_metric(tmp_path: Path, *, protect_metric: bool = False):
     fixture = Path(__file__).parent / "fixtures" / "cv" / "exhibition_producer_en.tex"
     source = fixture.read_bytes()
     mapping = analyze_latex_cv(source, filename=fixture.name)
@@ -206,7 +261,10 @@ def _export_exhibition_profile_with_metric(tmp_path: Path):
                     "organization": "Atelier Horizon",
                     "role": "Exhibition Producer",
                     "dates": "2021--2025",
-                    "facts": ["Managed production schedules, supplier consultations and budgets."],
+                    "facts": [
+                        "Produced six temporary exhibitions from initial brief to opening.",
+                        "Managed production schedules and budgets up to EUR 180,000.",
+                    ],
                     "metrics": ["Budgets up to EUR 180,000"],
                     "source_block_ids": [experience_block.block_id],
                 }
@@ -217,7 +275,11 @@ def _export_exhibition_profile_with_metric(tmp_path: Path):
         import_id="e" * 32,
         mapping=mapping,
         extraction=extraction,
-    ).model_copy(update={"status": DraftStatus.VALIDATED})
+    )
+    if protect_metric:
+        experience = draft.experiences[0].model_copy(update={"protected_fields": ["metrics"]})
+        draft = draft.model_copy(update={"experiences": [experience]})
+    draft = draft.model_copy(update={"status": DraftStatus.VALIDATED})
     _profile_path, snapshot = export_candidate_draft(
         draft=draft,
         tex_source=source,
@@ -225,6 +287,47 @@ def _export_exhibition_profile_with_metric(tmp_path: Path):
         profiles_root=tmp_path / "profiles",
     )
     return snapshot, experience_block
+
+
+def test_protected_metric_may_remain_unchanged_when_another_experience_bullet_changes(
+    tmp_path: Path,
+) -> None:
+    snapshot, _experience_block = _export_exhibition_profile_with_metric(
+        tmp_path,
+        protect_metric=True,
+    )
+
+    document = apply_cv_patch(
+        snapshot,
+        CvAdaptationPatch(
+            changes=[
+                CvFieldChange(
+                    source_id="experience.0.bullet.0",
+                    value=(
+                        "Produced six temporary exhibitions from brief to opening, "
+                        "coordinating artists, curators, venues and accessibility partners."
+                    ),
+                    fact_ids=["experience.atelier.fact.1"],
+                )
+            ]
+        ),
+    )
+
+    assert "EUR 180,000" in document.document.experience[0].bullets[1]
+
+    with pytest.raises(ValueError, match="Protected claim values changed or were omitted"):
+        apply_cv_patch(
+            snapshot,
+            CvAdaptationPatch(
+                changes=[
+                    CvFieldChange(
+                        source_id="experience.0.bullet.1",
+                        value="Managed production schedules and supplier consultations.",
+                        fact_ids=["experience.atelier.fact.1"],
+                    )
+                ]
+            ),
+        )
 
 
 def test_source_block_provenance_cannot_change_or_contradict_a_metric(tmp_path: Path) -> None:
@@ -449,8 +552,14 @@ def test_export_promotes_unambiguous_custom_project_and_skill_sections(tmp_path:
     promoted = {block.label: block for block in snapshot.cv_mapping.blocks}
     assert promoted["Selected Productions"].kind is TexBlockKind.PROJECTS
     assert promoted["Professional Capabilities"].kind is TexBlockKind.SKILLS
-    assert promoted["Selected Productions"].policy.fidelity is FidelityLevel.HIGHLY_ADAPTABLE
-    assert promoted["Professional Capabilities"].policy.fidelity is FidelityLevel.REPLACEABLE
+    assert (
+        promoted["Selected Productions"].policy.fidelity
+        is STUDIO_ADAPTATION_PRESETS["balanced"]["projects"]
+    )
+    assert (
+        promoted["Professional Capabilities"].policy.fidelity
+        is STUDIO_ADAPTATION_PRESETS["balanced"]["skills"]
+    )
     assert snapshot.project_bank.entries[0].id == "city_in_motion"
     assert "projects" in snapshot.adaptation_policy.documents["cv"].sections
     assert "skills" in snapshot.adaptation_policy.documents["cv"].sections

@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from jobauto.codex_client import (
     CodexClient,
     CodexOutputValidationError,
+    CodexRoute,
     GenerationPhase,
     find_codex_executable,
 )
@@ -125,6 +126,45 @@ def test_complete_json_passes_configured_model(tmp_path: Path) -> None:
     command = seen["command"]
     assert command[2:4] == ["--model", "gpt-5.5-codex"]
     assert client.telemetry_log[0]["codex_model"] == "gpt-5.5-codex"
+
+
+def test_complete_json_can_route_one_phase_to_a_model_and_reasoning_effort(
+    tmp_path: Path,
+) -> None:
+    seen: dict[str, object] = {}
+
+    def fake_runner(**kwargs):
+        command = kwargs["args"]
+        seen["command"] = command
+        output_path = Path(command[command.index("--output-last-message") + 1])
+        output_path.write_text('{"value": "ok"}', encoding="utf-8")
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    client = CodexClient(
+        executable=Path(r"C:\Codex\codex.cmd"),
+        cwd=tmp_path,
+        model="gpt-5.6-sol",
+        reasoning_effort="medium",
+        phase_routes={
+            GenerationPhase.CV_LATEX_WRITER: CodexRoute(
+                model="gpt-5.6-luna",
+                reasoning_effort="high",
+            )
+        },
+        runner=fake_runner,
+    )
+
+    client.complete_json("Prompt", MiniResponse, GenerationPhase.CV_LATEX_WRITER)
+
+    command = seen["command"]
+    assert command[2:6] == [
+        "--config",
+        'model_reasoning_effort="high"',
+        "--model",
+        "gpt-5.6-luna",
+    ]
+    assert client.telemetry_log[0]["codex_model"] == "gpt-5.6-luna"
+    assert client.telemetry_log[0]["reasoning_effort"] == "high"
 
 
 def test_discovery_phase_explicitly_enables_web_research(tmp_path: Path) -> None:

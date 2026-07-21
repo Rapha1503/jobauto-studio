@@ -140,6 +140,10 @@ class CandidateProfileExtractor:
             "For each experience, copy every visible bullet into facts without shortening or removing "
             "a metric. Metrics may also be extracted separately, but their surrounding bullet must "
             "remain complete in facts.\n"
+            "Respect every confirmed block kind: content from an experience block stays in "
+            "experiences, content from a projects block stays in projects, and the same rule applies "
+            "to skills and education. Never duplicate or move an item across those sections merely "
+            "because its title resembles another category.\n"
             "Every identity, experience, project, skill and education item must cite one or more "
             "source_block_ids from the supplied blocks. Put ambiguity or missing structure in warnings.\n"
             "Set locale to the primary natural-language locale of the visible CV content (for example "
@@ -155,6 +159,7 @@ class CandidateProfileExtractor:
             GenerationPhase.PROFILE,
         )
         _validate_provenance(result, {block.block_id for block in mapping.blocks})
+        _validate_typed_section_provenance(result, mapping)
         _validate_additional_section_coverage(result, mapping)
         return _restore_source_experience_bullets(result, block_payload)
 
@@ -230,6 +235,30 @@ def _validate_additional_section_coverage(
         )
 
 
+def _validate_typed_section_provenance(
+    extraction: CandidateProfileExtraction,
+    mapping: LatexCvMapping,
+) -> None:
+    kind_by_block = {block.block_id: block.kind for block in mapping.blocks}
+    typed_items = (
+        (TexBlockKind.EXPERIENCE, extraction.experiences),
+        (TexBlockKind.PROJECTS, extraction.projects),
+        (TexBlockKind.SKILLS, extraction.skills),
+        (TexBlockKind.EDUCATION, extraction.education),
+    )
+    invalid = sorted(
+        f"{expected_kind.value}:{block_id}"
+        for expected_kind, items in typed_items
+        for item in items
+        for block_id in item.source_block_ids
+        if kind_by_block.get(block_id) is not expected_kind
+    )
+    if invalid:
+        raise ValueError(
+            "profile extraction moved content across confirmed CV sections: " + ", ".join(invalid)
+        )
+
+
 def _restore_source_experience_bullets(
     extraction: CandidateProfileExtraction,
     block_payload: list[dict[str, str]],
@@ -288,6 +317,7 @@ def _visible_latex_items(value: str) -> list[str]:
 
 def _visible_latex_text(value: str) -> str:
     text = re.sub(r"(?<!\\)%.*", " ", value)
+    text = re.sub(r"\\(?:euro|texteuro)\s*\{\s*\}", "€", text)
     for escaped in ("&", "%", "$", "#", "_", "{", "}"):
         text = text.replace(f"\\{escaped}", escaped)
     text = re.sub(r"\\(?:begin|end)\s*\{[^{}]*\}", " ", text)

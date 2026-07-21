@@ -13,7 +13,7 @@
         <span class="brand-mark" aria-hidden="true">JA</span>
         <span><strong>JobAuto</strong><small>Studio</small></span>
       </a>
-      <div class="runtime-state"><span></span> Local workspace</div>
+      <div class="runtime-state"><span></span> {% if demo_fast %}Fast demo path{% else %}Local workspace{% endif %}</div>
     </header>
     <main>{% block content %}{% endblock %}</main>
   </body>

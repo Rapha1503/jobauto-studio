@@ -38,6 +38,8 @@ CampaignStatus = Literal[
     "partial",
     "failed",
 ]
+
+DEMO_MAX_APPLICATION_ATTEMPTS = 2
 CampaignDecision = Literal["selected", "duplicate", "rejected", "not_selected"]
 
 
@@ -93,6 +95,7 @@ class StudioCampaignRecord(BaseModel):
     updated_at: str
     requested_limit: int = Field(ge=1, le=100)
     processing_limit: int | None = Field(default=None, ge=1, le=100)
+    demo_fast: bool = False
     campaign_dir: Path
     items: list[StudioCampaignItem] = Field(default_factory=list)
     cancel_requested_at: str | None = None
@@ -160,11 +163,13 @@ class StudioCampaignService:
         application_service: RunApplicationService | ApplicationService,
         store: StudioCampaignStore,
         availability_verifier: OfferAvailabilityVerifier | None = None,
+        demo_fast: bool = False,
     ) -> None:
         self.repository = repository
         self.application_service = application_service
         self.store = store
         self.availability_verifier = availability_verifier
+        self.demo_fast = demo_fast
 
     def create(
         self,
@@ -185,6 +190,7 @@ class StudioCampaignService:
         processing_limit = min(
             limit,
             snapshot.submission_preferences.max_applications_per_campaign,
+            1 if self.demo_fast else limit,
         )
         campaign_id = f"{snapshot.profile.candidate_id}-{uuid4().hex[:12]}"
         campaign_dir = self.store.root / campaign_id
@@ -199,6 +205,7 @@ class StudioCampaignService:
             updated_at=now,
             requested_limit=limit,
             processing_limit=processing_limit,
+            demo_fast=self.demo_fast,
             campaign_dir=campaign_dir,
         )
         self.store.create(record)
@@ -249,6 +256,7 @@ class StudioCampaignService:
         evaluation = snapshot.search_preferences.evaluate(
             _to_search_offer(offer, today=today or date.today()),
             today=today,
+            relax_experience=self.demo_fast,
         )
         reasons = [finding.message for finding in evaluation.blockers]
         if reasons:
@@ -286,6 +294,7 @@ class StudioCampaignService:
             updated_at=now,
             requested_limit=1,
             processing_limit=1,
+            demo_fast=self.demo_fast,
             campaign_dir=campaign_dir,
             items=[item],
         )
@@ -365,6 +374,7 @@ class StudioCampaignService:
             evaluation = snapshot.search_preferences.evaluate(
                 _to_search_offer(candidate, today=today or date.today()),
                 today=today,
+                relax_experience=self.demo_fast,
             )
             item = StudioCampaignItem(
                 offer=candidate,
@@ -373,6 +383,13 @@ class StudioCampaignService:
                 evaluation=evaluation,
                 reasons=[finding.message for finding in evaluation.blockers],
             )
+            if self.demo_fast and any(
+                signal.criterion == "experience_years" and signal.outcome == "miss"
+                for signal in evaluation.ranking_signals
+            ):
+                item.reasons.append(
+                    "Experience exceeds the preferred demo range; retained as a ranked stretch."
+                )
             items.append(item)
             if evaluation.eligible:
                 eligible.append((order, item))
@@ -384,7 +401,11 @@ class StudioCampaignService:
         selected_ids = {id(item) for _, item in ranked[:processing_limit]}
         for _, item in ranked[processing_limit:]:
             item.decision = "not_selected"
-            if processing_limit < requested_limit:
+            if record.demo_fast:
+                item.reasons = [
+                    "Eligible reserve; demo fast path prepares only the top-ranked offer."
+                ]
+            elif processing_limit < requested_limit:
                 item.reasons = ["Eligible but outside the candidate's configured campaign limit."]
             else:
                 item.reasons = ["Eligible but outside the requested campaign limit."]
@@ -444,6 +465,10 @@ class StudioCampaignService:
             missing = record.effective_limit - completed_count
             if missing <= 0:
                 break
+            if record.demo_fast:
+                attempted_count = sum(item.run_id is not None for item in record.items)
+                if attempted_count >= DEMO_MAX_APPLICATION_ATTEMPTS:
+                    break
             replacements = sorted(
                 (item for item in record.items if item.decision == "not_selected"),
                 key=_campaign_rank_key,
@@ -481,12 +506,27 @@ class StudioCampaignService:
             )
         )
 
-    def resume(self, campaign_id: str) -> StudioCampaignRecord:
+    def resume(
+        self,
+        campaign_id: str,
+        *,
+        allow_interrupted: bool = False,
+    ) -> StudioCampaignRecord:
         record = self.store.get(campaign_id)
         if record.status == "completed":
             return record
-        if record.status not in {"cancelled", "partial", "failed"}:
+        resumable_statuses = {"cancelled", "partial", "failed"}
+        if allow_interrupted:
+            resumable_statuses.add("running")
+        if record.status not in resumable_statuses:
             raise ValueError(f"campaign cannot be resumed from status: {record.status}")
+        for item in record.items:
+            if (
+                item.decision == "selected"
+                and item.run_id
+                and item.run_status in {"running", "blocked", "failed"}
+            ):
+                self._start_item_run(record, item)
         return self.store.save(
             record.model_copy(
                 update={
@@ -660,22 +700,40 @@ class StudioCampaignService:
         )
         for item, excel_row in zip(items, rows, strict=True):
             item.excel_row = excel_row
-            try:
-                item.run_id = self.application_service.start(
-                    RunRequest(
-                        profile_path=record.profile_path,
-                        offer_text=item.offer.description,
-                        offer_url=item.offer.url,
-                        company=item.offer.company,
-                        role=item.offer.role,
-                    )
+            self._start_item_run(record, item)
+
+    def _start_item_run(
+        self,
+        record: StudioCampaignRecord,
+        item: StudioCampaignItem,
+    ) -> None:
+        try:
+            item.run_id = self.application_service.start(
+                RunRequest(
+                    profile_path=record.profile_path,
+                    offer_text=item.offer.description,
+                    offer_url=item.offer.url,
+                    company=item.offer.company,
+                    role=item.offer.role,
+                    max_repairs=1 if record.demo_fast else 2,
+                    demo_fast=record.demo_fast,
                 )
-                item.run_status = "pending"
-                item.run_phase = "pending"
-            except Exception as exc:
-                item.run_status = "failed"
-                item.run_phase = "start_failed"
-                item.run_blockers = [f"{type(exc).__name__}: {exc}"]
+            )
+            item.run_status = "pending"
+            item.run_phase = "pending"
+            item.run_blockers = []
+            item.agent_call_count = 0
+            item.repair_call_count = 0
+            item.agent_latency_ms = 0
+            item.agent_token_estimate = 0
+            item.latest_agent_phase = None
+            item.latest_agent_status = None
+            item.tracker_artifacts_synced = False
+            item.tracker_sync_error = None
+        except Exception as exc:
+            item.run_status = "failed"
+            item.run_phase = "start_failed"
+            item.run_blockers = [f"{type(exc).__name__}: {exc}"]
 
 
 def _campaign_rank_key(item: StudioCampaignItem) -> tuple[int, int]:
@@ -762,9 +820,33 @@ def _parse_description_experience_years(description: str) -> float | None:
     experience_cues = re.compile(
         r"\b(?:experience|experiences|background|track record|years? of|ans? d['’e])"
     )
+    requirement_section_heading = re.compile(
+        r"^(?:candidate |job |minimum )?(?:requirements?|qualifications?)$|"
+        r"^(?:profile|profil recherche|what you bring|your background|the skill set)$"
+    )
+    requirement_label = re.compile(
+        r"^(?:[-*]\s*)?(?:(?:technical|professional|relevant|minimum)\s+)?"
+        r"experience\s*:"
+    )
     values: list[float] = []
-    for fragment in re.split(r"(?<=[.!?;])\s+|[\r\n]+", description.casefold()):
-        if not requirement_cues.search(fragment) or not experience_cues.search(fragment):
+    inside_requirement_section = False
+    for raw_fragment in re.split(r"(?<=[.!?;])\s+|[\r\n]+", description):
+        raw_fragment = raw_fragment.strip()
+        fragment = raw_fragment.casefold()
+        if not fragment:
+            continue
+        if requirement_section_heading.fullmatch(fragment.rstrip(":")):
+            inside_requirement_section = True
+            continue
+        if raw_fragment.rstrip(":").isupper():
+            inside_requirement_section = False
+            continue
+        has_requirement_context = bool(
+            requirement_cues.search(fragment)
+            or requirement_label.search(fragment)
+            or inside_requirement_section
+        )
+        if not has_requirement_context or not experience_cues.search(fragment):
             continue
         parsed = _parse_experience_years(fragment)
         if parsed is not None:

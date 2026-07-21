@@ -84,6 +84,27 @@ class CandidateWorkflowPipeline:
             encoding="utf-8",
             newline="\n",
         )
+        offer_contract = getattr(self._pipeline, "last_offer_contract", None)
+        if offer_contract is not None:
+            (self._run_dir / "offer-contract.json").write_text(
+                offer_contract.model_dump_json(indent=2),
+                encoding="utf-8",
+                newline="\n",
+            )
+        baseline_coverage = getattr(self._pipeline, "last_baseline_coverage", None)
+        if baseline_coverage is not None:
+            (self._run_dir / "baseline-cv-coverage.json").write_text(
+                baseline_coverage.model_dump_json(indent=2),
+                encoding="utf-8",
+                newline="\n",
+            )
+        candidate_evidence = getattr(self._pipeline, "last_candidate_evidence", None)
+        if candidate_evidence is not None:
+            (self._run_dir / "candidate-evidence-assessment.json").write_text(
+                candidate_evidence.model_dump_json(indent=2),
+                encoding="utf-8",
+                newline="\n",
+            )
         return self._pipeline.generate_candidate_documents(
             row,
             offer_text,

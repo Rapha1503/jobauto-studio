@@ -44,6 +44,73 @@ _CAPABILITIES_BY_FIDELITY = {
     ),
 }
 
+STUDIO_ADAPTATION_PRESETS: dict[str, dict[str, FidelityLevel]] = {
+    "conservative": {
+        "identity": FidelityLevel.LOCKED,
+        "summary": FidelityLevel.VERY_FAITHFUL,
+        "experience": FidelityLevel.VERY_FAITHFUL,
+        "projects": FidelityLevel.VERY_FAITHFUL,
+        "skills": FidelityLevel.VERY_FAITHFUL,
+        "education": FidelityLevel.LOCKED,
+        "languages": FidelityLevel.LOCKED,
+        "interests": FidelityLevel.LOCKED,
+        "other": FidelityLevel.VERY_FAITHFUL,
+    },
+    "balanced": {
+        "identity": FidelityLevel.LOCKED,
+        "summary": FidelityLevel.ADAPTABLE,
+        "experience": FidelityLevel.VERY_FAITHFUL,
+        "projects": FidelityLevel.ADAPTABLE,
+        "skills": FidelityLevel.ADAPTABLE,
+        "education": FidelityLevel.LOCKED,
+        "languages": FidelityLevel.LOCKED,
+        "interests": FidelityLevel.LOCKED,
+        "other": FidelityLevel.VERY_FAITHFUL,
+    },
+    "flexible": {
+        "identity": FidelityLevel.LOCKED,
+        "summary": FidelityLevel.HIGHLY_ADAPTABLE,
+        "experience": FidelityLevel.ADAPTABLE,
+        "projects": FidelityLevel.HIGHLY_ADAPTABLE,
+        "skills": FidelityLevel.HIGHLY_ADAPTABLE,
+        "education": FidelityLevel.LOCKED,
+        "languages": FidelityLevel.LOCKED,
+        "interests": FidelityLevel.LOCKED,
+        "other": FidelityLevel.ADAPTABLE,
+    },
+}
+
+_FIDELITY_GUIDANCE = {
+    FidelityLevel.LOCKED: "Keep exact visible content and order.",
+    FidelityLevel.VERY_FAITHFUL: (
+        "Preserve the same facts, identity, order and emphasis; only shorten or lightly rephrase "
+        "when the offer or one-page layout materially requires it."
+    ),
+    FidelityLevel.ADAPTABLE: (
+        "Preserve candidate facts and source identities, but select, reorder and reframe approved "
+        "content around the role; do not derive or create replacement evidence."
+    ),
+    FidelityLevel.HIGHLY_ADAPTABLE: (
+        "Recompose the section from approved candidate evidence, including a different selection "
+        "or taxonomy, while keeping every visible claim defensible."
+    ),
+    FidelityLevel.REPLACEABLE: (
+        "Replace the section from approved candidate evidence when that produces a materially "
+        "stronger recruiter story; never invent unsupported facts."
+    ),
+}
+
+
+def fidelity_guidance(fidelity: FidelityLevel) -> str:
+    return _FIDELITY_GUIDANCE[fidelity]
+
+
+def serialized_studio_adaptation_presets() -> dict[str, dict[str, str]]:
+    return {
+        preset: {section: fidelity.value for section, fidelity in sections.items()}
+        for preset, sections in STUDIO_ADAPTATION_PRESETS.items()
+    }
+
 
 class SectionPolicy(BaseModel):
     model_config = ConfigDict(extra="forbid")

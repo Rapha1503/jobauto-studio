@@ -1,7 +1,7 @@
 [project]
 name = "jobauto"
 version = "0.1.0"
-description = "Configurable local AI workflow for job discovery, tailored documents, and application handoff"
+description = "Local app for job discovery, tailored application documents, PDF validation, and Chrome handoff"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"

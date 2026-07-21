@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 from test_candidate_export import _validated_draft
-from test_candidate_writers import _brief
+from test_candidate_writers import _brief, _letter_argument
 
 from jobauto.adaptation_policy import FidelityLevel, SectionPolicy
 from jobauto.candidate_context import CandidateContext
@@ -19,11 +19,19 @@ from jobauto.document_patch import (
     CvProjectSectionChange,
     CvSourceBlockChange,
     apply_cv_patch,
+    source_preserving_item_groups,
     validate_cv_document,
 )
-from jobauto.document_renderer import DocumentRenderer
+from jobauto.document_renderer import DocumentRenderer, source_skill_line_budget
 from jobauto.latex_cv_source import LatexCvMapping
-from jobauto.models import ApplicationRow, CandidateLetterDraft
+from jobauto.models import (
+    ApplicationRow,
+    CandidateApplicationReview,
+    CandidateLetterDraft,
+    CandidateRepairAction,
+    ProjectPlan,
+    SkillPlan,
+)
 from jobauto.source_preserving_cv import (
     LatexBlockReplacement,
     LatexCvPatch,
@@ -48,6 +56,73 @@ def _source_snapshot(tmp_path: Path):
     return source, snapshot
 
 
+def _two_group_source_snapshot(tmp_path: Path):
+    fixture = Path(__file__).parent / "fixtures" / "cv" / "synthetic_cv_fr.tex"
+    lines = fixture.read_text(encoding="utf-8").splitlines()
+    item_indexes = [index for index, line in enumerate(lines) if line.startswith("\\item ")]
+    second_experience_item = item_indexes[1]
+    lines[second_experience_item:second_experience_item] = [
+        "\\end{itemize}",
+        "\\textbf{Internal quality initiative}",
+        "\\begin{itemize}[leftmargin=*]",
+    ]
+    source = ("\n".join(lines) + "\n").encode("utf-8")
+    draft, mapping = _validated_draft(source, "two_group_cv.tex")
+    experience_items = [
+        line.removeprefix("\\item ") for line in lines if line.startswith("\\item ")
+    ][:2]
+    experience = draft.experiences[0].model_copy(update={"facts": experience_items})
+    draft = draft.model_copy(update={"experiences": [experience]})
+    _, snapshot = export_candidate_draft(
+        draft=draft,
+        tex_source=source,
+        mapping=mapping,
+        profiles_root=tmp_path / "two-group-profiles",
+    )
+    return snapshot
+
+
+def test_source_preserving_experience_facts_cannot_cross_visible_heading_groups(
+    tmp_path: Path,
+) -> None:
+    snapshot = _two_group_source_snapshot(tmp_path)
+
+    assert source_preserving_item_groups(snapshot, "experience") == (
+        ("experience.0.bullet.0",),
+        ("experience.0.bullet.1",),
+    )
+    with pytest.raises(ValueError, match="crosses source heading groups"):
+        apply_cv_patch(
+            snapshot,
+            CvAdaptationPatch(
+                changes=[
+                    CvFieldChange(
+                        source_id="experience.0.bullet.0",
+                        value="Reframed quality-control contribution.",
+                        fact_ids=["experience.gridlab.fact.2"],
+                    )
+                ]
+            ),
+        )
+    pipeline = CandidatePipeline.for_candidate(
+        _SourcePreservingLlm(),
+        snapshot,
+        CandidateContext.from_snapshot(snapshot),
+    )
+    prompt = pipeline._candidate_cv_patch_prompt(
+        ApplicationRow(
+            excel_row=1,
+            company="GridCo",
+            role="Data Engineer",
+            url="https://example.test/jobs/data-engineer",
+        ),
+        _brief_with_snapshot_skill_shape(snapshot),
+        "GridCo recherche une Data Engineer.",
+    )
+    assert "SOURCE-PRESERVING EXPERIENCE GROUPS" in prompt
+    assert "never move a fact under another heading" in prompt
+
+
 def _adapted_summary(snapshot):
     return apply_cv_patch(
         snapshot,
@@ -63,6 +138,24 @@ def _adapted_summary(snapshot):
                 )
             ]
         ),
+    )
+
+
+def _brief_with_snapshot_skill_shape(snapshot):
+    brief = _brief()
+    category = next(iter(snapshot.cv_source.skills))
+    return brief.model_copy(
+        update={
+            "skill_plan": brief.skill_plan.model_copy(
+                update={
+                    "categories": [category],
+                    "items": [
+                        item.model_copy(update={"category": category})
+                        for item in brief.skill_plan.items
+                    ],
+                }
+            )
+        }
     )
 
 
@@ -327,6 +420,17 @@ def test_source_preserving_patch_rejects_changed_section_header(tmp_path: Path) 
         validate_latex_cv_patch(snapshot, patch, semantic.provenance, semantic.document)
 
 
+def test_source_preserving_patch_rejects_empty_visible_formatting(tmp_path: Path) -> None:
+    source, snapshot = _source_snapshot(tmp_path)
+    mapping = snapshot.cv_mapping
+    assert mapping is not None
+    block = next(item for item in mapping.blocks if item.block_id == "experience")
+    original = source[block.start_byte : block.end_byte].decode("utf-8")
+
+    with pytest.raises(ValueError, match="empty visible formatting"):
+        _require_safe_structure(original, original + "\\textbf{}", block)
+
+
 def test_faithful_block_allows_equivalent_inline_glyph_typography(tmp_path: Path) -> None:
     source, snapshot = _source_snapshot(tmp_path)
     mapping = snapshot.cv_mapping
@@ -338,6 +442,33 @@ def test_faithful_block_allows_equivalent_inline_glyph_typography(tmp_path: Path
     _require_safe_structure(original, replacement, block)
 
 
+def test_faithful_block_treats_eurosym_as_visible_typography(tmp_path: Path) -> None:
+    _source, snapshot = _source_snapshot(tmp_path)
+    mapping = snapshot.cv_mapping
+    assert mapping is not None
+    block = next(item for item in mapping.blocks if item.block_id == "experience")
+
+    _require_safe_structure(
+        r"\item Generated \euro{}35M in savings.",
+        r"\item Generated €35M in savings.",
+        block,
+    )
+
+
+def test_faithful_block_rejects_removed_currency_glyph(tmp_path: Path) -> None:
+    _source, snapshot = _source_snapshot(tmp_path)
+    mapping = snapshot.cv_mapping
+    assert mapping is not None
+    block = next(item for item in mapping.blocks if item.block_id == "experience")
+
+    with pytest.raises(ValueError, match="changed visible glyph"):
+        _require_safe_structure(
+            r"\item Generated \euro{}35M in savings.",
+            r"\item Generated 35M in savings.",
+            block,
+        )
+
+
 def test_faithful_block_still_rejects_removed_list_structure(tmp_path: Path) -> None:
     source, snapshot = _source_snapshot(tmp_path)
     mapping = snapshot.cv_mapping
@@ -346,7 +477,7 @@ def test_faithful_block_still_rejects_removed_list_structure(tmp_path: Path) -> 
     original = source[block.start_byte : block.end_byte].decode("utf-8")
     replacement = original.replace("\\item", "", 1)
 
-    with pytest.raises(ValueError, match="command structure changed"):
+    with pytest.raises(ValueError, match="expected_commands=.*actual_commands"):
         _require_safe_structure(original, replacement, block)
 
 
@@ -676,9 +807,8 @@ class _SourcePreservingLlm:
                     source_ids=["skills.section"],
                     latex=(
                         "\\cvsection{Compétences}\n"
-                        "\\textbf{Data Engineering} : Python\\\\\n"
-                        "\\textbf{Cloud} : BigQuery\\\\\n"
-                        "\\textbf{Analytics} : Data quality\n"
+                        "\\textbf{Data} : Python, BigQuery\\\\\n"
+                        "\\textbf{Machine Learning} : Data quality\n"
                     ),
                 )
             )
@@ -721,6 +851,110 @@ class _DriftingLatexLlm(_SourcePreservingLlm):
         return super().complete_json(prompt, response_model, phase, **kwargs)
 
 
+class _ConfusedSourceTargetLlm(_SourcePreservingLlm):
+    def __init__(self, *, fail_on_cv_call: int) -> None:
+        super().__init__()
+        self.cv_calls = 0
+        self.fail_on_cv_call = fail_on_cv_call
+
+    def complete_json(self, prompt, response_model, phase, **kwargs):
+        if response_model is CvAdaptationPatch:
+            self.cv_calls += 1
+            if self.cv_calls == self.fail_on_cv_call:
+                self.calls.append((response_model, phase))
+                self.prompts.append(prompt)
+                return CvAdaptationPatch(
+                    source_blocks=[
+                        CvSourceBlockChange(
+                            source_id="source_block.experience",
+                            value="Updated experience wording.",
+                            fact_ids=["source_block.experience"],
+                        )
+                    ]
+                )
+        return super().complete_json(prompt, response_model, phase, **kwargs)
+
+
+def test_pipeline_repairs_evidence_id_used_as_a_cv_patch_target(tmp_path: Path) -> None:
+    _source, snapshot = _source_snapshot(tmp_path)
+    llm = _ConfusedSourceTargetLlm(fail_on_cv_call=1)
+    pipeline = CandidatePipeline.for_candidate(
+        llm,
+        snapshot,
+        CandidateContext.from_snapshot(snapshot),
+    )
+
+    package = pipeline.generate_candidate_documents(
+        ApplicationRow(
+            excel_row=1,
+            company="GridCo",
+            role="Data Engineer",
+            url="https://example.test/jobs/data-engineer",
+        ),
+        "GridCo recherche une Data Engineer pour construire des pipelines Python et SQL fiables.",
+        brief=_brief_with_snapshot_skill_shape(snapshot),
+    )
+
+    assert llm.cv_calls == 2
+    assert package.cv_patch.source_blocks == []
+    assert package.cv.document.summary.startswith("Ing")
+    assert "separate namespaces" in llm.prompts[0]
+    assert "allowed_source_blocks: []" in llm.prompts[1]
+    assert "source_block.experience may support a claim" in llm.prompts[1]
+
+
+def test_final_cv_repair_recovers_from_an_evidence_id_used_as_target(tmp_path: Path) -> None:
+    _source, snapshot = _source_snapshot(tmp_path)
+    llm = _ConfusedSourceTargetLlm(fail_on_cv_call=2)
+    pipeline = CandidatePipeline.for_candidate(
+        llm,
+        snapshot,
+        CandidateContext.from_snapshot(snapshot),
+    )
+    row = ApplicationRow(
+        excel_row=1,
+        company="GridCo",
+        role="Data Engineer",
+        url="https://example.test/jobs/data-engineer",
+    )
+    offer = (
+        "GridCo recherche une Data Engineer pour construire des pipelines Python et SQL fiables."
+    )
+    package = pipeline.generate_candidate_documents(
+        row,
+        offer,
+        brief=_brief_with_snapshot_skill_shape(snapshot),
+    )
+    review = CandidateApplicationReview(
+        approved=False,
+        score=78,
+        ats_score=82,
+        editorial_score=72,
+        adaptation_score=76,
+        blocking_issues=["The experience section duplicates one project."],
+        warnings=[],
+        letter_argument=_letter_argument(),
+        requirement_coverage=[],
+        repair_actions=[
+            CandidateRepairAction(
+                surface="cv",
+                instruction="Remove the duplicated project while preserving the accepted evidence.",
+            )
+        ],
+    )
+
+    repaired = pipeline.repair_candidate_documents(row, package, review, offer)
+
+    assert llm.cv_calls == 3
+    assert repaired.cv_patch.source_blocks == []
+    assert repaired.cv.document.summary.startswith("Ing")
+    assert "CV PATCH CONTRACT VALIDATION FAILURE" in llm.prompts[-2]
+    assert llm.calls[-2:] == [
+        (CvAdaptationPatch, GenerationPhase.REPAIR),
+        (LatexCvPatch, GenerationPhase.CV_LATEX_WRITER),
+    ]
+
+
 def test_pipeline_adds_latex_rendering_stage_only_for_source_preserving_profile(
     tmp_path: Path,
 ) -> None:
@@ -741,7 +975,7 @@ def test_pipeline_adds_latex_rendering_stage_only_for_source_preserving_profile(
     package = pipeline.generate_candidate_documents(
         row,
         "GridCo recherche une Data Engineer pour construire des pipelines Python et SQL fiables.",
-        brief=_brief(),
+        brief=_brief_with_snapshot_skill_shape(snapshot),
     )
     rendered = DocumentRenderer().render_cv(snapshot, package.cv, tmp_path / "pipeline")
 
@@ -802,7 +1036,7 @@ def test_pipeline_repairs_latex_wording_drift_before_rendering(tmp_path: Path) -
     package = pipeline.generate_candidate_documents(
         row,
         "GridCo recherche une Data Engineer pour construire des pipelines Python et SQL fiables.",
-        brief=_brief(),
+        brief=_brief_with_snapshot_skill_shape(snapshot),
     )
     rendered = DocumentRenderer().render_cv(snapshot, package.cv, tmp_path / "repaired-drift")
 
@@ -825,3 +1059,48 @@ def test_strategy_validation_respects_candidate_project_creation_policy(
 
     with pytest.raises(ValueError, match="forbids creating"):
         pipeline._validate_lean_brief_fact_ids(_brief())
+
+
+def test_strategy_skill_budget_is_derived_from_the_imported_cv_shape(tmp_path: Path) -> None:
+    _source, snapshot = _source_snapshot(tmp_path)
+    snapshot = replace(
+        snapshot,
+        _profile=snapshot.profile.model_copy(
+            update={
+                "project_lab": snapshot.profile.project_lab.model_copy(
+                    update={
+                        "minimum_visible_projects": 0,
+                        "maximum_visible_projects": 0,
+                    }
+                )
+            }
+        ),
+    )
+    budget = source_skill_line_budget(snapshot)
+    assert budget is not None
+    brief = _brief_with_snapshot_skill_shape(snapshot).model_copy(
+        update={
+            "project_plan": ProjectPlan(
+                decision="none",
+                rationale="This isolated skill-layout test does not exercise project selection.",
+            )
+        }
+    )
+    category = brief.skill_plan.categories[0]
+    template_item = brief.skill_plan.items[0]
+    overflowing = SkillPlan(
+        categories=[category],
+        items=[
+            template_item.model_copy(update={"name": "A" * 60}),
+            template_item.model_copy(update={"name": "B" * 60}),
+        ],
+        rationale="Exercise the source-derived competency row budget.",
+    )
+    pipeline = CandidatePipeline.for_candidate(
+        _SourcePreservingLlm(),
+        snapshot,
+        CandidateContext.from_snapshot(snapshot),
+    )
+
+    with pytest.raises(ValueError, match="cv_skill_presentation_budget"):
+        pipeline._validate_lean_brief_fact_ids(brief.model_copy(update={"skill_plan": overflowing}))

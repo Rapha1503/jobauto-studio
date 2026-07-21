@@ -13,11 +13,12 @@ from uuid import uuid4
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from jobauto.artifact_naming import approved_artifact_stem
+from jobauto.ats import accept_residual_ats_gap, is_residual_ats_gap_only
 from jobauto.candidate_context import CandidateContext
 from jobauto.candidate_snapshot import CandidateProfileRepository
 from jobauto.document_patch import CandidateDocumentDraft
 from jobauto.document_renderer import DocumentRenderer, RenderedDocument
-from jobauto.models import ApplicationRow
+from jobauto.models import ApplicationRow, CandidateApplicationReview
 from jobauto.run_store import RunRecord, RunStore, utc_now
 from jobauto.text_encoding import repair_utf8_mojibake
 
@@ -60,6 +61,7 @@ class RunRequest(BaseModel):
     company: str = Field(default="Target company", min_length=1, max_length=200)
     role: str = Field(default="Target role", min_length=1, max_length=200)
     max_repairs: int = Field(default=2, ge=0, le=3)
+    demo_fast: bool = False
 
     @field_validator("offer_text", mode="before")
     @classmethod
@@ -163,9 +165,16 @@ class RunApplicationService:
             record = self.store.get(run_id)
             _persist_candidate_package(record.run_dir, package, attempt=1)
 
-            for attempt in range(request.max_repairs + 1):
+            content_repairs = 0
+            render_repairs = 0
+            render_attempt = 0
+            review_attempt = 0
+            package_attempt = 1
+            best_residual_attempt = None
+            while True:
+                render_attempt += 1
                 record = self.store.transition(record, phase="rendering_documents")
-                artifact_dir = record.run_dir / "artifacts" / f"attempt-{attempt + 1}"
+                artifact_dir = record.run_dir / "artifacts" / f"attempt-{render_attempt}"
                 try:
                     cv = self.renderer.render_cv(snapshot, package.cv, artifact_dir)
                 except (RuntimeError, ValueError) as exc:
@@ -174,12 +183,12 @@ class RunApplicationService:
                             "model": "local-renderer",
                             "phase": "render_cv",
                             "status": "rejected",
-                            "attempt": attempt + 1,
+                            "attempt": render_attempt,
                             "rejection_reason": str(exc),
                         }
                     )
                     record = self.store.get(run_id)
-                    if attempt == request.max_repairs or not hasattr(
+                    if render_repairs >= request.max_repairs or not hasattr(
                         pipeline, "repair_rendering_failure"
                     ):
                         return self.store.transition(
@@ -196,8 +205,14 @@ class RunApplicationService:
                         error=str(exc),
                         offer_text=request.offer_text,
                     )
+                    render_repairs += 1
+                    package_attempt += 1
                     record = self.store.get(run_id)
-                    _persist_candidate_package(record.run_dir, package, attempt=attempt + 2)
+                    _persist_candidate_package(
+                        record.run_dir,
+                        package,
+                        attempt=package_attempt,
+                    )
                     continue
                 try:
                     letter = self.renderer.render_letter(snapshot, package.letter, artifact_dir)
@@ -207,12 +222,12 @@ class RunApplicationService:
                             "model": "local-renderer",
                             "phase": "render_letter",
                             "status": "rejected",
-                            "attempt": attempt + 1,
+                            "attempt": render_attempt,
                             "rejection_reason": str(exc),
                         }
                     )
                     record = self.store.get(run_id)
-                    if attempt == request.max_repairs or not hasattr(
+                    if render_repairs >= request.max_repairs or not hasattr(
                         pipeline, "repair_rendering_failure"
                     ):
                         return self.store.transition(
@@ -229,8 +244,14 @@ class RunApplicationService:
                         error=str(exc),
                         offer_text=request.offer_text,
                     )
+                    render_repairs += 1
+                    package_attempt += 1
                     record = self.store.get(run_id)
-                    _persist_candidate_package(record.run_dir, package, attempt=attempt + 2)
+                    _persist_candidate_package(
+                        record.run_dir,
+                        package,
+                        attempt=package_attempt,
+                    )
                     continue
                 artifacts = {
                     "cv": _artifact_payload(cv),
@@ -246,7 +267,10 @@ class RunApplicationService:
                 ).parameters
                 review_kwargs = {}
                 if "block_on_improvable_gap" in review_parameters:
-                    review_kwargs["block_on_improvable_gap"] = attempt < request.max_repairs
+                    # One deterministic ATS visibility repair is useful. Repeating the
+                    # same score-driven repair cannot add evidence and only creates churn;
+                    # later reviews may still reject concrete editorial or factual defects.
+                    review_kwargs["block_on_improvable_gap"] = content_repairs == 0
                 review = pipeline.review_candidate_documents(
                     row,
                     package,
@@ -257,12 +281,33 @@ class RunApplicationService:
                 )
                 record = self.store.get(run_id)
                 review_payload = review.model_dump(mode="json")
-                (record.run_dir / f"review-{attempt + 1}.json").write_text(
+                review_attempt += 1
+                (record.run_dir / f"review-{review_attempt}.json").write_text(
                     review.model_dump_json(indent=2),
                     encoding="utf-8",
                     newline="\n",
                 )
+                if is_residual_ats_gap_only(review):
+                    candidate = (package, cv, letter, review)
+                    if best_residual_attempt is None or _review_rank(review) > _review_rank(
+                        best_residual_attempt[3]
+                    ):
+                        best_residual_attempt = candidate
+                    if request.demo_fast:
+                        review = accept_residual_ats_gap(review)
+                        review_payload = review.model_dump(mode="json")
                 if review.approved:
+                    if best_residual_attempt is not None and _review_rank(
+                        best_residual_attempt[3]
+                    ) > _review_rank(review):
+                        package, cv, letter, residual_review = best_residual_attempt
+                        review = accept_residual_ats_gap(residual_review)
+                        review_payload = review.model_dump(mode="json")
+                        (record.run_dir / "selected-review.json").write_text(
+                            review.model_dump_json(indent=2),
+                            encoding="utf-8",
+                            newline="\n",
+                        )
                     artifact_role = (
                         getattr(package.brief, "open_role", None)
                         or getattr(package.brief, "role", None)
@@ -295,7 +340,7 @@ class RunApplicationService:
                         artifacts=artifacts,
                         review=review_payload,
                     )
-                if attempt == request.max_repairs:
+                if content_repairs >= request.max_repairs:
                     return self.store.transition(
                         record,
                         status="blocked",
@@ -311,9 +356,14 @@ class RunApplicationService:
                     review,
                     request.offer_text,
                 )
+                content_repairs += 1
+                package_attempt += 1
                 record = self.store.get(run_id)
-                _persist_candidate_package(record.run_dir, package, attempt=attempt + 2)
-            raise RuntimeError("unreachable repair loop state")
+                _persist_candidate_package(
+                    record.run_dir,
+                    package,
+                    attempt=package_attempt,
+                )
         except ValueError as exc:
             record = self.store.get(run_id)
             return self.store.transition(
@@ -418,6 +468,15 @@ def _same_agent_call(
         )
     keys = ("phase", "status", "attempt", "input_sha256", "output_sha256")
     return all(previous.get(key) == current.get(key) for key in keys)
+
+
+def _review_rank(review: CandidateApplicationReview) -> tuple[int, int, int, int]:
+    return (
+        review.ats_score,
+        review.score,
+        review.editorial_score,
+        review.adaptation_score,
+    )
 
 
 def _artifact_payload(document: RenderedDocument) -> dict[str, object]:

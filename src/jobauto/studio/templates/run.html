@@ -115,8 +115,8 @@
       <div id="run-review" class="run-review">
         {% if record.review %}
           <div class="score-row">
-            <strong>{{ record.review.score }}/100</strong>
-            <span>ATS {{ record.review.ats_score }}</span>
+            <strong>Overall supervisor quality {{ record.review.score }}/100</strong>
+            <span>JobAuto CV ATS {{ record.review.ats_score }}</span>
             <span>Editorial {{ record.review.editorial_score }}</span>
             <span>Adaptation {{ record.review.adaptation_score }}</span>
           </div>
@@ -139,10 +139,43 @@
               {% endfor %}
             </ul>
           {% endif %}
+          {% if record.review.get('ats_breakdown') and adaptation_summary and adaptation_summary.requirements_by_id %}
+            <details class="phase-details ats-breakdown">
+              <summary>Why the final CV ATS estimate is {{ record.review.ats_score }}, not 100</summary>
+              <p>100 means every CV-scored requirement has full grounded coverage. JobAuto does not add unsupported claims just to raise this estimate.</p>
+              <p>
+                Must {% if adaptation_summary.ats_scored_requirement_counts.must %}{{ record.review.ats_breakdown.priority_scores.must }}/100{% else %}N/A{% endif %} ·
+                important {% if adaptation_summary.ats_scored_requirement_counts.important %}{{ record.review.ats_breakdown.priority_scores.important }}/100{% else %}N/A{% endif %} ·
+                nice {% if adaptation_summary.ats_scored_requirement_counts.nice %}{{ record.review.ats_breakdown.priority_scores.nice }}/100{% else %}N/A{% endif %}
+                {% if record.review.ats_breakdown.exact_term_score is not none %} · exact terms {{ record.review.ats_breakdown.exact_term_score }}/100{% endif %}
+              </p>
+              {% if record.review.ats_breakdown.weak_central_requirement_ids %}
+                <h3>Central gaps</h3>
+                <ul>
+                  {% for item in record.review.requirement_coverage %}
+                    {% if item.requirement_id in record.review.ats_breakdown.weak_central_requirement_ids %}
+                      {% set requirement = adaptation_summary.requirements_by_id.get(item.requirement_id) %}
+                      <li><strong>{{ requirement.requirement if requirement else item.requirement_id }}</strong> · {{ requirement.priority if requirement else 'unknown' }} · {{ requirement.matching_mode|replace('_', ' ') if requirement else 'unknown' }} · {{ item.coverage }} — {{ item.rationale }}</li>
+                    {% endif %}
+                  {% endfor %}
+                </ul>
+              {% endif %}
+              <h3>Other partial scored coverage</h3>
+              <ul>
+                {% for item in record.review.requirement_coverage %}
+                  {% set requirement = adaptation_summary.requirements_by_id.get(item.requirement_id) %}
+                  {% if requirement and requirement.counts_toward_ats and item.coverage != 'exact' and item.requirement_id not in record.review.ats_breakdown.weak_central_requirement_ids %}
+                    <li><strong>{{ requirement.requirement }}</strong> · {{ requirement.priority }} · {{ requirement.matching_mode|replace('_', ' ') }} · {{ item.coverage }} — {{ item.rationale }}</li>
+                  {% endif %}
+                {% endfor %}
+              </ul>
+            </details>
+          {% endif %}
           <h3>Requirement coverage</h3>
           <ul>
             {% for item in record.review.requirement_coverage %}
-              <li><strong>{{ item.requirement_id }}</strong> · {{ item.coverage }} — {{ item.rationale }}</li>
+              {% set requirement = adaptation_summary.requirements_by_id.get(item.requirement_id) if adaptation_summary and adaptation_summary.requirements_by_id else none %}
+              <li><strong>{{ requirement.requirement if requirement else item.requirement_id }}</strong>{% if requirement and not requirement.counts_toward_ats %} · not ATS-scored{% endif %} · {{ item.coverage }} — {{ item.rationale }}</li>
             {% endfor %}
           </ul>
         {% else %}
@@ -157,7 +190,7 @@
   const runId = root.dataset.runId;
   const runCreatedAt = new Date(root.dataset.createdAt);
   const terminal = new Set(['completed', 'blocked', 'failed']);
-  const initialAdaptationSummary = {{ adaptation_summary|tojson }};
+  let currentAdaptationSummary = {{ adaptation_summary|tojson }};
   const initialChangeSummary = {{ change_summary.model_dump(mode='json')|tojson if change_summary else 'null' }};
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
   const phaseLabels = {
@@ -165,6 +198,9 @@
     loading_context: 'Loading your candidate profile',
     generating_documents: 'Preparing the application strategy',
     offer_analysis: 'Understanding the offer and ATS signals',
+    baseline_ats: 'Auditing the original CV against the offer',
+    candidate_evidence: 'Mapping the offer to approved candidate evidence',
+    application_strategy: 'Mapping the offer to your evidence and CV rules',
     brief_review: 'Checking the adaptation strategy',
     brief_repair: 'Refining the adaptation strategy',
     project_lab: 'Selecting the strongest project evidence',
@@ -196,7 +232,7 @@
     if (status === 'completed') return 'ready';
     const key = phaseKey(value);
     if (['offer_analysis', 'loading_context'].includes(key)) return 'analysis';
-    if (['generating_documents', 'brief_review', 'brief_repair', 'project_lab'].includes(key)) return 'strategy';
+    if (['generating_documents', 'candidate_evidence', 'application_strategy', 'brief_review', 'brief_repair', 'project_lab'].includes(key)) return 'strategy';
     if (['cv_writer', 'cv_latex_writer', 'letter_writer'].includes(key)) return 'writing';
     if (['rendering_documents', 'render_cv', 'render_letter', 'reviewing_documents', 'final_review', 'repairing_documents', 'repair'].includes(key)) return 'verification';
     return 'analysis';
@@ -238,15 +274,35 @@
   function renderReview(review) {
     if (!review) return;
     document.querySelector('#comparison-ats').textContent = review.ats_score ?? '—';
-    const scores = `<div class="score-row"><strong>${review.score}/100</strong><span>ATS ${review.ats_score}</span><span>Editorial ${review.editorial_score}</span><span>Adaptation ${review.adaptation_score}</span></div>`;
+    const scores = `<div class="score-row"><strong>Overall supervisor quality ${review.score}/100</strong><span>JobAuto CV ATS ${review.ats_score}</span><span>Editorial ${review.editorial_score}</span><span>Adaptation ${review.adaptation_score}</span></div>`;
     const letterArgument = Object.entries(review.letter_argument || {}).map(([criterion, assessment]) => {
       const state = typeof assessment === 'object' ? assessment.state : assessment;
       const rationale = typeof assessment === 'object' ? ` — ${escapeHtml(assessment.rationale || '')}` : '';
       return `<li><strong>${escapeHtml(criterion.replaceAll('_', ' '))}</strong> · ${escapeHtml(state)}${rationale}</li>`;
     }).join('');
-    const coverage = (review.requirement_coverage || []).map((item) => `<li><strong>${escapeHtml(item.requirement_id)}</strong> · ${escapeHtml(item.coverage)} — ${escapeHtml(item.rationale)}</li>`).join('');
+    const requirementLookup = currentAdaptationSummary?.requirements_by_id || {};
+    const weakIds = new Set(review.ats_breakdown?.weak_central_requirement_ids || []);
+    const gapItem = (item) => {
+      const requirement = requirementLookup[item.requirement_id];
+      const metadata = requirement ? ` · ${escapeHtml(requirement.priority)} · ${escapeHtml(requirement.matching_mode.replaceAll('_', ' '))}` : '';
+      return `<li><strong>${escapeHtml(requirement?.requirement || item.requirement_id)}</strong>${metadata} · ${escapeHtml(item.coverage)} — ${escapeHtml(item.rationale)}</li>`;
+    };
+    const centralGaps = (review.requirement_coverage || []).filter((item) => weakIds.has(item.requirement_id)).map(gapItem).join('');
+    const partialGaps = (review.requirement_coverage || []).filter((item) => {
+      const requirement = requirementLookup[item.requirement_id];
+      return requirement?.counts_toward_ats && item.coverage !== 'exact' && !weakIds.has(item.requirement_id);
+    }).map(gapItem).join('');
+    const priorityCounts = currentAdaptationSummary?.ats_scored_requirement_counts || {};
+    const priorityScore = (priority) => priorityCounts[priority] ? `${review.ats_breakdown.priority_scores[priority]}/100` : 'N/A';
+    const atsExplanation = review.ats_breakdown ? `<details class="phase-details ats-breakdown"><summary>Why the final CV ATS estimate is ${escapeHtml(review.ats_score)}, not 100</summary><p>100 means every CV-scored requirement has full grounded coverage. JobAuto does not add unsupported claims just to raise this estimate.</p><p>Must ${priorityScore('must')} · important ${priorityScore('important')} · nice ${priorityScore('nice')}${review.ats_breakdown.exact_term_score == null ? '' : ` · exact terms ${review.ats_breakdown.exact_term_score}/100`}</p>${centralGaps ? `<h3>Central gaps</h3><ul>${centralGaps}</ul>` : ''}${partialGaps ? `<h3>Other partial scored coverage</h3><ul>${partialGaps}</ul>` : ''}</details>` : '';
+    const coverage = (review.requirement_coverage || []).map((item) => {
+      const requirement = requirementLookup[item.requirement_id];
+      const label = requirement?.requirement || item.requirement_id;
+      const scored = requirement && !requirement.counts_toward_ats ? ' · not ATS-scored' : '';
+      return `<li><strong>${escapeHtml(label)}</strong>${scored} · ${escapeHtml(item.coverage)} — ${escapeHtml(item.rationale)}</li>`;
+    }).join('');
     const issues = (review.blocking_issues || []).map((item) => `<li>${escapeHtml(item)}</li>`).join('');
-    document.querySelector('#run-review').innerHTML = `${scores}${issues ? `<h3>Blocking issues</h3><ul>${issues}</ul>` : ''}${letterArgument ? `<h3>Letter argument</h3><ul>${letterArgument}</ul>` : ''}<h3>Requirement coverage</h3><ul>${coverage}</ul>`;
+    document.querySelector('#run-review').innerHTML = `${scores}${issues ? `<h3>Blocking issues</h3><ul>${issues}</ul>` : ''}${letterArgument ? `<h3>Letter argument</h3><ul>${letterArgument}</ul>` : ''}${atsExplanation}<h3>Requirement coverage</h3><ul>${coverage}</ul>`;
   }
   function renderChanges(summary) {
     if (!summary) return;
@@ -295,6 +351,7 @@
   });
   function renderAdaptation(summary) {
     if (!summary) return;
+    currentAdaptationSummary = summary;
     const panel = document.querySelector('#adaptation-panel');
     panel.hidden = false;
     const target = [summary.normalized_role, summary.sector].filter(Boolean).map(escapeHtml).join(' · ');
@@ -330,8 +387,8 @@
     document.querySelector('#phase-history').innerHTML = run.phase_history.map((phase) => `<li>${phase}</li>`).join('');
     document.querySelector('#run-blockers').textContent = run.blockers.join(' · ');
     renderEvents(run.agent_events || []);
-    renderReview(run.review);
     renderAdaptation(run.adaptation_summary);
+    renderReview(run.review);
     renderDocuments(run);
     if (run.status === 'completed') document.querySelector('#run-next-action').hidden = false;
     if (run.artifacts.cv && run.artifacts.letter) {
@@ -339,7 +396,7 @@
     }
     if (!terminal.has(run.status)) window.setTimeout(refresh, 1200);
   }
-  renderAdaptation(initialAdaptationSummary);
+  renderAdaptation(currentAdaptationSummary);
   renderChanges(initialChangeSummary);
   renderRunStage('{{ record.current_phase }}', '{{ record.status }}');
   renderElapsed('{{ record.status }}', '{{ record.updated_at }}');

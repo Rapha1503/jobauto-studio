@@ -14,11 +14,6 @@ if TYPE_CHECKING:
     from jobauto.candidate_snapshot import CandidateSnapshot
 
 
-# Advisory prompt budget only. Candidate-specific CV policy and PDF rendering
-# remain authoritative for the final visual layout.
-SKILL_LINE_MAX_CHARS = 118
-
-
 def slugify(value: str) -> str:
     normalized = unicodedata.normalize("NFKD", value)
     ascii_value = normalized.encode("ascii", "ignore").decode("ascii").lower()
@@ -608,14 +603,84 @@ class OfferRequirement(BaseModel):
         compact = [" ".join(value.split()) for value in values]
         if any(not value for value in compact):
             raise ValueError("ats_terms must not contain blank values")
-        if len({value.casefold() for value in compact}) != len(compact):
-            raise ValueError("ats_terms must be unique")
-        return compact
+        unique: list[str] = []
+        seen: set[str] = set()
+        for value in compact:
+            key = value.casefold()
+            if key not in seen:
+                unique.append(value)
+                seen.add(key)
+        return unique
 
     @model_validator(mode="after")
     def exact_term_matching_names_terms(self) -> OfferRequirement:
         if self.matching_mode == "exact_term" and not self.ats_terms:
             raise ValueError("exact_term requirements require at least one ATS term")
+        if self.matching_mode != "exact_term":
+            self.ats_terms = []
+        return self
+
+
+class OfferContract(BaseModel):
+    """Candidate-independent, reusable reading of one complete job offer."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    company: str = Field(min_length=1, max_length=200)
+    role: str = Field(min_length=1, max_length=200)
+    normalized_role: str = Field(min_length=1, max_length=200)
+    role_family: str = Field(min_length=1, max_length=200)
+    language: Literal["fr", "en"]
+    open_role: str = Field(min_length=1, max_length=200)
+    sector: str = Field(min_length=1, max_length=200)
+    specialisations: list[str] = Field(default_factory=list)
+    summary: str = Field(min_length=20, max_length=2000)
+    responsibilities: list[str] = Field(min_length=1, max_length=30)
+    required_skills: list[str] = Field(default_factory=list, max_length=40)
+    preferred_skills: list[str] = Field(default_factory=list, max_length=40)
+    company_details: list[str] = Field(default_factory=list, max_length=30)
+    seniority: str = Field(default="unspecified", min_length=1, max_length=100)
+    targeted_keywords: list[str] = Field(default_factory=list, max_length=60)
+    requirements: list[OfferRequirement] = Field(min_length=1, max_length=40)
+
+    @field_validator(
+        "company",
+        "role",
+        "normalized_role",
+        "role_family",
+        "open_role",
+        "sector",
+        "summary",
+        "seniority",
+    )
+    @classmethod
+    def scalar_fields_are_non_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("offer contract fields must not be blank")
+        return value
+
+    @field_validator(
+        "specialisations",
+        "responsibilities",
+        "required_skills",
+        "preferred_skills",
+        "company_details",
+        "targeted_keywords",
+    )
+    @classmethod
+    def list_fields_are_compact_and_non_blank(cls, values: list[str]) -> list[str]:
+        compact = [" ".join(value.split()) for value in values]
+        if any(not value for value in compact):
+            raise ValueError("offer contract lists must not contain blank values")
+        return compact
+
+    @model_validator(mode="after")
+    def requirement_ids_are_unique(self) -> OfferContract:
+        ids = [item.requirement_id for item in self.requirements]
+        duplicates = sorted({item for item in ids if ids.count(item) > 1})
+        if duplicates:
+            raise ValueError(f"duplicate requirement_id in offer contract: {duplicates}")
         return self
 
 
@@ -885,6 +950,32 @@ class SkillPlan(BaseModel):
                 f"unsupported skills belong in evidence analysis, not the visible skill plan: {unsupported}"
             )
         self.categories = normalized_categories
+        return self
+
+
+class BaselineCvCoverage(BaseModel):
+    """Preset-independent coverage of the visible, unmodified CV."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    role_positioning_matches: bool
+    language_matches: bool
+    requirement_coverage: list[RenderedRequirementCoverage] = Field(min_length=1)
+
+
+class CandidateEvidenceAssessment(BaseModel):
+    """Preset-independent mapping from offer requirements to candidate evidence."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    evidence_mappings: list[EvidenceMapping] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def requirement_ids_are_unique(self) -> CandidateEvidenceAssessment:
+        ids = [item.requirement_id for item in self.evidence_mappings]
+        duplicates = sorted({item for item in ids if ids.count(item) > 1})
+        if duplicates:
+            raise ValueError(f"duplicate requirement_id in candidate evidence: {duplicates}")
         return self
 
 

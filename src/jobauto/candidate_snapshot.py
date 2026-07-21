@@ -147,6 +147,14 @@ class CandidateSnapshot:
                     f"Protected claim values changed or were omitted for {fact_id}: {missing}"
                 )
 
+    def protected_claim_ids_with_values(self, evidence_ids: list[str]) -> list[str]:
+        protected_ids = set(self._profile.protected_claims) & set(evidence_ids)
+        return [
+            fact_id
+            for fact_id in evidence_ids
+            if fact_id in protected_ids and _claim_value_markers(self._facts.require(fact_id).claim)
+        ]
+
     def require_supported_claim_values(
         self,
         text: str,

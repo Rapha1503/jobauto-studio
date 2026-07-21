@@ -113,6 +113,7 @@ class DraftProject(BaseModel):
     stack: list[str] = Field(default_factory=list)
     description: list[str] = Field(default_factory=list)
     visible_by_default: bool = True
+    cv_eligible: bool = True
     use_mode: ProjectUseMode = ProjectUseMode.REFRAME
     title_fidelity: FidelityLevel = FidelityLevel.VERY_FAITHFUL
     stack_fidelity: FidelityLevel = FidelityLevel.ADAPTABLE

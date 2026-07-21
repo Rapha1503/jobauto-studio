@@ -84,7 +84,12 @@ _INLINE_GLYPH_COMMANDS = {
     # These commands render a character already represented in the semantic CV.
     # They do not define the template structure and may legitimately be replaced
     # by the equivalent Unicode glyph during an adaptation.
+    "euro",
     "texteuro",
+}
+_INLINE_GLYPH_REPLACEMENTS = {
+    "euro": "€",
+    "texteuro": "€",
 }
 
 
@@ -277,6 +282,8 @@ def _require_section_header_preserved(source: bytes, block, replacement: str) ->
 
 
 def _require_safe_structure(original: str, replacement: str, block) -> None:
+    if re.search(r"\\(?:textbf|textit|emph)\s*\{\s*\}", replacement):
+        raise ValueError(f"LaTeX CV block contains empty visible formatting: {block.block_id}")
     for character in ("&", "#"):
         if _unescaped_count(replacement, character) > _unescaped_count(original, character):
             raise ValueError(
@@ -305,8 +312,21 @@ def _require_safe_structure(original: str, replacement: str, block) -> None:
                 f"LaTeX CV block introduces commands {sorted(new_commands)}: {block.block_id}"
             )
         return
-    if _structure_commands(replacement) != _structure_commands(original):
-        raise ValueError(f"LaTeX CV block command structure changed: {block.block_id}")
+    for glyph in set(_INLINE_GLYPH_REPLACEMENTS.values()):
+        original_count = _inline_glyph_count(original, glyph)
+        replacement_count = _inline_glyph_count(replacement, glyph)
+        if replacement_count != original_count:
+            raise ValueError(
+                f"LaTeX CV block changed visible glyph {glyph}: {block.block_id}; "
+                f"expected_count={original_count}; actual_count={replacement_count}"
+            )
+    original_structure = _structure_commands(original)
+    replacement_structure = _structure_commands(replacement)
+    if replacement_structure != original_structure:
+        raise ValueError(
+            f"LaTeX CV block command structure changed: {block.block_id}; "
+            + _sequence_difference(original_structure, replacement_structure)
+        )
     if replacement_environments != original_environments:
         raise ValueError(f"LaTeX CV block environment structure changed: {block.block_id}")
 
@@ -378,6 +398,8 @@ def _semantic_block_text(kind: TexBlockKind, document: CvSourceDocument) -> str:
 
 def _visible_latex_text(value: str) -> str:
     text = re.sub(r"(?<!\\)%.*", " ", value)
+    for command, glyph in _INLINE_GLYPH_REPLACEMENTS.items():
+        text = re.sub(rf"\\{command}\s*\{{\s*\}}", glyph, text)
     text = re.sub(
         r"\\(?:vspace|hspace|rule|fontsize)\*?\s*\{[^{}]*\}",
         " ",
@@ -420,6 +442,28 @@ def _structure_commands(value: str) -> list[str]:
         for command in _commands(value)
         if command not in _INLINE_GLYPH_COMMANDS and (command == "\\" or command[:1].isalpha())
     ]
+
+
+def _sequence_difference(expected: list[str], actual: list[str]) -> str:
+    mismatch = next(
+        (
+            index
+            for index, (expected_item, actual_item) in enumerate(
+                zip(expected, actual, strict=False)
+            )
+            if expected_item != actual_item
+        ),
+        min(len(expected), len(actual)),
+    )
+    return f"first_difference={mismatch}; expected_commands={expected}; actual_commands={actual}"
+
+
+def _inline_glyph_count(value: str, glyph: str) -> int:
+    count = value.count(glyph)
+    for command, replacement in _INLINE_GLYPH_REPLACEMENTS.items():
+        if replacement == glyph:
+            count += len(re.findall(rf"\\{command}\s*\{{\s*\}}", value))
+    return count
 
 
 def _environments(value: str) -> list[str]:

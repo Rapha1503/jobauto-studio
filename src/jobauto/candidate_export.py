@@ -10,7 +10,7 @@ from pathlib import Path
 
 import yaml
 
-from jobauto.adaptation_policy import FidelityLevel, SectionPolicy
+from jobauto.adaptation_policy import STUDIO_ADAPTATION_PRESETS, FidelityLevel, SectionPolicy
 from jobauto.candidate_draft import CandidateDraft, DraftOrigin, DraftStatus, SkillEvidence
 from jobauto.candidate_form_profile import (
     CandidateFormEducation,
@@ -22,15 +22,14 @@ from jobauto.candidate_snapshot import CandidateProfileRepository, CandidateSnap
 from jobauto.generated_cv_template import generated_cv_template_bytes
 from jobauto.latex_cv_source import LatexCvMapping, TexBlockKind
 
+_BALANCED_DEFAULTS = STUDIO_ADAPTATION_PRESETS["balanced"]
 _DEFAULT_SECTION_POLICIES = {
-    "identity": SectionPolicy(fidelity=FidelityLevel.LOCKED),
-    "summary": SectionPolicy(fidelity=FidelityLevel.ADAPTABLE),
-    "experience": SectionPolicy(fidelity=FidelityLevel.VERY_FAITHFUL),
-    "projects": SectionPolicy(fidelity=FidelityLevel.HIGHLY_ADAPTABLE),
-    "skills": SectionPolicy(fidelity=FidelityLevel.REPLACEABLE),
-    "education": SectionPolicy(fidelity=FidelityLevel.LOCKED),
-    "languages": SectionPolicy(fidelity=FidelityLevel.LOCKED),
-    "interests": SectionPolicy(fidelity=FidelityLevel.VERY_FAITHFUL, required=False),
+    section: SectionPolicy(
+        fidelity=fidelity,
+        required=section != "interests",
+    )
+    for section, fidelity in _BALANCED_DEFAULTS.items()
+    if section != "other"
 }
 _DEFAULT_OTHER_POLICY = SectionPolicy(fidelity=FidelityLevel.VERY_FAITHFUL)
 
@@ -58,50 +57,67 @@ def export_candidate_draft(
     root.mkdir(parents=True, exist_ok=True)
     candidate_id = _candidate_id(draft)
     target = root / candidate_id
-    if target.exists():
-        _write_studio_source(target, draft, candidate_id)
-        profile_path = target / "profile.yaml"
-        snapshot = CandidateProfileRepository(root).load_snapshot(profile_path)
-        return profile_path, snapshot
     temporary = Path(tempfile.mkdtemp(dir=root, prefix=f".{candidate_id}."))
     try:
-        _write_bytes(temporary / "cv_source.tex", source_for_profile)
-        if draft.origin is DraftOrigin.LATEX:
-            exported_mapping.write(temporary / "cv_mapping.json")
-        _write_text(temporary / "cv_source.md", _cv_source_markdown(draft))
-        _write_text(temporary / "letter_model.txt", draft.letter_reference or "")
-        _write_yaml(temporary / "facts.yaml", _facts_payload(draft))
-        _write_yaml(temporary / "projects.yaml", _projects_payload(draft))
-        _write_yaml(temporary / "skills.yaml", _skills_payload(draft))
-        _write_yaml(
-            temporary / "adaptation_policy.yaml",
-            (
-                _adaptation_policy_payload(draft, exported_mapping)
-                if draft.origin is DraftOrigin.LATEX
-                else _generated_adaptation_policy_payload(draft)
-            ),
+        _write_profile_directory(
+            target=temporary,
+            draft=draft,
+            candidate_id=candidate_id,
+            source_for_profile=source_for_profile,
+            exported_mapping=exported_mapping,
         )
-        _write_yaml(
-            temporary / "search_preferences.yaml",
-            draft.search_preferences.model_dump(mode="json"),
-        )
-        _write_yaml(
-            temporary / "submission_preferences.yaml",
-            draft.submission_preferences.model_dump(mode="json"),
-        )
-        _write_text(
-            temporary / "form_profile.json",
-            _form_profile(draft).model_dump_json(indent=2) + "\n",
-        )
-        _write_studio_source(temporary, draft, candidate_id)
-        _write_yaml(temporary / "profile.yaml", _profile_payload(draft, candidate_id))
         CandidateProfileRepository(root).load_snapshot(temporary / "profile.yaml")
-        os.replace(temporary, target)
+        if target.exists():
+            for staged_file in temporary.iterdir():
+                os.replace(staged_file, target / staged_file.name)
+            temporary.rmdir()
+        else:
+            os.replace(temporary, target)
     except BaseException:
         shutil.rmtree(temporary, ignore_errors=True)
         raise
     snapshot = CandidateProfileRepository(root).load_snapshot(target / "profile.yaml")
     return target / "profile.yaml", snapshot
+
+
+def _write_profile_directory(
+    *,
+    target: Path,
+    draft: CandidateDraft,
+    candidate_id: str,
+    source_for_profile: bytes,
+    exported_mapping: LatexCvMapping,
+) -> None:
+    _write_bytes(target / "cv_source.tex", source_for_profile)
+    if draft.origin is DraftOrigin.LATEX:
+        exported_mapping.write(target / "cv_mapping.json")
+    _write_text(target / "cv_source.md", _cv_source_markdown(draft))
+    _write_text(target / "letter_model.txt", draft.letter_reference or "")
+    _write_yaml(target / "facts.yaml", _facts_payload(draft))
+    _write_yaml(target / "projects.yaml", _projects_payload(draft))
+    _write_yaml(target / "skills.yaml", _skills_payload(draft))
+    _write_yaml(
+        target / "adaptation_policy.yaml",
+        (
+            _adaptation_policy_payload(draft, exported_mapping)
+            if draft.origin is DraftOrigin.LATEX
+            else _generated_adaptation_policy_payload(draft)
+        ),
+    )
+    _write_yaml(
+        target / "search_preferences.yaml",
+        draft.search_preferences.model_dump(mode="json"),
+    )
+    _write_yaml(
+        target / "submission_preferences.yaml",
+        draft.submission_preferences.model_dump(mode="json"),
+    )
+    _write_text(
+        target / "form_profile.json",
+        _form_profile(draft).model_dump_json(indent=2) + "\n",
+    )
+    _write_studio_source(target, draft, candidate_id)
+    _write_yaml(target / "profile.yaml", _profile_payload(draft, candidate_id))
 
 
 def _write_studio_source(target: Path, draft: CandidateDraft, candidate_id: str) -> None:
@@ -281,7 +297,7 @@ def _projects_payload(draft: CandidateDraft) -> dict[str, object]:
                 "id": _project_bank_id(project.project_id),
                 "title": project.title,
                 "status": "validated_private",
-                "visibility": "cv_project" if project.visible_by_default else "context",
+                "visibility": "cv_project" if project.cv_eligible else "context",
                 "role_fit": role_fit,
                 "keywords": keywords,
                 "verified_stack": project.stack,

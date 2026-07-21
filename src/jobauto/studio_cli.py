@@ -25,6 +25,14 @@ def studio(
         "--codex-model",
         help="Codex model used for sourcing, strategy, writing, review, and repair.",
     ),
+    demo_fast: bool = typer.Option(
+        False,
+        "--demo-fast",
+        help=(
+            "Prepare only the top-ranked offer, treat experience gaps as ranking signals, "
+            "and use faster Codex reasoning routes while preserving fact, PDF, and submit gates."
+        ),
+    ),
     open_browser: bool = typer.Option(True, "--open-browser/--no-open-browser"),
 ) -> None:
     """Start the local Studio UI."""
@@ -36,6 +44,7 @@ def studio(
             state_root=state_root,
             profiles_root=profiles_root,
             codex_model=codex_model,
+            demo_fast=demo_fast,
         ),
         host=host,
         port=port,

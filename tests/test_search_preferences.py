@@ -126,6 +126,24 @@ def test_evaluation_rejects_only_known_hard_violations(tmp_path: Path) -> None:
     assert "salary_below_minimum" not in codes
 
 
+def test_demo_relaxes_experience_into_a_ranking_signal() -> None:
+    preferences = SearchPreferences.model_validate({"max_experience_years": 3})
+    offer = SearchOffer(
+        company="Stretch Co",
+        title="Data Engineer",
+        experience_years=5,
+    )
+
+    evaluation = preferences.evaluate(offer, relax_experience=True)
+
+    assert evaluation.eligible is True
+    assert evaluation.blockers == []
+    assert any(
+        signal.criterion == "experience_years" and signal.outcome == "miss" and signal.impact < 0
+        for signal in evaluation.ranking_signals
+    )
+
+
 def test_unknown_metadata_is_retained_instead_of_rejected() -> None:
     preferences = SearchPreferences.model_validate(
         {

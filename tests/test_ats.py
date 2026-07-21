@@ -400,6 +400,159 @@ def test_final_review_does_not_repeat_a_repair_after_visible_ats_progress() -> N
     assert normalized.repair_actions == []
 
 
+def test_final_review_stabilizes_transferable_exact_term_coverage() -> None:
+    requirement = _requirement(
+        "req.assistant",
+        priority="must",
+        matching_mode="exact_term",
+        ats_terms=["Named Assistant"],
+    )
+    baseline = BaselineCvAssessment(
+        decision="adapt",
+        ats_score=0,
+        confidence="high",
+        role_positioning_matches=True,
+        language_matches=True,
+        material_gaps=["The named assistant is not visible."],
+        improvable_requirement_ids=["req.assistant"],
+        requirement_coverage=[
+            RenderedRequirementCoverage(
+                requirement_id="req.assistant",
+                coverage="missing",
+                rationale="No development assistant is visible.",
+            )
+        ],
+        rationale="A truthful adjacent assistant can make the capability visible.",
+    )
+    brief = _brief([requirement], baseline)
+    passed = LetterArgumentCriterionAssessment(
+        state="pass",
+        rationale="The letter makes the required argument with visible support.",
+        supporting_excerpt="Visible supporting sentence.",
+    )
+
+    normalized_reviews = []
+    for evaluator_state in ("indirect", "semantic"):
+        review = CandidateApplicationReview(
+            approved=True,
+            score=92,
+            ats_score=0,
+            editorial_score=92,
+            adaptation_score=92,
+            blocking_issues=[],
+            warnings=[],
+            letter_argument=LetterArgumentAssessment(
+                target_specificity=passed,
+                evidence_to_missions=passed,
+                candidate_contribution=passed,
+                motivation_credibility=passed,
+                tone_and_naturalness=passed,
+            ),
+            requirement_coverage=[
+                RenderedRequirementCoverage(
+                    requirement_id="req.assistant",
+                    coverage=evaluator_state,
+                    supporting_excerpts=["daily critical use of Codex"],
+                    rationale="Codex is transferable evidence for the requested assistant.",
+                )
+            ],
+        )
+        normalized_reviews.append(
+            normalize_final_review(review, brief, "daily critical use of Codex")
+        )
+
+    assert normalized_reviews[0].requirement_coverage == normalized_reviews[1].requirement_coverage
+    assert normalized_reviews[0].requirement_coverage[0].coverage == "semantic"
+    assert normalized_reviews[0].ats_score == normalized_reviews[1].ats_score
+    assert normalized_reviews[0].approved is True
+    assert normalized_reviews[1].approved is True
+
+
+def test_final_review_does_not_repair_only_for_a_noncentral_score_gap() -> None:
+    requirements = [
+        _requirement(
+            "req.python",
+            priority="must",
+            matching_mode="exact_term",
+            ats_terms=["Python"],
+        ),
+        _requirement(
+            "req.optional",
+            priority="nice",
+            matching_mode="semantic_concept",
+            kind="mission",
+        ),
+    ]
+    baseline = BaselineCvAssessment(
+        decision="adapt",
+        ats_score=83,
+        confidence="high",
+        role_positioning_matches=True,
+        language_matches=True,
+        material_gaps=["The optional capability is not visible."],
+        improvable_requirement_ids=["req.optional"],
+        requirement_coverage=[
+            RenderedRequirementCoverage(
+                requirement_id="req.python",
+                coverage="exact",
+                supporting_excerpts=["Python"],
+                rationale="Python is directly visible.",
+            ),
+            RenderedRequirementCoverage(
+                requirement_id="req.optional",
+                coverage="missing",
+                rationale="The optional capability is not visible.",
+            ),
+        ],
+        rationale="The optional evidence could be made visible without changing the central fit.",
+    )
+    brief = _brief(requirements, baseline)
+    passed = LetterArgumentCriterionAssessment(
+        state="pass",
+        rationale="The letter makes the required argument with visible support.",
+        supporting_excerpt="Visible supporting sentence.",
+    )
+    review = CandidateApplicationReview(
+        approved=True,
+        score=92,
+        ats_score=0,
+        editorial_score=92,
+        adaptation_score=92,
+        blocking_issues=[],
+        warnings=[],
+        letter_argument=LetterArgumentAssessment(
+            target_specificity=passed,
+            evidence_to_missions=passed,
+            candidate_contribution=passed,
+            motivation_credibility=passed,
+            tone_and_naturalness=passed,
+        ),
+        requirement_coverage=[
+            RenderedRequirementCoverage(
+                requirement_id="req.python",
+                coverage="exact",
+                supporting_excerpts=["Python"],
+                rationale="Python is directly visible.",
+            ),
+            RenderedRequirementCoverage(
+                requirement_id="req.optional",
+                coverage="missing",
+                rationale="The optional capability is still not visible.",
+            ),
+        ],
+    )
+
+    normalized = normalize_final_review(review, brief, "Python")
+
+    assert normalized.ats_score < ATS_READY_SCORE
+    assert normalized.ats_breakdown is not None
+    assert normalized.ats_breakdown.adaptation_recommended is True
+    assert normalized.ats_breakdown.weak_central_requirement_ids == []
+    assert normalized.approved is True
+    assert normalized.blocking_issues == []
+    assert normalized.repair_actions == []
+
+
 def test_final_review_keeps_residual_ats_gap_as_warning_after_repair_budget() -> None:
     requirement = _requirement(
         "req.assistant",

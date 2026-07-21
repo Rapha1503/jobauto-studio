@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+import threading
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
@@ -10,6 +12,10 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 RunStatus = Literal["pending", "running", "completed", "blocked", "failed"]
+
+_STATE_LOCK = threading.RLock()
+_REPLACE_ATTEMPTS = 8
+_REPLACE_INITIAL_DELAY_SECONDS = 0.01
 
 
 class RunRecord(BaseModel):
@@ -55,24 +61,26 @@ class RunStore:
         return record
 
     def get(self, run_id: str) -> RunRecord:
-        cached = self._record_path_cache.get(run_id)
-        if cached is not None and cached.is_file():
-            return RunRecord.model_validate_json(cached.read_text(encoding="utf-8"))
-        matches = list(self.root.glob(f"*/{run_id}/run.json"))
-        if len(matches) != 1:
-            raise FileNotFoundError(f"application run not found: {run_id}")
-        self._record_path_cache[run_id] = matches[0]
-        return RunRecord.model_validate_json(matches[0].read_text(encoding="utf-8"))
+        with _STATE_LOCK:
+            cached = self._record_path_cache.get(run_id)
+            if cached is not None and cached.is_file():
+                return RunRecord.model_validate_json(cached.read_text(encoding="utf-8"))
+            matches = list(self.root.glob(f"*/{run_id}/run.json"))
+            if len(matches) != 1:
+                raise FileNotFoundError(f"application run not found: {run_id}")
+            self._record_path_cache[run_id] = matches[0]
+            return RunRecord.model_validate_json(matches[0].read_text(encoding="utf-8"))
 
     def list_for_candidate(self, candidate_id: str, *, limit: int = 100) -> list[RunRecord]:
         records: list[RunRecord] = []
-        for path in self.root.glob(f"{candidate_id}/*/run.json"):
-            try:
-                record = RunRecord.model_validate_json(path.read_text(encoding="utf-8"))
-            except (OSError, ValueError):
-                continue
-            self._record_path_cache[record.run_id] = path
-            records.append(record)
+        with _STATE_LOCK:
+            for path in self.root.glob(f"{candidate_id}/*/run.json"):
+                try:
+                    record = RunRecord.model_validate_json(path.read_text(encoding="utf-8"))
+                except (OSError, ValueError):
+                    continue
+                self._record_path_cache[record.run_id] = path
+                records.append(record)
         return sorted(records, key=lambda record: record.updated_at, reverse=True)[:limit]
 
     def transition(
@@ -115,19 +123,33 @@ def utc_now() -> str:
 
 
 def _atomic_write_json(path: Path, payload: dict[str, object]) -> None:
-    descriptor, temporary_name = tempfile.mkstemp(
-        dir=path.parent,
-        prefix=f".{path.name}.",
-        suffix=".tmp",
-        text=True,
-    )
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
-            json.dump(payload, handle, ensure_ascii=False, indent=2)
-            handle.write("\n")
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temporary_name, path)
-    except BaseException:
-        Path(temporary_name).unlink(missing_ok=True)
-        raise
+    with _STATE_LOCK:
+        descriptor, temporary_name = tempfile.mkstemp(
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            text=True,
+        )
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
+                json.dump(payload, handle, ensure_ascii=False, indent=2)
+                handle.write("\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            _replace_with_retry(Path(temporary_name), path)
+        except BaseException:
+            Path(temporary_name).unlink(missing_ok=True)
+            raise
+
+
+def _replace_with_retry(source: Path, target: Path) -> None:
+    delay = _REPLACE_INITIAL_DELAY_SECONDS
+    for attempt in range(_REPLACE_ATTEMPTS):
+        try:
+            os.replace(source, target)
+            return
+        except PermissionError:
+            if attempt == _REPLACE_ATTEMPTS - 1:
+                raise
+            time.sleep(delay)
+            delay = min(delay * 2, 0.2)

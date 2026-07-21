@@ -79,6 +79,9 @@
     const agentMatch = phase.match(/^agent:([^:]+):running$/);
     if (agentMatch) return ({
       offer_analysis: 'Analyzing the complete offer', brief_review: 'Reviewing the ATS and application angle',
+      baseline_ats: 'Auditing the original CV against the offer',
+      candidate_evidence: 'Auditing approved candidate evidence',
+      application_strategy: 'Mapping the offer to the candidate profile',
       brief_repair: 'Repairing the application strategy', project_lab: 'Selecting and adapting projects',
       cv_writer: 'Writing the tailored CV', cv_latex_writer: 'Applying the original LaTeX layout',
       letter_writer: 'Writing the cover letter', supervisor: 'Supervising the final documents',

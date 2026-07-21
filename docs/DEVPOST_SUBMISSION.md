@@ -1,30 +1,26 @@
-# Devpost submission checklist
+# Devpost submission record
 
 Official sources checked on July 19, 2026:
 
 - [OpenAI Build Week rules](https://openai.devpost.com/rules)
 - [OpenAI Build Week](https://openai.com/build-week/)
 
-Submission closes **July 21, 2026 at 5:00 PM Pacific Time**. The recommended
-category is **Apps for Your Life** because JobAuto is a consumer application for
-an individual job seeker's recurring workflow.
+JobAuto Studio was submitted in **Apps for Your Life** as a local application
+for an individual job seeker's recurring workflow.
 
 ## Required assets
 
 - [x] [public code repository](https://github.com/Rapha1503/jobauto-studio) with the MIT license;
-- [x] project description and selected track;
-- [x] [publicly accessible YouTube demo](https://youtu.be/-1IRuEl3qJU), 2:51 with English audio;
+- [x] [Devpost project](https://devpost.com/software/jobauto-studio) in Apps for Your Life;
+- [x] [public YouTube demo](https://youtu.be/-1IRuEl3qJU), 2:51 with English audio;
 - [x] README explaining Codex and GPT-5.6 usage;
-- [ ] representative Codex Session ID;
-- [x] screenshots or short clips of the real workflow.
+- [x] representative Codex Session ID: `019f6795-4b44-7672-80cc-d327a03f344f`;
+- [x] screenshots and checked workflow evidence.
 
-Use [`DEVPOST_DESCRIPTION.md`](DEVPOST_DESCRIPTION.md) as the ready-to-paste
-English description. Replace its remaining `/feedback` Session ID placeholder
-before submission.
+The submitted English description is retained in
+[`DEVPOST_DESCRIPTION.md`](DEVPOST_DESCRIPTION.md).
 
-The repository may instead be private only if it is shared with both addresses
-listed in the official rules. The planned public repository with an MIT license
-is the simpler judging path.
+The public repository and MIT license provide the judging path.
 
 ## Existing project disclosure
 
@@ -50,9 +46,8 @@ criterion rather than enumerate every internal module.
 
 ## `/feedback` Session ID
 
-Run `/feedback` inside the primary Codex task where the core JobAuto Studio work was built. Codex returns a unique Session ID. Paste that ID into the Devpost submission field.
-
-Use the most representative task if development spans multiple tasks. Do not invent an ID and do not use a terminal-generated UUID: the value must come from the Codex `/feedback` command.
+The submitted representative Codex session is
+`019f6795-4b44-7672-80cc-d327a03f344f`.
 
 ## Three-minute demo
 

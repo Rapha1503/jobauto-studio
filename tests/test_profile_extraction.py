@@ -13,6 +13,7 @@ from jobauto.profile_extraction import (
     ExtractedIdentity,
     ExtractedProject,
     ExtractedSkill,
+    _visible_latex_text,
 )
 
 
@@ -86,6 +87,10 @@ class FakeClient:
         self.phase = phase
         assert response_model is CandidateProfileExtraction
         return self.result
+
+
+def test_latex_profile_extraction_preserves_currency_glyphs() -> None:
+    assert _visible_latex_text(r"Generated \euro{}35M in savings") == ("Generated €35M in savings")
 
 
 def test_extractor_uses_only_confirmed_content_blocks_and_preserves_unicode() -> None:
@@ -212,6 +217,15 @@ def test_extractor_rejects_foreign_or_invented_source_block_id() -> None:
 
     with pytest.raises(ValueError, match="unknown CV blocks"):
         CandidateProfileExtractor(FakeClient(_extraction(project_source="foreign"))).extract(
+            source, mapping
+        )
+
+
+def test_extractor_rejects_project_moved_out_of_confirmed_experience_section() -> None:
+    source, mapping = _fixture()
+
+    with pytest.raises(ValueError, match="moved content across confirmed CV sections"):
+        CandidateProfileExtractor(FakeClient(_extraction(project_source="experience"))).extract(
             source, mapping
         )
 

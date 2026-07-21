@@ -5,9 +5,12 @@ from pathlib import Path
 import pytest
 
 from jobauto.adaptation_policy import (
+    STUDIO_ADAPTATION_PRESETS,
     AdaptationPolicy,
     CvLayoutPolicy,
     FidelityLevel,
+    fidelity_guidance,
+    serialized_studio_adaptation_presets,
     validate_section_change,
 )
 
@@ -205,3 +208,26 @@ def test_policy_preserves_structural_and_protection_constraints(tmp_path: Path) 
     assert summary.min_characters == 240
     assert summary.max_characters == 520
     assert summary.protected_fact_ids == ["identity.current"]
+
+
+def test_studio_presets_have_one_backend_source_of_truth() -> None:
+    serialized = serialized_studio_adaptation_presets()
+
+    assert serialized["balanced"]["experience"] == "very_faithful"
+    assert serialized["balanced"]["projects"] == "adaptable"
+    assert serialized["flexible"]["experience"] == "adaptable"
+    assert serialized["flexible"]["projects"] == "highly_adaptable"
+    assert {
+        section
+        for section, fidelity in STUDIO_ADAPTATION_PRESETS["flexible"].items()
+        if fidelity is FidelityLevel.LOCKED
+    } == {"identity", "education", "languages", "interests"}
+
+
+def test_fidelity_guidance_distinguishes_reframe_from_replacement() -> None:
+    balanced = fidelity_guidance(FidelityLevel.ADAPTABLE)
+    flexible = fidelity_guidance(FidelityLevel.HIGHLY_ADAPTABLE)
+
+    assert "source identities" in balanced
+    assert "do not derive or create" in balanced
+    assert "different selection or taxonomy" in flexible

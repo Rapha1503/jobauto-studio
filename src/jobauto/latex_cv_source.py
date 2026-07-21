@@ -8,7 +8,11 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from jobauto.adaptation_policy import FidelityLevel, SectionPolicy
+from jobauto.adaptation_policy import (
+    STUDIO_ADAPTATION_PRESETS,
+    FidelityLevel,
+    SectionPolicy,
+)
 
 
 class TexBlockKind(StrEnum):
@@ -447,15 +451,5 @@ def _sha256(value: bytes) -> str:
 
 
 def _default_policy(kind: TexBlockKind) -> SectionPolicy:
-    fidelity = {
-        TexBlockKind.IDENTITY: FidelityLevel.VERY_FAITHFUL,
-        TexBlockKind.SUMMARY: FidelityLevel.ADAPTABLE,
-        TexBlockKind.EXPERIENCE: FidelityLevel.VERY_FAITHFUL,
-        TexBlockKind.PROJECTS: FidelityLevel.HIGHLY_ADAPTABLE,
-        TexBlockKind.SKILLS: FidelityLevel.REPLACEABLE,
-        TexBlockKind.EDUCATION: FidelityLevel.LOCKED,
-        TexBlockKind.LANGUAGES: FidelityLevel.LOCKED,
-        TexBlockKind.INTERESTS: FidelityLevel.VERY_FAITHFUL,
-        TexBlockKind.OTHER: FidelityLevel.VERY_FAITHFUL,
-    }[kind]
+    fidelity = STUDIO_ADAPTATION_PRESETS["balanced"][kind.value]
     return SectionPolicy(fidelity=fidelity, required=kind is not TexBlockKind.INTERESTS)

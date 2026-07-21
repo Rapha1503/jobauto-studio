@@ -16,6 +16,14 @@ from jobauto.models import (
 )
 
 ATS_READY_SCORE = 85
+RESIDUAL_ATS_GAP_BLOCKER = (
+    "The final CV still has a material ATS visibility gap that the candidate evidence can improve."
+)
+RESIDUAL_ATS_GAP_WARNING = (
+    "A residual ATS visibility gap remains after the configured repair budget; "
+    "the package keeps the strongest truthful evidence available."
+)
+_RESIDUAL_ATS_REPAIR_PREFIX = "Repair only these remaining improvable central requirements:"
 
 # ATS readiness measures what the CV can reasonably make visible. General
 # behaviours and application-form constraints remain in the strategy/review,
@@ -46,6 +54,19 @@ _COVERAGE_CREDITS = {
         "missing": 0.0,
     },
 }
+
+_TRANSFERABLE_EXACT_TERM_COVERAGE = {
+    "verified": "semantic",
+    "transferable": "semantic",
+    "prepared": "indirect",
+    "unsupported": "missing",
+}
+
+
+def requirement_counts_toward_ats(requirement: OfferRequirement) -> bool:
+    """Return whether a requirement contributes to the CV-readiness score."""
+
+    return requirement.kind in _CV_ATS_REQUIREMENT_KINDS
 
 
 def cv_source_text(document: CvSourceDocument) -> str:
@@ -149,7 +170,7 @@ def calculate_ats_readiness(
     improvable_ids = set(improvable_requirement_ids)
 
     scored_requirements = [
-        requirement for requirement in requirements if requirement.kind in _CV_ATS_REQUIREMENT_KINDS
+        requirement for requirement in requirements if requirement_counts_toward_ats(requirement)
     ]
 
     for priority in ("must", "important", "nice"):
@@ -265,7 +286,16 @@ def normalize_baseline_assessment(
     )
     decision = "adapt" if breakdown.adaptation_recommended else "keep_baseline"
     if decision == "adapt":
-        material_gaps = list(assessment.material_gaps) or breakdown.decision_reasons
+        requirements_by_id = {
+            requirement.requirement_id: requirement for requirement in brief.requirements
+        }
+        material_gaps = [
+            f"{requirement_id}: {requirements_by_id[requirement_id].requirement}"
+            for requirement_id in breakdown.weak_central_requirement_ids
+            if requirement_id in requirements_by_id
+        ][:20]
+        if not material_gaps:
+            material_gaps = list(breakdown.decision_reasons)[:20]
         improvable_ids = sorted(set(assessment.improvable_requirement_ids))
         rationale = (
             f"JobAuto ATS readiness is {breakdown.score}/100. "
@@ -314,6 +344,7 @@ def normalize_final_review(
         document_text,
         require_excerpts=require_excerpts,
     )
+    coverage = _normalize_exact_term_transferability(brief, coverage)
     improvable_ids = _remaining_improvable_requirement_ids(baseline, coverage)
     breakdown = calculate_ats_readiness(
         brief.requirements,
@@ -334,25 +365,25 @@ def normalize_final_review(
     blockers = list(review.blocking_issues)
     warnings = list(review.warnings)
     repairs = list(review.repair_actions)
-    if review.approved and breakdown.adaptation_recommended:
+    remaining_central_ids = sorted(
+        set(improvable_ids)
+        & set(breakdown.critical_requirement_ids + breakdown.weak_central_requirement_ids)
+    )
+    if review.approved and remaining_central_ids:
         if block_on_improvable_gap:
-            blockers.append(
-                "The final CV still has a material ATS visibility gap that the candidate evidence can improve."
-            )
+            blockers.append(RESIDUAL_ATS_GAP_BLOCKER)
             repairs.append(
                 CandidateRepairAction(
                     surface="cv",
                     instruction=(
-                        "Repair only the remaining improvable central requirement coverage while "
-                        "preserving every accepted CV and letter element."
+                        "Repair only these remaining improvable central requirements: "
+                        f"{', '.join(remaining_central_ids)}. Preserve every accepted CV and "
+                        "letter element."
                     ),
                 )
             )
         else:
-            warnings.append(
-                "A residual ATS visibility gap remains after the configured repair budget; "
-                "the package keeps the strongest truthful evidence available."
-            )
+            warnings.append(RESIDUAL_ATS_GAP_WARNING)
     regressed_without_closing_central_gaps = bool(
         review.approved
         and baseline is not None
@@ -379,6 +410,67 @@ def normalize_final_review(
     if blockers:
         data.update({"approved": False, "blocking_issues": blockers, "repair_actions": repairs})
     return CandidateApplicationReview.model_validate(data)
+
+
+def is_residual_ats_gap_only(review: CandidateApplicationReview) -> bool:
+    return bool(
+        not review.approved
+        and review.blocking_issues == [RESIDUAL_ATS_GAP_BLOCKER]
+        and len(review.repair_actions) == 1
+        and review.repair_actions[0].surface == "cv"
+        and review.repair_actions[0].instruction.startswith(_RESIDUAL_ATS_REPAIR_PREFIX)
+    )
+
+
+def accept_residual_ats_gap(review: CandidateApplicationReview) -> CandidateApplicationReview:
+    if not is_residual_ats_gap_only(review):
+        raise ValueError("review is not a deterministic residual ATS gap")
+    warnings = list(review.warnings)
+    if RESIDUAL_ATS_GAP_WARNING not in warnings:
+        warnings.append(RESIDUAL_ATS_GAP_WARNING)
+    return review.model_copy(
+        update={
+            "approved": True,
+            "blocking_issues": [],
+            "repair_actions": [],
+            "warnings": warnings,
+        }
+    )
+
+
+def _normalize_exact_term_transferability(
+    brief: ApplicationBrief,
+    coverage: list[RenderedRequirementCoverage],
+) -> list[RenderedRequirementCoverage]:
+    """Stabilize adjacent evidence when the requested literal term is absent.
+
+    Exact lexical presence remains deterministic in ``normalize_requirement_coverage``.
+    For a grounded, non-exact excerpt, the canonical evidence assessment decides whether
+    the visible alternative is semantic, indirect, or unsupported. This prevents two
+    reviewers from assigning different ATS credit to the same transferable evidence.
+    """
+    requirements = {item.requirement_id: item for item in brief.requirements}
+    evidence = {item.requirement_id: item for item in brief.evidence_mappings}
+    normalized: list[RenderedRequirementCoverage] = []
+    for item in coverage:
+        requirement = requirements[item.requirement_id]
+        mapping = evidence[item.requirement_id]
+        if requirement.matching_mode != "exact_term" or item.coverage in {"exact", "missing"}:
+            normalized.append(item)
+            continue
+        resolved = _TRANSFERABLE_EXACT_TERM_COVERAGE[mapping.evidence_level]
+        normalized.append(
+            item.model_copy(
+                update={
+                    "coverage": resolved,
+                    "placements": item.placements if resolved != "missing" else [],
+                    "supporting_excerpts": (
+                        item.supporting_excerpts if resolved != "missing" else []
+                    ),
+                }
+            )
+        )
+    return normalized
 
 
 def _remaining_improvable_requirement_ids(

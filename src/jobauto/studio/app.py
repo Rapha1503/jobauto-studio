@@ -24,8 +24,13 @@ from openpyxl import Workbook
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
-from jobauto.adaptation_policy import AdaptationPolicy, FidelityLevel
+from jobauto.adaptation_policy import (
+    AdaptationPolicy,
+    FidelityLevel,
+    serialized_studio_adaptation_presets,
+)
 from jobauto.application_service import RunApplicationService, RunRequest
+from jobauto.ats import requirement_counts_toward_ats
 from jobauto.build import compile_latex
 from jobauto.candidate_draft import (
     CandidateDraft,
@@ -42,7 +47,7 @@ from jobauto.candidate_pipeline import CandidatePipeline
 from jobauto.candidate_profile import CandidateProfile
 from jobauto.candidate_snapshot import CandidateProfileRepository
 from jobauto.candidate_workflow import CandidateWorkflowPipeline
-from jobauto.codex_client import CodexClient
+from jobauto.codex_client import CodexClient, CodexRoute, GenerationPhase
 from jobauto.cv_change_summary import CvChangeSummary, build_cv_change_summary
 from jobauto.cv_source import CvSourceDocument
 from jobauto.discovery_handoff import (
@@ -63,6 +68,7 @@ from jobauto.latex_cv_source import (
 )
 from jobauto.models import ApplicationBrief
 from jobauto.offer_catalog import OfferCandidate
+from jobauto.offer_contract import OfferContractStore
 from jobauto.pdf_preview import render_pdf_first_page
 from jobauto.profile_extraction import CandidateProfileExtractor
 from jobauto.run_store import RunStore
@@ -347,6 +353,25 @@ class ProfileWorkspaceRegistry:
         return state
 
 
+def _demo_phase_routes(model: str) -> dict[GenerationPhase, CodexRoute]:
+    low = CodexRoute(model=model, reasoning_effort="low")
+    medium = CodexRoute(model=model, reasoning_effort="medium")
+    return {
+        GenerationPhase.DISCOVERY: low,
+        GenerationPhase.OFFER_ANALYSIS: low,
+        GenerationPhase.BASELINE_ATS: low,
+        GenerationPhase.CANDIDATE_EVIDENCE: low,
+        GenerationPhase.APPLICATION_STRATEGY: medium,
+        GenerationPhase.PROJECT_LAB: medium,
+        GenerationPhase.CV_WRITER: medium,
+        GenerationPhase.CV_LATEX_WRITER: low,
+        GenerationPhase.LETTER_WRITER: medium,
+        GenerationPhase.FINAL_REVIEW: medium,
+        GenerationPhase.REPAIR: medium,
+        GenerationPhase.BRIEF_REPAIR: medium,
+    }
+
+
 def create_studio_app(
     *,
     project_root: Path | None = None,
@@ -362,6 +387,7 @@ def create_studio_app(
     profile_extractor: CandidateProfileExtractor | None = None,
     discovery_agent_factory: Callable | None = None,
     codex_model: str | None = None,
+    demo_fast: bool = False,
 ) -> FastAPI:
     module_root = Path(__file__).resolve().parent
     root = project_root.expanduser().resolve() if project_root is not None else None
@@ -397,6 +423,7 @@ def create_studio_app(
     default_tracker = state / "applications.xlsx"
     _ensure_default_tracker(default_tracker)
     templates = Jinja2Templates(directory=module_root / "templates")
+    templates.env.globals["demo_fast"] = demo_fast
     catalog = ProfileCatalog(selected_profiles, candidate_profiles)
     profile_registry = ProfileWorkspaceRegistry(state / "profile-workspace.json")
     service = application_service
@@ -414,6 +441,7 @@ def create_studio_app(
     app = FastAPI(title="JobAuto Studio", docs_url=None, redoc_url=None)
     app.mount("/static", StaticFiles(directory=module_root / "static"), name="static")
     active_discovery_ids: set[str] = set()
+    active_campaign_ids: set[str] = set()
 
     def demo_replay() -> dict[str, object]:
         if demo_root is None:
@@ -642,6 +670,7 @@ def create_studio_app(
                 "source_lines": source_lines,
                 "block_kinds": list(TexBlockKind),
                 "fidelity_levels": list(FidelityLevel),
+                "adaptation_presets": serialized_studio_adaptation_presets(),
             },
         )
 
@@ -977,8 +1006,14 @@ def create_studio_app(
                     cwd=agent_workspace,
                     model=selected_codex_model,
                     event_callback=event_callback,
+                    phase_routes=_demo_phase_routes(selected_codex_model) if demo_fast else None,
                 )
-                pipeline = CandidatePipeline.for_candidate(llm, snapshot, context)
+                pipeline = CandidatePipeline.for_candidate(
+                    llm,
+                    snapshot,
+                    context,
+                    offer_contract_store=OfferContractStore(state / "offer-contracts"),
+                )
                 return CandidateWorkflowPipeline.build(
                     llm=llm,
                     pipeline=pipeline,
@@ -1001,6 +1036,7 @@ def create_studio_app(
                 application_service=run_service(),
                 store=StudioCampaignStore(state / "campaigns"),
                 availability_verifier=HttpOfferAvailabilityVerifier(),
+                demo_fast=demo_fast,
             )
         return campaigns
 
@@ -1013,6 +1049,7 @@ def create_studio_app(
                     cwd=agent_workspace,
                     model=selected_codex_model,
                     event_callback=event_callback,
+                    phase_routes=_demo_phase_routes(selected_codex_model) if demo_fast else None,
                 )
 
             discoveries = DiscoveryHandoffService(
@@ -1027,11 +1064,20 @@ def create_studio_app(
     def execute_discovery_flow(discovery_id: str) -> None:
         try:
             _record, campaign = active_discovery_service().execute(discovery_id)
-            active_campaign_service().execute(campaign.campaign_id)
+            active_campaign_ids.add(campaign.campaign_id)
+            execute_campaign_flow(campaign.campaign_id)
         except Exception:
             return
         finally:
             active_discovery_ids.discard(discovery_id)
+
+    def execute_campaign_flow(campaign_id: str) -> None:
+        try:
+            active_campaign_service().execute(campaign_id)
+        except Exception:
+            return
+        finally:
+            active_campaign_ids.discard(campaign_id)
 
     def active_handoff_service() -> SubmissionHandoffService:
         nonlocal handoffs
@@ -1261,7 +1307,8 @@ def create_studio_app(
                 offer_url=payload.offer_url,
                 company=payload.company,
                 role=payload.role,
-                max_repairs=payload.max_repairs,
+                max_repairs=min(payload.max_repairs, 1) if demo_fast else payload.max_repairs,
+                demo_fast=demo_fast,
             )
         )
         background_tasks.add_task(active_service.execute, run_id)
@@ -1325,7 +1372,8 @@ def create_studio_app(
             )
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
-        background_tasks.add_task(active_service.execute, record.campaign_id)
+        active_campaign_ids.add(record.campaign_id)
+        background_tasks.add_task(execute_campaign_flow, record.campaign_id)
         return {
             "campaign_id": record.campaign_id,
             "selected_count": record.selected_count,
@@ -1429,7 +1477,8 @@ def create_studio_app(
             )
         except (FileNotFoundError, ValueError) as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
-        background_tasks.add_task(active_campaign_service().execute, campaign.campaign_id)
+        active_campaign_ids.add(campaign.campaign_id)
+        background_tasks.add_task(execute_campaign_flow, campaign.campaign_id)
         return {
             "discovery_id": record.discovery_id,
             "campaign_id": campaign.campaign_id,
@@ -1449,21 +1498,41 @@ def create_studio_app(
 
     @app.get("/campaigns/{campaign_id}/status")
     def campaign_status(campaign_id: str) -> dict[str, object]:
-        return _campaign_payload(_campaign_or_404(active_campaign_service(), campaign_id))
+        record = _campaign_or_404(active_campaign_service(), campaign_id)
+        payload = _campaign_payload(record)
+        payload["interrupted"] = (
+            record.status == "running" and campaign_id not in active_campaign_ids
+        )
+        return payload
 
     @app.post("/campaigns/{campaign_id}/resume", status_code=202)
     def resume_campaign(
         campaign_id: str,
         background_tasks: BackgroundTasks,
-    ) -> dict[str, str]:
+    ) -> dict[str, object]:
+        current = _campaign_or_404(active_campaign_service(), campaign_id)
+        if campaign_id in active_campaign_ids:
+            return {
+                "campaign_id": campaign_id,
+                "status": current.status,
+                "already_running": True,
+                "page_url": f"/campaigns/{campaign_id}",
+                "status_url": f"/campaigns/{campaign_id}/status",
+            }
         try:
-            record = active_campaign_service().resume(campaign_id)
+            record = active_campaign_service().resume(
+                campaign_id,
+                allow_interrupted=current.status == "running",
+            )
         except (FileNotFoundError, ValueError) as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
         if record.status != "completed":
-            background_tasks.add_task(active_campaign_service().execute, record.campaign_id)
+            active_campaign_ids.add(record.campaign_id)
+            background_tasks.add_task(execute_campaign_flow, record.campaign_id)
         return {
             "campaign_id": record.campaign_id,
+            "status": record.status,
+            "already_running": False,
             "page_url": f"/campaigns/{record.campaign_id}",
             "status_url": f"/campaigns/{record.campaign_id}/status",
         }
@@ -1489,7 +1558,8 @@ def create_studio_app(
             )
         except (FileNotFoundError, ValueError) as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
-        background_tasks.add_task(active_campaign_service().execute, record.campaign_id)
+        active_campaign_ids.add(record.campaign_id)
+        background_tasks.add_task(execute_campaign_flow, record.campaign_id)
         return {
             **_campaign_payload(record),
             "page_url": f"/campaigns/{record.campaign_id}",
@@ -1834,6 +1904,24 @@ def _load_adaptation_summary(run_dir: Path) -> dict[str, object] | None:
             for category in brief.skill_plan.categories
         ],
         "targeted_keywords": brief.targeted_keywords,
+        "requirements_by_id": {
+            item.requirement_id: {
+                "requirement": item.requirement,
+                "priority": item.priority,
+                "matching_mode": item.matching_mode,
+                "ats_terms": item.ats_terms,
+                "counts_toward_ats": requirement_counts_toward_ats(item),
+            }
+            for item in brief.requirements
+        },
+        "ats_scored_requirement_counts": {
+            priority: sum(
+                1
+                for item in brief.requirements
+                if item.priority == priority and requirement_counts_toward_ats(item)
+            )
+            for priority in ("must", "important", "nice")
+        },
         "baseline_cv_assessment": (
             brief.baseline_cv_assessment.model_dump(mode="json")
             if brief.baseline_cv_assessment is not None

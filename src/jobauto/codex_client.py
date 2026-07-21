@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 from typing import Any, TypeVar
@@ -23,6 +24,9 @@ class GenerationPhase(StrEnum):
     DISCOVERY = "discovery"
     PROFILE = "profile"
     OFFER_ANALYSIS = "offer_analysis"
+    BASELINE_ATS = "baseline_ats"
+    CANDIDATE_EVIDENCE = "candidate_evidence"
+    APPLICATION_STRATEGY = "application_strategy"
     BRIEF_REVIEW = "brief_review"
     BRIEF_REPAIR = "brief_repair"
     PROJECT_LAB = "project_lab"
@@ -48,6 +52,12 @@ class CodexOutputValidationError(CodexResponseError):
         self.fingerprint = fingerprint or message
 
 
+@dataclass(frozen=True)
+class CodexRoute:
+    model: str | None = None
+    reasoning_effort: str | None = None
+
+
 def find_codex_executable() -> Path | None:
     for name in ("codex.cmd", "codex"):
         resolved = shutil.which(name)
@@ -68,6 +78,8 @@ class CodexClient:
         cwd: Path,
         *,
         model: str | None = None,
+        reasoning_effort: str | None = None,
+        phase_routes: dict[GenerationPhase, CodexRoute] | None = None,
         fallback_models: tuple[str, ...] = (),
         runner: Any = subprocess.run,
         sleeper: Callable[[float], None] = time.sleep,
@@ -77,6 +89,8 @@ class CodexClient:
         self.executable = executable
         self.cwd = cwd
         self.model = model
+        self.reasoning_effort = reasoning_effort
+        self.phase_routes = dict(phase_routes or {})
         self.fallback_models = tuple(
             candidate for candidate in fallback_models if candidate and candidate != model
         )
@@ -93,6 +107,8 @@ class CodexClient:
         cwd: Path | None = None,
         model: str | None = None,
         event_callback: Callable[[dict[str, Any]], None] | None = None,
+        reasoning_effort: str | None = None,
+        phase_routes: dict[GenerationPhase, CodexRoute] | None = None,
     ) -> CodexClient:
         executable = find_codex_executable()
         if executable is None:
@@ -105,6 +121,8 @@ class CodexClient:
             executable=executable,
             cwd=cwd or Path.cwd(),
             model=model,
+            reasoning_effort=reasoning_effort,
+            phase_routes=phase_routes,
             fallback_models=tuple(
                 item.strip() for item in configured_fallbacks.split(",") if item.strip()
             ),
@@ -123,7 +141,12 @@ class CodexClient:
         temp_root.mkdir(parents=True, exist_ok=True)
         full_prompt = self._wrap_prompt(prompt, response_model, phase)
         last_error: CodexResponseError | None = None
-        active_model = self.model
+        route = self.phase_routes.get(
+            phase,
+            CodexRoute(model=self.model, reasoning_effort=self.reasoning_effort),
+        )
+        active_model = route.model
+        active_reasoning_effort = route.reasoning_effort
         next_fallback = 0
         call_id = uuid4().hex
         for attempt in range(self.max_schema_attempts):
@@ -154,6 +177,12 @@ class CodexClient:
                 if active_model:
                     exec_index = command.index("exec")
                     command[exec_index + 1 : exec_index + 1] = ["--model", active_model]
+                if active_reasoning_effort:
+                    exec_index = command.index("exec")
+                    command[exec_index + 1 : exec_index + 1] = [
+                        "--config",
+                        f'model_reasoning_effort="{active_reasoning_effort}"',
+                    ]
                 attempt_prompt = (
                     self._retry_prompt(full_prompt, response_model, last_error)
                     if isinstance(last_error, CodexOutputValidationError)
@@ -164,6 +193,7 @@ class CodexClient:
                         "model": "codex-cli",
                         "call_id": call_id,
                         "codex_model": active_model or "default",
+                        "reasoning_effort": active_reasoning_effort or "model_default",
                         "phase": phase.value,
                         "status": "running",
                         "attempt": attempt + 1,
@@ -189,6 +219,7 @@ class CodexClient:
                         started=started,
                         status="failed",
                         codex_model=active_model,
+                        reasoning_effort=active_reasoning_effort,
                         call_id=call_id,
                         pipeline_outcome="transport_failed",
                         rejection_reason=f"timeout after {self.timeout_seconds}s",
@@ -206,6 +237,7 @@ class CodexClient:
                         started=started,
                         status="failed",
                         codex_model=active_model,
+                        reasoning_effort=active_reasoning_effort,
                         call_id=call_id,
                         pipeline_outcome="transport_failed",
                         rejection_reason=failure_output or f"exit code {completed.returncode}",
@@ -234,6 +266,7 @@ class CodexClient:
                         started=started,
                         status="failed",
                         codex_model=active_model,
+                        reasoning_effort=active_reasoning_effort,
                         call_id=call_id,
                         pipeline_outcome="transport_failed",
                         rejection_reason="Codex CLI did not write an output message",
@@ -251,6 +284,7 @@ class CodexClient:
                         started=started,
                         status="rejected",
                         codex_model=active_model,
+                        reasoning_effort=active_reasoning_effort,
                         call_id=call_id,
                         pipeline_outcome="schema_rejected",
                         rejection_reason=str(exc),
@@ -267,6 +301,7 @@ class CodexClient:
                     started=started,
                     status="succeeded",
                     codex_model=active_model,
+                    reasoning_effort=active_reasoning_effort,
                     call_id=call_id,
                 )
                 return parsed
@@ -282,6 +317,7 @@ class CodexClient:
         started: float,
         status: str,
         codex_model: str | None,
+        reasoning_effort: str | None,
         call_id: str,
         pipeline_outcome: str | None = None,
         rejection_reason: str | None = None,
@@ -292,6 +328,7 @@ class CodexClient:
             "model": "codex-cli",
             "call_id": call_id,
             "codex_model": codex_model or "default",
+            "reasoning_effort": reasoning_effort or "model_default",
             "phase": phase.value,
             "status": status,
             "input_sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),

@@ -51,7 +51,7 @@
   </section>
 
   <section class="panel draft-card identity-card summary-card" data-step-panel="profile">
-    <header><div><p class="panel-kicker">Summary</p><h2>Current CV introduction</h2><p class="contract-note">Balanced mode keeps its structure and facts, then adjusts the professional angle to the offer.</p></div></header>
+    <header><div><p class="panel-kicker">Summary</p><h2>Current CV introduction</h2><p class="contract-note">Your selected fidelity controls the wording freedom. Every mode keeps candidate facts protected.</p></div></header>
     <div class="draft-form-grid"><label class="wide-field">{% if is_imported %}Summary extracted from the CV{% else %}Professional summary{% endif %}<textarea id="candidate-summary" rows="4">{{ draft.summary or '' }}</textarea></label></div>
   </section>
 
@@ -175,7 +175,8 @@
             <label>Tools or methods freedom<select data-field="stack-fidelity">{% for option, label in fidelity_options %}<option value="{{ option }}"{% if project.stack_fidelity.value == option %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
             <label>Description freedom<select data-field="description-fidelity">{% for option, label in fidelity_options %}<option value="{{ option }}"{% if project.description_fidelity.value == option %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
           </div></details>
-          <label class="check-field"><input data-field="visible" type="checkbox"{% if project.visible_by_default %} checked{% endif %}> Visible by default</label>
+          <label class="check-field"><input data-field="eligible" type="checkbox"{% if project.cv_eligible %} checked{% endif %}> May be selected for tailored CVs</label>
+          <label class="check-field"><input data-field="visible" type="checkbox"{% if project.visible_by_default %} checked{% endif %}> Shown in my base CV</label>
         </div>
       </details>
       {% endfor %}
@@ -414,7 +415,7 @@
   $('#add-project').onclick = () => {
     const id = `manual_${Date.now().toString(36)}`;
     const freedom = '<option value="locked">Exact text</option><option value="very_faithful">Light edits</option><option value="adaptable" selected>Adapt to the offer</option><option value="highly_adaptable">Strong rewrite from evidence</option><option value="replaceable">Replace from evidence</option>';
-    $('#project-editors').insertAdjacentHTML('beforeend', `<article class="item-editor project-editor" data-id="${id}"><button class="remove-item" type="button">Remove</button><div class="editor-grid"><label class="wide-field">Title<input data-field="title"></label><label class="wide-field">Stack, comma separated<input data-field="stack"></label><label class="wide-field">Description, one bullet per line<textarea data-field="description" rows="3"></textarea></label><label>Use mode<select data-field="use-mode"><option value="reuse">Reuse unchanged</option><option value="reframe" selected>Change the angle</option><option value="derive">Derive a variation</option></select></label><label>Title freedom<select data-field="title-fidelity">${freedom}</select></label><label>Stack freedom<select data-field="stack-fidelity">${freedom}</select></label><label>Description freedom<select data-field="description-fidelity">${freedom}</select></label><label class="check-field"><input data-field="visible" type="checkbox" checked> Visible by default</label></div></article>`);
+    $('#project-editors').insertAdjacentHTML('beforeend', `<article class="item-editor project-editor" data-id="${id}"><button class="remove-item" type="button">Remove</button><div class="editor-grid"><label class="wide-field">Title<input data-field="title"></label><label class="wide-field">Stack, comma separated<input data-field="stack"></label><label class="wide-field">Description, one bullet per line<textarea data-field="description" rows="3"></textarea></label><label>Use mode<select data-field="use-mode"><option value="reuse">Reuse unchanged</option><option value="reframe" selected>Change the angle</option><option value="derive">Derive a variation</option></select></label><label>Title freedom<select data-field="title-fidelity">${freedom}</select></label><label>Stack freedom<select data-field="stack-fidelity">${freedom}</select></label><label>Description freedom<select data-field="description-fidelity">${freedom}</select></label><label class="check-field"><input data-field="eligible" type="checkbox" checked> May be selected for tailored CVs</label><label class="check-field"><input data-field="visible" type="checkbox" checked> Shown in my base CV</label></div></article>`);
     $('#project-empty-state')?.remove();
     dirty = true;
     bindRemove($('#project-editors'));
@@ -457,6 +458,7 @@
       stack: csv(value('[data-field="stack"]', editor) || ''),
       description: lines(value('[data-field="description"]', editor) || ''),
       visible_by_default: $('[data-field="visible"]', editor).checked,
+      cv_eligible: $('[data-field="eligible"]', editor).checked,
       use_mode: value('[data-field="use-mode"]', editor),
       title_fidelity: value('[data-field="title-fidelity"]', editor),
       stack_fidelity: value('[data-field="stack-fidelity"]', editor),

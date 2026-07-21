@@ -181,7 +181,13 @@ class SearchPreferences(BaseModel):
     def load(cls, path: Path) -> SearchPreferences:
         return cls.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")) or {})
 
-    def evaluate(self, offer: SearchOffer, *, today: date | None = None) -> SearchEvaluation:
+    def evaluate(
+        self,
+        offer: SearchOffer,
+        *,
+        today: date | None = None,
+        relax_experience: bool = False,
+    ) -> SearchEvaluation:
         blockers: list[EvaluationFinding] = []
         signals: list[RankingSignal] = []
         unknowns: list[str] = []
@@ -218,6 +224,7 @@ class SearchPreferences(BaseModel):
             blockers=blockers,
             signals=signals,
             unknowns=unknowns,
+            blocking=not relax_experience,
         )
         age = (
             None
@@ -403,6 +410,7 @@ def _maximum_constraint(
     blockers: list[EvaluationFinding],
     signals: list[RankingSignal],
     unknowns: list[str],
+    blocking: bool = True,
 ) -> None:
     if maximum is None:
         return
@@ -418,7 +426,7 @@ def _maximum_constraint(
             impact=3 if within_limit else -12,
         )
     )
-    if not within_limit:
+    if not within_limit and blocking:
         blockers.append(
             EvaluationFinding(
                 code=blocker_code,
