@@ -13,7 +13,7 @@ an individual job seeker's recurring workflow.
 
 - [x] [public code repository](https://github.com/Rapha1503/jobauto-studio) with the MIT license;
 - [x] project description and selected track;
-- [x] [publicly accessible YouTube demo](https://youtu.be/wq0uEt9Gfak), 2:53 with English audio;
+- [x] [publicly accessible YouTube demo](https://youtu.be/-1IRuEl3qJU), 2:51 with English audio;
 - [x] README explaining Codex and GPT-5.6 usage;
 - [ ] representative Codex Session ID;
 - [x] screenshots or short clips of the real workflow.
