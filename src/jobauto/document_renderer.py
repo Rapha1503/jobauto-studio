@@ -401,4 +401,8 @@ def _semantic_fragment_is_present(fragment: str, normalized_rendered: str) -> bo
         return False
     rendered_tokens = set(normalized_rendered.split())
     covered = sum(token in rendered_tokens for token in tokens)
-    return covered / len(tokens) >= 0.9
+    # Source-preserving LaTeX may condense an adapted bullet to keep the user's
+    # original one-page layout. Titles, stacks and protected facts are checked
+    # separately; this gate only rejects a bullet that lost most of its lexical
+    # anchors before the final semantic supervisor sees the rendered PDF.
+    return covered / len(tokens) >= 0.5

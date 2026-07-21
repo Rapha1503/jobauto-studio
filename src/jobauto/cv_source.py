@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from jobauto.text_encoding import repair_utf8_mojibake
+
 
 class CvEntry(BaseModel):
     title: str = Field(min_length=1, max_length=240)
@@ -32,6 +34,7 @@ class CvSourceDocument(BaseModel):
 
     @classmethod
     def parse(cls, text: str) -> CvSourceDocument:
+        text = repair_utf8_mojibake(text)
         lines = [line.rstrip() for line in text.replace("\r\n", "\n").split("\n")]
         non_blank = [index for index, line in enumerate(lines) if line.strip()]
         if len(non_blank) < 3 or not lines[non_blank[0]].startswith("# "):

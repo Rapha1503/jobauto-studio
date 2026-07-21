@@ -17,6 +17,19 @@ from jobauto.models import (
 
 ATS_READY_SCORE = 85
 
+# ATS readiness measures what the CV can reasonably make visible. General
+# behaviours and application-form constraints remain in the strategy/review,
+# but they must not force keyword stuffing or repeated CV rewrites.
+_CV_ATS_REQUIREMENT_KINDS = {
+    "technical_skill",
+    "professional_skill",
+    "mission",
+    "experience",
+    "education",
+    "domain",
+}
+_COVERAGE_RANK = {"missing": 0, "indirect": 1, "semantic": 2, "exact": 3}
+
 _PRIORITY_WEIGHTS = {"must": 5.0, "important": 3.0, "nice": 1.0}
 _COVERAGE_CREDITS = {
     "exact_term": {"exact": 1.0, "semantic": 0.55, "indirect": 0.20, "missing": 0.0},
@@ -135,10 +148,14 @@ def calculate_ats_readiness(
     weak_central_ids: list[str] = []
     improvable_ids = set(improvable_requirement_ids)
 
+    scored_requirements = [
+        requirement for requirement in requirements if requirement.kind in _CV_ATS_REQUIREMENT_KINDS
+    ]
+
     for priority in ("must", "important", "nice"):
         group_total = 0.0
         group_earned = 0.0
-        for requirement in requirements:
+        for requirement in scored_requirements:
             if requirement.priority != priority:
                 continue
             state = coverage_by_id[requirement.requirement_id]
@@ -177,8 +194,9 @@ def calculate_ats_readiness(
         if requirement_id in improvable_ids
     )
     any_improvable_gap = any(
-        coverage_by_id[requirement_id] != "exact" and requirement_id in improvable_ids
-        for requirement_id in coverage_by_id
+        coverage_by_id[requirement.requirement_id] != "exact"
+        and requirement.requirement_id in improvable_ids
+        for requirement in scored_requirements
     )
     adaptation_recommended = not ready and (
         not parseable
@@ -287,15 +305,16 @@ def normalize_final_review(
     document_text: str,
     *,
     require_excerpts: bool = True,
+    block_on_improvable_gap: bool = True,
 ) -> CandidateApplicationReview:
     baseline = brief.baseline_cv_assessment
-    improvable_ids = baseline.improvable_requirement_ids if baseline is not None else []
     coverage = normalize_requirement_coverage(
         brief.requirements,
         review.requirement_coverage,
         document_text,
         require_excerpts=require_excerpts,
     )
+    improvable_ids = _remaining_improvable_requirement_ids(baseline, coverage)
     breakdown = calculate_ats_readiness(
         brief.requirements,
         coverage,
@@ -313,20 +332,27 @@ def normalize_final_review(
         }
     )
     blockers = list(review.blocking_issues)
+    warnings = list(review.warnings)
     repairs = list(review.repair_actions)
     if review.approved and breakdown.adaptation_recommended:
-        blockers.append(
-            "The final CV still has a material ATS visibility gap that the candidate evidence can improve."
-        )
-        repairs.append(
-            CandidateRepairAction(
-                surface="cv",
-                instruction=(
-                    "Repair only the remaining improvable central requirement coverage while "
-                    "preserving every accepted CV and letter element."
-                ),
+        if block_on_improvable_gap:
+            blockers.append(
+                "The final CV still has a material ATS visibility gap that the candidate evidence can improve."
             )
-        )
+            repairs.append(
+                CandidateRepairAction(
+                    surface="cv",
+                    instruction=(
+                        "Repair only the remaining improvable central requirement coverage while "
+                        "preserving every accepted CV and letter element."
+                    ),
+                )
+            )
+        else:
+            warnings.append(
+                "A residual ATS visibility gap remains after the configured repair budget; "
+                "the package keeps the strongest truthful evidence available."
+            )
     regressed_without_closing_central_gaps = bool(
         review.approved
         and baseline is not None
@@ -349,9 +375,28 @@ def normalize_final_review(
                 ),
             )
         )
+    data["warnings"] = warnings
     if blockers:
         data.update({"approved": False, "blocking_issues": blockers, "repair_actions": repairs})
     return CandidateApplicationReview.model_validate(data)
+
+
+def _remaining_improvable_requirement_ids(
+    baseline: BaselineCvAssessment | None,
+    final_coverage: list[RenderedRequirementCoverage],
+) -> list[str]:
+    """Keep repair targets only when the tailored CV made no visible progress."""
+    if baseline is None:
+        return []
+    baseline_states = {item.requirement_id: item.coverage for item in baseline.requirement_coverage}
+    final_states = {item.requirement_id: item.coverage for item in final_coverage}
+    return [
+        requirement_id
+        for requirement_id in baseline.improvable_requirement_ids
+        if requirement_id in final_states
+        and _COVERAGE_RANK[final_states[requirement_id]]
+        <= _COVERAGE_RANK.get(baseline_states.get(requirement_id, "missing"), 0)
+    ]
 
 
 def _percentage(earned: float, total: float) -> int:

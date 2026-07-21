@@ -135,6 +135,16 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 4vw 72px; }
 .run-state { display: flex; justify-content: space-between; gap: 20px; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: white; }
 .run-state strong { overflow-wrap: anywhere; text-align: right; }
 .run-state span { color: var(--cobalt); font: 700 12px "Cascadia Mono", monospace; text-transform: uppercase; }
+.run-state-detail { display: grid; justify-items: end; gap: 4px; }
+.run-state-detail small { color: var(--muted); font: 500 12px "Cascadia Mono", monospace; }
+.run-stage-line { margin: 14px 0 20px !important; display: grid !important; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px !important; }
+.run-stage-line li { min-width: 0; padding: 10px 11px !important; display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-left: 1px solid var(--line) !important; border-radius: 11px; color: var(--muted); background: rgba(255,255,255,.72) !important; }
+.run-stage-line li > span { flex: 0 0 22px; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: #e9edf7; color: var(--muted); font: 700 10px "Cascadia Mono", monospace; }
+.run-stage-line li > strong { min-width: 0; font-size: 11px; line-height: 1.25; }
+.run-stage-line li.is-current { border-color: #8ea5ef; color: var(--ink); background: #f4f6ff !important; box-shadow: 0 6px 18px rgba(53,87,214,.08); }
+.run-stage-line li.is-current > span { color: white; background: var(--cobalt); }
+.run-stage-line li.is-complete { border-color: #a8d7bd; color: #165d47; background: #f4fbf7 !important; }
+.run-stage-line li.is-complete > span { color: white; background: var(--green); }
 .live-activity { margin: 12px 0 20px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; border: 1px solid #dce3f8; border-radius: 12px; background: #f8faff; }
 .live-activity strong, .live-activity small { display: block; }
 .live-activity small { margin-top: 3px; color: var(--muted); }
@@ -530,6 +540,7 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 4vw 72px; }
   .application-offer { grid-column: 1 / -1; }
 }
 @media (max-width: 900px) { .run-detail-grid, .document-comparison, .submission-modes { grid-template-columns: 1fr; } .review-heading { align-items: start; flex-direction: column; } }
+@media (max-width: 900px) { .run-stage-line { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 900px) { .progress-steps { grid-template-columns: 1fr 1fr; } }
 .draft-actions button { border: 0; border-radius: 9px; padding: 10px 15px; color: white; background: var(--cobalt); font-weight: 700; cursor: pointer; }
 .draft-actions .validate-action { background: var(--green); }

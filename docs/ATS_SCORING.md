@@ -72,6 +72,18 @@ If the score is low only because the candidate genuinely lacks an unsupported re
 rewriting is cosmetic and is skipped. That fit problem belongs to offer selection, not CV
 keyword stuffing.
 
+Unsupported mandatory requirements are therefore fail-soft during document generation. They
+remain visible in the requirement/evidence audit and can lower the fit or ATS estimate, but they
+do not stop the CV and letter writers. The visible documents omit unsupported claims. A
+transferable or prepared skill may be exposed when candidate policy permits it, with the caveat
+kept in internal warnings rather than recruiter-facing wording.
+
 After rendering, the supervisor supplies fresh grounded coverage. JobAuto recalculates the
 same score. An adapted CV that lowers readiness without resolving more central gaps is
 rejected for repair.
+
+Terminal blocking is reserved for document or evidence integrity: candidate-profile drift,
+fabricated or altered protected facts, wrong identity or target, unrepaired language mismatch,
+invalid or unreadable PDFs, page-policy failure, and artifact/hash mismatch before submission.
+Editorial preferences, an unsupported stack item, or a gap with no truthful repair path are not
+terminal blockers.

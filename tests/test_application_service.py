@@ -55,6 +55,7 @@ class StubCandidatePipeline:
         self.approve = approve
         self.approve_after_repair = approve_after_repair
         self.repairs = 0
+        self.review_gap_flags: list[bool] = []
 
     def generate_candidate_documents(self, _row, _offer_text, *, project_lab_context=""):
         patch = CvAdaptationPatch(
@@ -95,7 +96,10 @@ class StubCandidatePipeline:
         cv_rendered,
         letter_rendered,
         _offer_text,
+        *,
+        block_on_improvable_gap=True,
     ):
+        self.review_gap_flags.append(block_on_improvable_gap)
         assert len(cv_rendered.pdf_sha256) == 64
         assert len(letter_rendered.pdf_sha256) == 64
         approved = self.approve or (self.approve_after_repair and self.repairs > 0)
@@ -187,6 +191,26 @@ def test_application_service_runs_one_offer_to_hashed_pdfs(tmp_path: Path) -> No
     assert Path(str(republished.artifacts["cv"]["pdf_path"])).name == cv_path.name
 
 
+def test_run_request_repairs_utf8_mojibake_without_changing_valid_unicode() -> None:
+    request = RunRequest(
+        profile_path=_profiles_root() / "example" / "profile.yaml",
+        offer_text=(
+            "Une expÃ©rience rÃ©elle avec prompting avancÃ© et Ã©valuations â€” "
+            "sans modifier un texte dÃ©jÃ  valide."
+        ),
+    )
+    valid = RunRequest(
+        profile_path=_profiles_root() / "example" / "profile.yaml",
+        offer_text="Une expérience réelle, un résumé naïf et une phrase — déjà valide.",
+    )
+
+    assert request.offer_text == (
+        "Une expérience réelle avec prompting avancé et évaluations — "
+        "sans modifier un texte déjà valide."
+    )
+    assert valid.offer_text == "Une expérience réelle, un résumé naïf et une phrase — déjà valide."
+
+
 def test_application_service_persists_profile_drift_as_blocker(tmp_path: Path) -> None:
     profiles_root = tmp_path / "profiles"
     source = _profiles_root() / "example"
@@ -256,6 +280,7 @@ def test_application_service_rerenders_and_reviews_one_successful_repair(
         RunRequest(
             profile_path=_profiles_root() / "example" / "profile.yaml",
             offer_text="GridCo seeks a Data Engineer to build reliable Python and SQL pipelines.",
+            max_repairs=1,
         )
     )
 
@@ -263,6 +288,7 @@ def test_application_service_rerenders_and_reviews_one_successful_repair(
 
     assert completed.status == "completed"
     assert holder["pipeline"].repairs == 1
+    assert holder["pipeline"].review_gap_flags == [True, False]
     assert completed.phase_history[-5:] == [
         "reviewing_documents",
         "repairing_documents",

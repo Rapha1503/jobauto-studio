@@ -168,8 +168,10 @@ class SubmissionHandoffService:
             return self.store.save(
                 existing.model_copy(
                     update={
+                        "candidate_identity": snapshot.profile.identity,
                         "candidate_form_profile": form_profile,
                         "artifacts": artifacts,
+                        "preferences": preferences or snapshot.submission_preferences,
                         "blockers": list(dict.fromkeys([*existing.blockers, *blockers])),
                         "updated_at": utc_now(),
                     }

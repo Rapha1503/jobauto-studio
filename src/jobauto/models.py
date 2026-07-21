@@ -992,8 +992,15 @@ def validate_requirement_evidence_contract(brief: ApplicationBrief) -> None:
 
 
 def prewrite_fit_gaps(brief: ApplicationBrief) -> list[dict[str, str]]:
-    """Return mandatory unsupported gaps that document adaptation cannot repair."""
+    """Return mandatory unsupported candidate-fit signals for ranking and observability."""
     evidence_by_id = {mapping.requirement_id: mapping for mapping in brief.evidence_mappings}
+    candidate_fit_kinds = {
+        "technical_skill",
+        "professional_skill",
+        "experience",
+        "education",
+        "domain",
+    }
     return [
         {
             "requirement_id": requirement.requirement_id,
@@ -1004,6 +1011,7 @@ def prewrite_fit_gaps(brief: ApplicationBrief) -> list[dict[str, str]]:
         }
         for requirement in brief.requirements
         if requirement.priority == "must"
+        and requirement.kind in candidate_fit_kinds
         and requirement.requirement_id in evidence_by_id
         and evidence_by_id[requirement.requirement_id].evidence_level == "unsupported"
         and not evidence_by_id[requirement.requirement_id].fact_ids

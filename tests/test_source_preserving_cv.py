@@ -658,6 +658,32 @@ class _SourcePreservingLlm:
         raise AssertionError(f"Unexpected model: {response_model}")
 
 
+class _DriftingLatexLlm(_SourcePreservingLlm):
+    def __init__(self) -> None:
+        super().__init__()
+        self.latex_attempts = 0
+
+    def complete_json(self, prompt, response_model, phase, **kwargs):
+        if response_model is LatexCvPatch:
+            self.latex_attempts += 1
+            if self.latex_attempts == 1:
+                self.calls.append((response_model, phase))
+                self.prompts.append(prompt)
+                return LatexCvPatch(
+                    replacements=[
+                        LatexBlockReplacement(
+                            block_id="summary",
+                            source_ids=["summary.text"],
+                            latex=(
+                                "\\cvsection{RÃ©sumÃ©}\n"
+                                "IngÃ©nieure data avec une formulation diffÃ©rente.\n"
+                            ),
+                        )
+                    ]
+                )
+        return super().complete_json(prompt, response_model, phase, **kwargs)
+
+
 def test_pipeline_adds_latex_rendering_stage_only_for_source_preserving_profile(
     tmp_path: Path,
 ) -> None:
@@ -713,13 +739,41 @@ def test_pipeline_adds_latex_rendering_stage_only_for_source_preserving_profile(
         offer_text="GridCo recherche une Data Engineer pour des pipelines fiables.",
     )
     assert overflow_repaired.cv.latex_patch is not None
-    assert [phase for _model, phase in llm.calls[-3:]] == [
+    assert [phase for _model, phase in llm.calls[-2:]] == [
         GenerationPhase.REPAIR,
         GenerationPhase.CV_LATEX_WRITER,
-        GenerationPhase.REPAIR,
     ]
-    assert "Reduce CV density" in llm.prompts[-3]
-    assert "technical_only: true" not in llm.prompts[-2]
+    assert "no longer than the corresponding baseline CV" in llm.prompts[-2]
+    assert "technical_only: true" not in llm.prompts[-1]
+
+
+def test_pipeline_repairs_latex_wording_drift_before_rendering(tmp_path: Path) -> None:
+    _source, snapshot = _source_snapshot(tmp_path)
+    llm = _DriftingLatexLlm()
+    pipeline = CandidatePipeline.for_candidate(
+        llm,
+        snapshot,
+        CandidateContext.from_snapshot(snapshot),
+    )
+    row = ApplicationRow(
+        excel_row=1,
+        company="GridCo",
+        role="Data Engineer",
+        url="https://example.test/jobs/data-engineer",
+    )
+
+    package = pipeline.generate_candidate_documents(
+        row,
+        "GridCo recherche une Data Engineer pour construire des pipelines Python et SQL fiables.",
+        brief=_brief(),
+    )
+    rendered = DocumentRenderer().render_cv(snapshot, package.cv, tmp_path / "repaired-drift")
+
+    latex_prompts = [prompt for prompt in llm.prompts if "LATEX_CV_SPECIALIST" in prompt]
+    assert llm.latex_attempts == 2
+    assert "semantic_contract_error:" in latex_prompts[-1]
+    assert "copies the ADAPTED STRUCTURED CV exactly" in latex_prompts[-1]
+    assert "pipelines Python et SQL fiables" in rendered.extracted_text
 
 
 def test_strategy_validation_respects_candidate_project_creation_policy(

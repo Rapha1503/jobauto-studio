@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Protocol
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from jobauto.artifact_naming import approved_artifact_stem
 from jobauto.candidate_context import CandidateContext
@@ -19,6 +19,7 @@ from jobauto.document_patch import CandidateDocumentDraft
 from jobauto.document_renderer import DocumentRenderer, RenderedDocument
 from jobauto.models import ApplicationRow
 from jobauto.run_store import RunRecord, RunStore, utc_now
+from jobauto.text_encoding import repair_utf8_mojibake
 
 
 class CandidatePipeline(Protocol):
@@ -37,6 +38,8 @@ class CandidatePipeline(Protocol):
         cv_rendered: RenderedDocument,
         letter_rendered: RenderedDocument,
         offer_text: str,
+        *,
+        block_on_improvable_gap: bool = True,
     ): ...
 
     def repair_candidate_documents(
@@ -56,7 +59,14 @@ class RunRequest(BaseModel):
     offer_url: str | None = None
     company: str = Field(default="Target company", min_length=1, max_length=200)
     role: str = Field(default="Target role", min_length=1, max_length=200)
-    max_repairs: int = Field(default=1, ge=0, le=3)
+    max_repairs: int = Field(default=2, ge=0, le=3)
+
+    @field_validator("offer_text", mode="before")
+    @classmethod
+    def repair_mojibake_offer_text(cls, value):
+        if isinstance(value, str):
+            return repair_utf8_mojibake(value)
+        return value
 
 
 PipelineFactory = Callable[..., CandidatePipeline]
@@ -231,12 +241,19 @@ class RunApplicationService:
                     phase="reviewing_documents",
                     artifacts=artifacts,
                 )
+                review_parameters = inspect.signature(
+                    pipeline.review_candidate_documents
+                ).parameters
+                review_kwargs = {}
+                if "block_on_improvable_gap" in review_parameters:
+                    review_kwargs["block_on_improvable_gap"] = attempt < request.max_repairs
                 review = pipeline.review_candidate_documents(
                     row,
                     package,
                     cv,
                     letter,
                     request.offer_text,
+                    **review_kwargs,
                 )
                 record = self.store.get(run_id)
                 review_payload = review.model_dump(mode="json")

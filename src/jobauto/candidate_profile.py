@@ -11,6 +11,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator, model_validator
 
 from jobauto.project_lab_policy import ProjectLabPolicy
+from jobauto.text_encoding import repair_utf8_mojibake
 
 PROFILE_PATH_FIELDS = (
     "facts_path",
@@ -47,7 +48,7 @@ class CandidateIdentity(BaseModel):
     def compact_identity_fields(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        compact = " ".join(value.split())
+        compact = " ".join(repair_utf8_mojibake(value).split())
         return compact or None
 
 

@@ -79,3 +79,20 @@ def test_semantic_fragment_matching_tolerates_pdf_line_break_hyphenation() -> No
     assert _semantic_fragment_is_present("Procurement et coordination fournisseurs", rendered)
     assert _semantic_fragment_is_present("Procurement", rendered)
     assert not _semantic_fragment_is_present("Procurement et coordination transporteurs", rendered)
+
+
+def test_semantic_fragment_matching_accepts_faithful_one_page_condensation() -> None:
+    rendered = _normalize_matching_text(
+        "Fine-tuning de FinBERT sur plus de 20 000 titres financiers : "
+        "macro-F1 de 0,85 et interprétabilité locale avec LIME."
+    )
+
+    assert _semantic_fragment_is_present(
+        "Fine-tuning de FinBERT en 5 classes sur plus de 20 000 titres financiers, "
+        "avec rééquilibrage, Focal Loss et early stopping.",
+        rendered,
+    )
+    assert not _semantic_fragment_is_present(
+        "Déploiement Kubernetes avec autoscaling, observabilité et reprise après incident.",
+        rendered,
+    )

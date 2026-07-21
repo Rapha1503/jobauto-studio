@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from jobauto.cv_source import CvSourceDocument
+from jobauto.text_encoding import repair_mojibake_data, repair_utf8_mojibake
 
 
 class CandidateFormExperience(BaseModel):
@@ -33,6 +34,11 @@ class CandidateFormProfile(BaseModel):
     experiences: list[CandidateFormExperience] = Field(default_factory=list)
     education: list[CandidateFormEducation] = Field(default_factory=list)
     languages: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def repair_legacy_encoding(cls, value):
+        return repair_mojibake_data(value)
 
     @classmethod
     def load(cls, path: Path) -> CandidateFormProfile:
@@ -64,6 +70,7 @@ class CandidateFormProfile(BaseModel):
 
 
 def _split_title(value: str) -> tuple[str, str]:
+    value = repair_utf8_mojibake(value)
     for separator in (" – ", " — ", " - "):
         if separator in value:
             organization, role = value.split(separator, 1)

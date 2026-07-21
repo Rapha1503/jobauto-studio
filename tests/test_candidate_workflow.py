@@ -28,10 +28,8 @@ class StubDocumentPipeline:
         _offer_text,
         *,
         project_lab_context="",
-        stop_on_terminal_fit_gap=False,
     ):
         assert project_lab_context == ""
-        assert stop_on_terminal_fit_gap is True
         return self.brief
 
     def generate_candidate_documents(

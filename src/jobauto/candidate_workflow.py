@@ -68,7 +68,6 @@ class CandidateWorkflowPipeline:
             row,
             offer_text,
             project_lab_context=project_lab_context,
-            stop_on_terminal_fit_gap=True,
         )
         if not project_lab_context and (
             brief.baseline_cv_assessment is None

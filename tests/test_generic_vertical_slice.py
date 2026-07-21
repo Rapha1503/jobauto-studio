@@ -277,22 +277,25 @@ def test_two_candidate_matrix_isolates_prompts_and_rendered_files(
     assert foreign_name not in letter.extracted_text
 
 
-def test_cross_candidate_terminal_experience_gap_blocks_before_writers() -> None:
+def test_cross_candidate_experience_gap_remains_visible_without_blocking_writers() -> None:
     snapshot = _snapshot("example")
     context = CandidateContext.from_snapshot(snapshot)
     llm = MatrixWriterLlm()
     pipeline = CandidatePipeline.for_candidate(llm, snapshot, context)
 
-    with pytest.raises(ValueError, match="terminal candidate fit gap"):
-        pipeline.generate_candidate_documents(
-            ApplicationRow(
-                excel_row=1,
-                company="ExampleCo",
-                role="Medical Imaging Engineer",
-                url="https://example.test/medical-role",
-            ),
-            (OFFERS / "candidate_b_only_fr.txt").read_text(encoding="utf-8"),
-            brief=_terminal_gap_brief(),
-        )
+    package = pipeline.generate_candidate_documents(
+        ApplicationRow(
+            excel_row=1,
+            company="ExampleCo",
+            role="Medical Imaging Engineer",
+            url="https://example.test/medical-role",
+        ),
+        (OFFERS / "candidate_b_only_fr.txt").read_text(encoding="utf-8"),
+        brief=_terminal_gap_brief(),
+    )
 
-    assert llm.calls == []
+    assert package.brief.evidence_mappings[0].evidence_level == "unsupported"
+    assert [phase for _model, phase in llm.calls] == [
+        GenerationPhase.CV_WRITER,
+        GenerationPhase.LETTER_WRITER,
+    ]

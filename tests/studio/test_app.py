@@ -990,6 +990,12 @@ def test_studio_launches_the_injected_application_service(tmp_path: Path) -> Non
     assert "GridCo" in page.text
     assert "Data Engineer" in page.text
     assert "Agent activity" in page.text
+    assert "Understand offer" in page.text
+    assert "Plan adaptation" in page.text
+    assert "Write documents" in page.text
+    assert "Verify PDFs" in page.text
+    assert "Ready to apply" in page.text
+    assert "Elapsed" in page.text
     assert "Codex tasks" in page.text
     assert "Codex executions" not in page.text
     assert "total_tokens_estimate" in page.text

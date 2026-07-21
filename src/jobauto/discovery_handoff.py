@@ -8,7 +8,7 @@ import unicodedata
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Literal, Protocol
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 from uuid import uuid4
 
 import httpx
@@ -50,6 +50,10 @@ _CLOSED_OFFER_MARKERS = (
     "this job has expired",
     "this position has been filled",
     "job posting has expired",
+    "job not found",
+    "position not found",
+    "this job no longer exists",
+    "this position no longer exists",
     "esta oferta ya no esta disponible",
     "la oferta ha caducado",
 )
@@ -126,6 +130,11 @@ class HttpOfferAvailabilityVerifier:
         self._fetch = fetch or self._http_get
 
     def verify(self, url: str) -> OfferAvailabilityResult:
+        ashby_reference = _ashby_job_board_reference(url)
+        if ashby_reference is not None:
+            ashby_result = self._verify_ashby_posting(url, *ashby_reference)
+            if ashby_result is not None:
+                return ashby_result
         try:
             response = self._fetch(url)
         except httpx.HTTPError as exc:
@@ -190,6 +199,50 @@ class HttpOfferAvailabilityVerifier:
             status_code=status_code,
             final_url=final_url,
             reason=f"HTTP {status_code} is not reliable proof that the offer is closed.",
+        )
+
+    def _verify_ashby_posting(
+        self,
+        url: str,
+        job_board_name: str,
+        posting_id: str,
+    ) -> OfferAvailabilityResult | None:
+        endpoint = f"https://api.ashbyhq.com/posting-api/job-board/{quote(job_board_name, safe='')}"
+        try:
+            response = self._fetch(endpoint)
+            response.raise_for_status()
+            payload = response.json()
+        except (httpx.HTTPError, ValueError):
+            return None
+        jobs = payload.get("jobs") if isinstance(payload, dict) else None
+        if not isinstance(jobs, list):
+            return None
+        for job in jobs:
+            if not isinstance(job, dict) or not _ashby_job_matches(job, posting_id):
+                continue
+            description = _validated_extracted_offer_text(job.get("descriptionPlain"))
+            final_url = str(job.get("jobUrl") or url)
+            return OfferAvailabilityResult(
+                url=url,
+                status="available",
+                status_code=response.status_code,
+                final_url=final_url,
+                reason="Ashby public job board API confirms that the offer is published.",
+                content_status="verified" if description is not None else "unverified",
+                content_sha256=(
+                    hashlib.sha256(description.encode("utf-8")).hexdigest()
+                    if description is not None
+                    else None
+                ),
+                content_characters=len(description or ""),
+                extracted_description=description,
+            )
+        return OfferAvailabilityResult(
+            url=url,
+            status="unavailable",
+            status_code=response.status_code,
+            final_url=url,
+            reason="Offer is absent from the currently published Ashby job board.",
         )
 
     @staticmethod
@@ -293,6 +346,27 @@ def _redirect_lost_offer_path(original_url: str, final_url: str) -> bool:
         and not final_path
         and not final.query
     )
+
+
+def _ashby_job_board_reference(url: str) -> tuple[str, str] | None:
+    parsed = urlsplit(url)
+    if (parsed.hostname or "").casefold() != "jobs.ashbyhq.com":
+        return None
+    parts = [part for part in parsed.path.split("/") if part]
+    if len(parts) < 2:
+        return None
+    return parts[0], parts[1]
+
+
+def _ashby_job_matches(job: dict[str, object], posting_id: str) -> bool:
+    for field in ("jobUrl", "applyUrl"):
+        candidate = job.get(field)
+        if not isinstance(candidate, str):
+            continue
+        reference = _ashby_job_board_reference(candidate)
+        if reference is not None and reference[1].casefold() == posting_id.casefold():
+            return True
+    return False
 
 
 class CampaignService(Protocol):

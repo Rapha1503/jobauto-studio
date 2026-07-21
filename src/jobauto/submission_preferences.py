@@ -6,6 +6,8 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from jobauto.text_encoding import repair_utf8_mojibake
+
 
 class SubmissionMode(StrEnum):
     DRY_RUN = "dry_run"
@@ -40,7 +42,7 @@ class SubmissionPreferences(BaseModel):
         cleaned: list[str] = []
         seen: set[str] = set()
         for value in values:
-            compact = " ".join(value.split())
+            compact = " ".join(repair_utf8_mojibake(value).split())
             if not compact:
                 continue
             key = compact.casefold()
@@ -54,8 +56,8 @@ class SubmissionPreferences(BaseModel):
     def clean_standard_answers(cls, values: dict[str, str]) -> dict[str, str]:
         cleaned: dict[str, str] = {}
         for key, value in values.items():
-            compact_key = " ".join(key.split())
-            compact_value = " ".join(value.split())
+            compact_key = " ".join(repair_utf8_mojibake(key).split())
+            compact_value = " ".join(repair_utf8_mojibake(value).split())
             if not compact_key or not compact_value:
                 continue
             if len(compact_key) > 200 or len(compact_value) > 2_000:

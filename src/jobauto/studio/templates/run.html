@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{% if application_request %}{{ application_request.company }} · {{ application_request.role }}{% else %}Application progress{% endif %} · JobAuto Studio{% endblock %}
 {% block content %}
-<section class="run-shell" data-run-id="{{ record.run_id }}">
+<section class="run-shell" data-run-id="{{ record.run_id }}" data-created-at="{{ record.created_at }}">
   <a class="back" href="{{ back_url }}">← {{ back_label }}</a>
   <p class="eyebrow">Tracked application run</p>
   {% if application_request %}
@@ -10,7 +10,17 @@
   {% else %}
     <h1>Application in progress</h1>
   {% endif %}
-  <div class="run-state"><span id="run-status">{{ record.status }}</span><strong id="run-phase">{{ record.current_phase }}</strong></div>
+  <div class="run-state">
+    <span id="run-status">{{ record.status }}</span>
+    <div class="run-state-detail"><strong id="run-phase">Starting the application workflow</strong><small id="run-elapsed">Elapsed 0:00</small></div>
+  </div>
+  <ol class="run-stage-line" aria-label="Application generation progress">
+    <li data-run-stage="analysis"><span>1</span><strong>Understand offer</strong></li>
+    <li data-run-stage="strategy"><span>2</span><strong>Plan adaptation</strong></li>
+    <li data-run-stage="writing"><span>3</span><strong>Write documents</strong></li>
+    <li data-run-stage="verification"><span>4</span><strong>Verify PDFs</strong></li>
+    <li data-run-stage="ready"><span>5</span><strong>Ready to apply</strong></li>
+  </ol>
   <details class="phase-details">
     <summary>Technical details · <span id="phase-count">{{ record.phase_history|length }}</span> phase transitions</summary>
     <code>{{ record.run_id }}</code>
@@ -145,10 +155,68 @@
 <script>
   const root = document.querySelector('.run-shell');
   const runId = root.dataset.runId;
+  const runCreatedAt = new Date(root.dataset.createdAt);
   const terminal = new Set(['completed', 'blocked', 'failed']);
   const initialAdaptationSummary = {{ adaptation_summary|tojson }};
   const initialChangeSummary = {{ change_summary.model_dump(mode='json')|tojson if change_summary else 'null' }};
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+  const phaseLabels = {
+    pending: 'Queued',
+    loading_context: 'Loading your candidate profile',
+    generating_documents: 'Preparing the application strategy',
+    offer_analysis: 'Understanding the offer and ATS signals',
+    brief_review: 'Checking the adaptation strategy',
+    brief_repair: 'Refining the adaptation strategy',
+    project_lab: 'Selecting the strongest project evidence',
+    cv_writer: 'Tailoring the CV content',
+    cv_latex_writer: 'Preserving the imported CV layout',
+    letter_writer: 'Writing the cover letter',
+    rendering_documents: 'Compiling the real PDFs',
+    render_cv: 'Checking the CV PDF',
+    render_letter: 'Checking the letter PDF',
+    reviewing_documents: 'Running the final supervisor review',
+    final_review: 'Checking ATS, evidence and writing quality',
+    repairing_documents: 'Applying a targeted correction',
+    repair: 'Applying a targeted correction',
+    completed: 'Application pack approved',
+    review_blocked: 'Supervisor review needs attention',
+    render_blocked: 'PDF verification needs attention',
+    blocked: 'Application needs attention',
+    failed: 'Application run stopped'
+  };
+  function phaseKey(value) {
+    const parts = String(value || '').split(':');
+    return parts.length >= 2 && parts[0] === 'agent' ? parts[1] : parts[0];
+  }
+  function readablePhase(value) {
+    const key = phaseKey(value);
+    return phaseLabels[key] || String(value || '').replaceAll('_', ' ');
+  }
+  function runStage(value, status) {
+    if (status === 'completed') return 'ready';
+    const key = phaseKey(value);
+    if (['offer_analysis', 'loading_context'].includes(key)) return 'analysis';
+    if (['generating_documents', 'brief_review', 'brief_repair', 'project_lab'].includes(key)) return 'strategy';
+    if (['cv_writer', 'cv_latex_writer', 'letter_writer'].includes(key)) return 'writing';
+    if (['rendering_documents', 'render_cv', 'render_letter', 'reviewing_documents', 'final_review', 'repairing_documents', 'repair'].includes(key)) return 'verification';
+    return 'analysis';
+  }
+  function renderRunStage(value, status) {
+    const order = ['analysis', 'strategy', 'writing', 'verification', 'ready'];
+    const current = runStage(value, status);
+    const currentIndex = order.indexOf(current);
+    document.querySelectorAll('[data-run-stage]').forEach((item) => {
+      const index = order.indexOf(item.dataset.runStage);
+      item.classList.toggle('is-current', index === currentIndex);
+      item.classList.toggle('is-complete', index < currentIndex || status === 'completed');
+    });
+  }
+  function renderElapsed(status, updatedAt) {
+    const end = terminal.has(status) && updatedAt ? new Date(updatedAt) : new Date();
+    const seconds = Math.max(0, Math.floor((end - runCreatedAt) / 1000));
+    const minutes = Math.floor(seconds / 60);
+    document.querySelector('#run-elapsed').textContent = `Elapsed ${minutes}:${String(seconds % 60).padStart(2, '0')}`;
+  }
   function renderEvents(events) {
     const codexCalls = events.filter((event) => event.model === 'codex-cli' && event.status !== 'running');
     const logicalCalls = new Set(codexCalls.map((event) => event.call_id || `${event.phase}:${event.input_sha256 || event.attempt}`));
@@ -156,9 +224,14 @@
     const latency = codexCalls.reduce((sum, event) => sum + Number(event.latency_ms || 0), 0);
     const executionLabel = codexCalls.length === logicalCalls.size ? '' : ` · ${codexCalls.length} executions`;
     document.querySelector('#agent-totals').textContent = `${logicalCalls.size} Codex tasks${executionLabel} · ~${tokens.toLocaleString()} tokens · ${(latency / 1000).toFixed(1)}s`;
-    document.querySelector('#agent-events').innerHTML = events.map((event) => `
+    const visibleEvents = new Map();
+    events.forEach((event) => {
+      const key = event.call_id || `${event.model}:${event.phase}:${event.attempt || 1}`;
+      visibleEvents.set(key, {...(visibleEvents.get(key) || {}), ...event});
+    });
+    document.querySelector('#agent-events').innerHTML = Array.from(visibleEvents.values()).map((event) => `
       <div class="agent-event agent-${escapeHtml(event.status)}">
-        <strong>${escapeHtml(event.phase)}</strong><span>${escapeHtml(event.status)}</span>
+        <strong>${escapeHtml(readablePhase(event.phase))}</strong><span>${escapeHtml(event.status)}</span>
         <small>attempt ${escapeHtml(event.attempt)}${event.total_tokens_estimate ? ` · ~${Number(event.total_tokens_estimate).toLocaleString()} tokens` : ''}${event.latency_ms ? ` · ${(Number(event.latency_ms) / 1000).toFixed(1)}s` : ''}${event.pipeline_outcome ? ` · ${escapeHtml(event.pipeline_outcome)}` : ''}</small>
       </div>`).join('');
   }
@@ -250,7 +323,9 @@
     if (!response.ok) return;
     const run = await response.json();
     document.querySelector('#run-status').textContent = run.status;
-    document.querySelector('#run-phase').textContent = run.current_phase;
+    document.querySelector('#run-phase').textContent = readablePhase(run.current_phase);
+    renderRunStage(run.current_phase, run.status);
+    renderElapsed(run.status, run.updated_at);
     document.querySelector('#phase-count').textContent = run.phase_history.length;
     document.querySelector('#phase-history').innerHTML = run.phase_history.map((phase) => `<li>${phase}</li>`).join('');
     document.querySelector('#run-blockers').textContent = run.blockers.join(' · ');
@@ -266,6 +341,9 @@
   }
   renderAdaptation(initialAdaptationSummary);
   renderChanges(initialChangeSummary);
+  renderRunStage('{{ record.current_phase }}', '{{ record.status }}');
+  renderElapsed('{{ record.status }}', '{{ record.updated_at }}');
+  window.setInterval(() => renderElapsed(document.querySelector('#run-status').textContent), 1000);
   refresh();
 </script>
 {% endblock %}

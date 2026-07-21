@@ -385,6 +385,7 @@ def test_http_availability_verifier_distinguishes_terminal_and_anti_bot_response
     [
         "Cette offre n’est plus disponible.",
         "This position has been filled.",
+        "Job not found.",
         "Esta oferta ya no está disponible.",
     ],
 )
@@ -429,6 +430,62 @@ def test_http_availability_verifier_rejects_job_redirected_to_same_site_homepage
 
     assert result.status == "unavailable"
     assert result.final_url == "https://example.test/"
+
+
+def test_http_availability_verifier_rejects_removed_ashby_posting() -> None:
+    def fetch(url: str) -> httpx.Response:
+        assert url == "https://api.ashbyhq.com/posting-api/job-board/example"
+        return httpx.Response(
+            200,
+            json={
+                "apiVersion": "1",
+                "jobs": [
+                    {
+                        "title": "Another role",
+                        "jobUrl": "https://jobs.ashbyhq.com/example/other-id",
+                        "descriptionPlain": "Detailed open role description " * 12,
+                    }
+                ],
+            },
+            request=httpx.Request("GET", url),
+        )
+
+    result = HttpOfferAvailabilityVerifier(fetch).verify(
+        "https://jobs.ashbyhq.com/example/removed-id"
+    )
+
+    assert result.status == "unavailable"
+    assert "currently published Ashby job board" in result.reason
+
+
+def test_http_availability_verifier_accepts_published_ashby_posting() -> None:
+    description = "Detailed machine learning responsibilities and qualifications. " * 8
+
+    def fetch(url: str) -> httpx.Response:
+        assert url == "https://api.ashbyhq.com/posting-api/job-board/example"
+        return httpx.Response(
+            200,
+            json={
+                "apiVersion": "1",
+                "jobs": [
+                    {
+                        "title": "Machine Learning Engineer",
+                        "jobUrl": "https://jobs.ashbyhq.com/example/open-id",
+                        "applyUrl": "https://jobs.ashbyhq.com/example/open-id/application",
+                        "descriptionPlain": description,
+                    }
+                ],
+            },
+            request=httpx.Request("GET", url),
+        )
+
+    result = HttpOfferAvailabilityVerifier(fetch).verify(
+        "https://jobs.ashbyhq.com/example/open-id/application"
+    )
+
+    assert result.status == "available"
+    assert result.content_status == "verified"
+    assert result.extracted_description == description.strip()
 
 
 def test_http_verifier_extracts_authoritative_jobposting_json_ld() -> None:

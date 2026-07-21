@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
+import jobauto.candidate_pipeline as candidate_pipeline_module
 from jobauto.candidate_context import CandidateContext
 from jobauto.candidate_pipeline import (
     CandidatePipeline,
@@ -41,6 +42,7 @@ from jobauto.models import (
     RoleFamily,
     SkillPlan,
     SkillPlanItem,
+    prewrite_fit_gaps,
     validate_application_brief_contract,
 )
 
@@ -416,6 +418,76 @@ def _brief() -> ApplicationBrief:
     )
 
 
+def test_prewrite_semantic_review_gets_one_targeted_repair_before_final_documents(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class BriefLlm:
+        def complete_json(self, _prompt, response_model, _phase, **_kwargs):
+            assert response_model is ApplicationBrief
+            return _brief()
+
+    snapshot = _snapshot()
+    pipeline = CandidatePipeline.for_candidate(
+        BriefLlm(),
+        snapshot,
+        CandidateContext.from_snapshot(snapshot),
+        prewrite_semantic_review=True,
+    )
+    calls = {"reviews": 0, "repairs": 0}
+
+    def reject_once(brief, *, full_offer, project_lab_context=""):
+        del full_offer, project_lab_context
+        calls["reviews"] += 1
+        return ApplicationBriefReview(
+            approved=False,
+            score=82,
+            blocking_issues=["The strategy needs one coherent evidence correction."],
+            improvements=["Correct the summary evidence without reopening accepted fields."],
+            repair_actions=[
+                BriefRepairAction(
+                    field="summary",
+                    problem="The summary overstates one part of the available evidence.",
+                    instruction="Keep the angle but make the summary fully evidence-grounded.",
+                )
+            ],
+            requirement_audit=[
+                BriefRequirementAssessment(
+                    requirement_id=requirement.requirement_id,
+                    state="repair" if index == 0 else "pass",
+                    rationale="The requirement was audited against the candidate evidence.",
+                )
+                for index, requirement in enumerate(brief.requirements)
+            ],
+        )
+
+    def repair_once(brief, _actions, **_kwargs):
+        calls["repairs"] += 1
+        return brief.model_copy(update={"summary": f"{brief.summary} Evidence-grounded."})
+
+    monkeypatch.setattr(
+        candidate_pipeline_module,
+        "normalize_baseline_assessment",
+        lambda brief, _text, require_excerpts: brief,
+    )
+    monkeypatch.setattr(pipeline, "_validate_lean_brief_fact_ids", lambda *_a, **_k: None)
+    monkeypatch.setattr(pipeline, "_review_lean_brief", reject_once)
+    monkeypatch.setattr(pipeline, "_repair_lean_brief", repair_once)
+
+    result = pipeline._generate_validated_lean_brief(
+        ApplicationRow(
+            excel_row=1,
+            company="GridCo",
+            role="Data Engineer",
+            url="https://example.test/jobs/data-engineer",
+        ),
+        "GridCo seeks a Data Engineer to build Python and SQL pipelines for energy data.",
+        "",
+    )
+
+    assert result.summary.endswith("Evidence-grounded.")
+    assert calls == {"reviews": 1, "repairs": 1}
+
+
 class CandidateWriterLlm:
     def __init__(self) -> None:
         self.calls: list[tuple[type, GenerationPhase]] = []
@@ -494,20 +566,6 @@ class UngroundedReviewLlm(CandidateWriterLlm):
         return result
 
 
-class TerminalGapLlm:
-    def __init__(self, brief: ApplicationBrief) -> None:
-        self.brief = brief
-        self.calls: list[tuple[type, GenerationPhase]] = []
-
-    def complete_json(self, _prompt, response_model, phase, **_kwargs):
-        self.calls.append((response_model, phase))
-        if response_model is ApplicationBrief:
-            return self.brief
-        raise AssertionError(
-            f"Documents must not be written after a terminal gap: {response_model}"
-        )
-
-
 class PolicyRepairLlm(CandidateWriterLlm):
     def __init__(self) -> None:
         super().__init__()
@@ -534,6 +592,29 @@ class PolicyRepairLlm(CandidateWriterLlm):
                         ),
                     )
                 ]
+            )
+        return super().complete_json(prompt, response_model, phase, **kwargs)
+
+
+class LetterContractRepairLlm(CandidateWriterLlm):
+    def __init__(self) -> None:
+        super().__init__()
+        self.letter_calls = 0
+
+    def complete_json(self, prompt, response_model, phase, **kwargs):
+        if response_model is CandidateLetterDraft:
+            self.calls.append((response_model, phase))
+            self.prompts.append(prompt)
+            self.letter_calls += 1
+            return CandidateLetterDraft(
+                greeting="Dear hiring team,",
+                paragraphs=["I am applying based on relevant data-engineering experience."],
+                closing=(
+                    "Kind regards,\nForeign Person"
+                    if self.letter_calls == 1
+                    else "Kind regards,\nAlex Morgan"
+                ),
+                used_fact_ids=["identity.current"],
             )
         return super().complete_json(prompt, response_model, phase, **kwargs)
 
@@ -607,6 +688,30 @@ def test_candidate_writers_return_snapshot_bound_patch_letter_and_review(
     assert "supporting_excerpt" in prompts
     assert "would welcome the opportunity does not pass" in prompts
     assert "do not add filler or lengthen the letter merely to fill the page" in prompts
+    assert "do not use an internal project title that has no meaning" in prompts
+    assert "missing or unsupported offer requirement" in prompts
+    assert "never reject the package solely because it is absent" in prompts
+
+
+def test_strategy_prompt_keeps_unsupported_requirements_as_fit_warnings() -> None:
+    snapshot = _snapshot()
+    pipeline = CandidatePipeline.for_candidate(
+        CandidateWriterLlm(),
+        snapshot,
+        CandidateContext.from_snapshot(snapshot),
+    )
+    prompt = pipeline._application_strategy_prompt(
+        ApplicationRow(
+            excel_row=1,
+            company="GridCo",
+            role="Data Engineer",
+            url="https://example.test/jobs/data-engineer",
+        ),
+        "GridCo requires Python and a proprietary platform.",
+    ).casefold()
+
+    assert "unsupported requirement remains a fit warning" in prompt
+    assert "must not terminate document generation" in prompt
 
 
 def test_candidate_pipeline_keeps_a_strong_baseline_and_skips_cv_writers(
@@ -765,7 +870,36 @@ def test_candidate_writer_repairs_a_structured_policy_violation_before_rendering
     assert "protected_fact_missing" in llm.prompts[1]
 
 
-def test_candidate_generation_stops_after_analysis_on_terminal_experience_gap() -> None:
+def test_candidate_writer_repairs_a_letter_contract_failure_before_rendering() -> None:
+    snapshot = _snapshot()
+    llm = LetterContractRepairLlm()
+    pipeline = CandidatePipeline.for_candidate(
+        llm,
+        snapshot,
+        CandidateContext.from_snapshot(snapshot),
+    )
+
+    package = pipeline.generate_candidate_documents(
+        ApplicationRow(
+            excel_row=1,
+            company="GridCo",
+            role="Data Engineer",
+            url="https://example.test/jobs/data-engineer",
+        ),
+        "GridCo seeks a Data Engineer to build Python and SQL pipelines for energy data.",
+        brief=_brief(),
+    )
+
+    assert package.letter.closing.endswith("Alex Morgan")
+    assert [phase for model, phase in llm.calls if model is CandidateLetterDraft] == [
+        GenerationPhase.LETTER_WRITER,
+        GenerationPhase.REPAIR,
+    ]
+    assert "letter contract validation failure" in llm.prompts[-1].casefold()
+    assert "letter signature does not match candidate identity" in llm.prompts[-1].casefold()
+
+
+def test_candidate_generation_continues_with_unsupported_mandatory_experience() -> None:
     snapshot = _snapshot()
     terminal = _brief().model_copy(deep=True)
     terminal.requirements[0] = terminal.requirements[0].model_copy(
@@ -778,7 +912,7 @@ def test_candidate_generation_stops_after_analysis_on_terminal_experience_gap() 
             "rationale": "The mandatory experience requirement is not covered.",
         }
     )
-    llm = TerminalGapLlm(terminal)
+    llm = CandidateWriterLlm()
     pipeline = CandidatePipeline.for_candidate(
         llm,
         snapshot,
@@ -786,21 +920,25 @@ def test_candidate_generation_stops_after_analysis_on_terminal_experience_gap() 
     )
     offer = "\n".join(requirement.source_excerpt for requirement in terminal.requirements)
 
-    with pytest.raises(ValueError, match="terminal candidate fit gap"):
-        pipeline.generate_candidate_documents(
-            ApplicationRow(
-                excel_row=1,
-                company="GridCo",
-                role="Data Engineer",
-                url="https://example.test/jobs/data-engineer",
-            ),
-            offer,
-        )
+    package = pipeline.generate_candidate_documents(
+        ApplicationRow(
+            excel_row=1,
+            company="GridCo",
+            role="Data Engineer",
+            url="https://example.test/jobs/data-engineer",
+        ),
+        offer,
+        brief=terminal,
+    )
 
-    assert llm.calls == [(ApplicationBrief, GenerationPhase.OFFER_ANALYSIS)]
+    assert prewrite_fit_gaps(package.brief)[0]["requirement_id"] == "req.python"
+    assert [phase for _model, phase in llm.calls] == [
+        GenerationPhase.CV_WRITER,
+        GenerationPhase.LETTER_WRITER,
+    ]
 
 
-def test_candidate_generation_stops_on_unsupported_must_skill() -> None:
+def test_candidate_generation_continues_with_unsupported_must_skill() -> None:
     snapshot = _snapshot()
     terminal = _brief().model_copy(deep=True)
     terminal.requirements[0] = terminal.requirements[0].model_copy(
@@ -813,7 +951,7 @@ def test_candidate_generation_stops_on_unsupported_must_skill() -> None:
             "rationale": "The mandatory technical capability is not defensible from the profile.",
         }
     )
-    llm = TerminalGapLlm(terminal)
+    llm = CandidateWriterLlm()
     pipeline = CandidatePipeline.for_candidate(
         llm,
         snapshot,
@@ -821,18 +959,38 @@ def test_candidate_generation_stops_on_unsupported_must_skill() -> None:
     )
     offer = "\n".join(requirement.source_excerpt for requirement in terminal.requirements)
 
-    with pytest.raises(ValueError, match="terminal candidate fit gap"):
-        pipeline.generate_candidate_documents(
-            ApplicationRow(
-                excel_row=1,
-                company="GridCo",
-                role="Data Engineer",
-                url="https://example.test/jobs/data-engineer",
-            ),
-            offer,
-        )
+    package = pipeline.generate_candidate_documents(
+        ApplicationRow(
+            excel_row=1,
+            company="GridCo",
+            role="Data Engineer",
+            url="https://example.test/jobs/data-engineer",
+        ),
+        offer,
+        brief=terminal,
+    )
 
-    assert llm.calls == [(ApplicationBrief, GenerationPhase.OFFER_ANALYSIS)]
+    assert prewrite_fit_gaps(package.brief)[0]["requirement_id"] == "req.python"
+    assert [phase for _model, phase in llm.calls] == [
+        GenerationPhase.CV_WRITER,
+        GenerationPhase.LETTER_WRITER,
+    ]
+
+
+def test_candidate_generation_does_not_treat_future_mission_as_terminal_gap() -> None:
+    brief = _brief().model_copy(deep=True)
+    brief.requirements[0] = brief.requirements[0].model_copy(
+        update={"kind": "mission", "priority": "must"}
+    )
+    brief.evidence_mappings[0] = brief.evidence_mappings[0].model_copy(
+        update={
+            "evidence_level": "unsupported",
+            "fact_ids": [],
+            "rationale": "This responsibility will be exercised in the target role.",
+        }
+    )
+
+    assert prewrite_fit_gaps(brief) == []
 
 
 def test_candidate_letter_rejects_foreign_signature() -> None:
