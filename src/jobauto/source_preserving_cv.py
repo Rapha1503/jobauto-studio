@@ -80,6 +80,12 @@ _SENSITIVE_COMMANDS = {
     "write18",
 }
 _TEXT_ESCAPE_COMMANDS = {"&", "%", "$", "#", "_", "{", "}"}
+_INLINE_GLYPH_COMMANDS = {
+    # These commands render a character already represented in the semantic CV.
+    # They do not define the template structure and may legitimately be replaced
+    # by the equivalent Unicode glyph during an adaptation.
+    "texteuro",
+}
 
 
 def validate_latex_cv_patch(
@@ -183,6 +189,12 @@ def latex_cv_prompt_blocks(
             "fidelity": block.policy.fidelity.value,
             "target_lines": block.policy.target_lines,
             "latex": source[block.start_byte : block.end_byte].decode("utf-8"),
+            "required_layout_commands": _structure_commands(
+                source[block.start_byte : block.end_byte].decode("utf-8")
+            ),
+            "required_environments": _environments(
+                source[block.start_byte : block.end_byte].decode("utf-8")
+            ),
             "adapted_visible_text": (semantic_source_blocks or {}).get(
                 f"source_block.{block.block_id}"
             ),
@@ -293,7 +305,7 @@ def _require_safe_structure(original: str, replacement: str, block) -> None:
                 f"LaTeX CV block introduces commands {sorted(new_commands)}: {block.block_id}"
             )
         return
-    if replacement_commands != original_commands:
+    if _structure_commands(replacement) != _structure_commands(original):
         raise ValueError(f"LaTeX CV block command structure changed: {block.block_id}")
     if replacement_environments != original_environments:
         raise ValueError(f"LaTeX CV block environment structure changed: {block.block_id}")
@@ -398,6 +410,15 @@ def _commands(value: str) -> list[str]:
         command.casefold()
         for command in _COMMAND_PATTERN.findall(value)
         if command not in _TEXT_ESCAPE_COMMANDS
+    ]
+
+
+def _structure_commands(value: str) -> list[str]:
+    """Return commands that define layout rather than a visible text glyph."""
+    return [
+        command
+        for command in _commands(value)
+        if command not in _INLINE_GLYPH_COMMANDS and (command == "\\" or command[:1].isalpha())
     ]
 
 

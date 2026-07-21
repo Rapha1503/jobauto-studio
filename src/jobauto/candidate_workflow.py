@@ -69,9 +69,13 @@ class CandidateWorkflowPipeline:
             offer_text,
             project_lab_context=project_lab_context,
         )
-        if not project_lab_context and (
-            brief.baseline_cv_assessment is None
-            or brief.baseline_cv_assessment.decision != "keep_baseline"
+        if (
+            not project_lab_context
+            and (
+                brief.baseline_cv_assessment is None
+                or brief.baseline_cv_assessment.decision != "keep_baseline"
+            )
+            and _project_lab_is_needed(brief)
         ):
             project_lab_context = self._prepare_project_lab(row, offer_text, brief)
         self._project_lab_context = project_lab_context
@@ -134,3 +138,18 @@ class CandidateWorkflowPipeline:
 
     def __getattr__(self, name: str):
         return getattr(self._pipeline, name)
+
+
+def _project_lab_is_needed(brief) -> bool:
+    """Run the specialist only when the strategy needs new project evidence."""
+    project_plan = getattr(brief, "project_plan", None)
+    slots = getattr(project_plan, "slots", None)
+    if slots is None:
+        return True
+    for slot in slots:
+        mode = getattr(slot, "mode", None)
+        if mode is None or mode in {"derive", "create"}:
+            return True
+        if bool(getattr(slot, "requires_external_inspiration", False)):
+            return True
+    return False

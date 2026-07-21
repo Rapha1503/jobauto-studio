@@ -18,7 +18,13 @@ class StubDocumentPipeline:
         self.context = None
         self.brief = SimpleNamespace(
             model_dump_json=lambda indent: '{\n  "brief": true\n}',
-            project_plan=SimpleNamespace(slots=[object(), object(), object()]),
+            project_plan=SimpleNamespace(
+                slots=[
+                    SimpleNamespace(mode="derive", requires_external_inspiration=False),
+                    SimpleNamespace(mode="reframe", requires_external_inspiration=False),
+                    SimpleNamespace(mode="reuse", requires_external_inspiration=False),
+                ]
+            ),
             baseline_cv_assessment=SimpleNamespace(decision="adapt"),
         )
 
@@ -122,7 +128,12 @@ def test_candidate_workflow_uses_the_strategy_slot_count_not_policy_maximum(
         )
     )
     documents = StubDocumentPipeline()
-    documents.brief.project_plan = SimpleNamespace(slots=[object(), object()])
+    documents.brief.project_plan = SimpleNamespace(
+        slots=[
+            SimpleNamespace(mode="derive", requires_external_inspiration=False),
+            SimpleNamespace(mode="reuse", requires_external_inspiration=False),
+        ]
+    )
     project_lab = StubProjectLab()
     monkeypatch.setattr(
         "jobauto.candidate_workflow.write_project_lab_outputs",
@@ -172,6 +183,40 @@ def test_candidate_workflow_skips_project_lab_when_baseline_cv_is_kept(
             company="Example",
             role="Data Engineer",
             url="https://example.test/job-3",
+        ),
+        "Example seeks a Data Engineer for reliable Python and SQL pipelines.",
+    )
+
+    assert result == "documents"
+    assert project_lab.call is None
+    assert documents.context == ""
+
+
+def test_candidate_workflow_skips_project_lab_for_reuse_and_reframe_only(
+    tmp_path: Path,
+) -> None:
+    snapshot = _snapshot()
+    documents = StubDocumentPipeline()
+    documents.brief.project_plan = SimpleNamespace(
+        slots=[
+            SimpleNamespace(mode="reuse", requires_external_inspiration=False),
+            SimpleNamespace(mode="reframe", requires_external_inspiration=False),
+        ]
+    )
+    project_lab = StubProjectLab()
+    workflow = CandidateWorkflowPipeline(
+        pipeline=documents,
+        project_lab=project_lab,
+        snapshot=snapshot,
+        run_dir=tmp_path,
+    )
+
+    result = workflow.generate_candidate_documents(
+        ApplicationRow(
+            excel_row=4,
+            company="Example",
+            role="Data Engineer",
+            url="https://example.test/job-4",
         ),
         "Example seeks a Data Engineer for reliable Python and SQL pipelines.",
     )

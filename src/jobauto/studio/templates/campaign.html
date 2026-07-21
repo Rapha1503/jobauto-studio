@@ -15,7 +15,7 @@
   </div>
 
   <div id="reserve-panel" class="reserve-panel"{% if not record.reserve_count %} hidden{% endif %}>
-    <div><strong><span id="reserve-panel-count">{{ record.reserve_count }}</span> additional match{% if record.reserve_count != 1 %}es{% endif %} kept from discovery</strong><small>These offers passed the initial filters and were kept because this campaign requested {{ record.requested_limit }} application{% if record.requested_limit != 1 %}s{% endif %}. JobAuto rechecks availability before generating their documents.</small></div>
+    <div><strong><span id="reserve-panel-count">{{ record.reserve_count }}</span> additional match{% if record.reserve_count != 1 %}es{% endif %} kept from discovery</strong><small>These offers passed the initial filters but exceeded this profile's saved application limit. You can add them without rerunning the search; JobAuto rechecks availability before generating their documents.</small></div>
     <button id="expand-campaign" class="button secondary" type="button">Prepare the eligible reserve</button>
   </div>
 

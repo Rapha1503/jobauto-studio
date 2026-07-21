@@ -18,6 +18,7 @@ from jobauto.cv_source import CvSourceDocument
 from jobauto.document_patch import (
     CandidateDocumentDraft,
     CvAdaptationPatch,
+    CvSkillSectionChange,
     apply_cv_patch,
     editable_cv_source_index,
     merge_cv_adaptation_patch,
@@ -88,6 +89,53 @@ def _not_assessed_letter_argument(reason: str) -> LetterArgumentAssessment:
         candidate_contribution=criterion(),
         motivation_credibility=criterion(),
         tone_and_naturalness=criterion(),
+    )
+
+
+def _materialize_planned_skills(
+    patch: CvAdaptationPatch,
+    brief: ApplicationBrief,
+    snapshot: CandidateSnapshot,
+) -> CvAdaptationPatch:
+    """Apply the reviewed skill plan without asking the CV writer to reinterpret it."""
+
+    cv_policy = snapshot.adaptation_policy.documents.get("cv")
+    skills_policy = cv_policy.sections.get("skills") if cv_policy is not None else None
+    if skills_policy is None or not skills_policy.capabilities.reorder:
+        return patch
+
+    groups = {
+        category: [item.name for item in brief.skill_plan.items if item.category == category]
+        for category in brief.skill_plan.categories
+    }
+    if any(not items for items in groups.values()):
+        return patch
+    if not skills_policy.capabilities.replace and len(groups) != len(snapshot.cv_source.skills):
+        return patch
+
+    allowed_fact_ids = snapshot.evidence_ids
+    evidence_by_requirement = {
+        mapping.requirement_id: mapping for mapping in brief.evidence_mappings
+    }
+    fact_ids = list(patch.skills.fact_ids if patch.skills is not None else [])
+    for item in brief.skill_plan.items:
+        for requirement_id in item.requirement_ids:
+            mapping = evidence_by_requirement.get(requirement_id)
+            if mapping is not None:
+                fact_ids.extend(mapping.fact_ids)
+    if "source_block.skills" in allowed_fact_ids:
+        fact_ids.append("source_block.skills")
+    fact_ids = list(dict.fromkeys(fact_id for fact_id in fact_ids if fact_id in allowed_fact_ids))
+    if not fact_ids:
+        return patch
+
+    return patch.model_copy(
+        update={
+            "changes": [
+                change for change in patch.changes if not change.source_id.startswith("skills.")
+            ],
+            "skills": CvSkillSectionChange(groups=groups, fact_ids=fact_ids),
+        }
     )
 
 
@@ -360,6 +408,7 @@ class CandidatePipeline:
                 CvAdaptationPatch,
                 GenerationPhase.CV_WRITER,
             )
+            cv_patch = _materialize_planned_skills(cv_patch, strategy, snapshot)
             try:
                 cv = apply_cv_patch(snapshot, cv_patch)
             except ValueError as exc:
@@ -377,6 +426,7 @@ class CandidatePipeline:
                     GenerationPhase.REPAIR,
                 )
                 cv_patch = merge_cv_adaptation_patch(cv_patch, correction)
+                cv_patch = _materialize_planned_skills(cv_patch, strategy, snapshot)
                 cv = apply_cv_patch(snapshot, cv_patch)
             cv = self._attach_source_preserving_patch(row, strategy, cv, offer_text)
         letter = self._generate_validated_candidate_letter(
@@ -403,6 +453,11 @@ class CandidatePipeline:
             validate_candidate_letter_claim_values(snapshot, letter, offer_text)
             return letter
         except (KeyError, ValueError) as exc:
+            self._annotate_latest_telemetry(
+                "rejected",
+                category="letter_contract_validation",
+                reason=str(exc),
+            )
             repair_prompt = (
                 f"{prompt}\n\n## LETTER CONTRACT VALIDATION FAILURE\n"
                 f"The proposed letter was rejected: {exc}\n\n"
@@ -420,6 +475,7 @@ class CandidatePipeline:
             )
             letter.validate_for_snapshot(snapshot)
             validate_candidate_letter_claim_values(snapshot, letter, offer_text)
+            self._annotate_latest_telemetry("accepted_after_contract_repair")
             return letter
 
     def review_candidate_documents(
@@ -547,6 +603,7 @@ class CandidatePipeline:
             cv_patch = merge_cv_adaptation_patch(package.cv_patch, repair_patch)
             if self._candidate_snapshot is None:
                 raise RuntimeError("candidate repair requires a candidate snapshot")
+            cv_patch = _materialize_planned_skills(cv_patch, brief, self._candidate_snapshot)
             cv = apply_cv_patch(self._candidate_snapshot, cv_patch)
             cv = self._attach_source_preserving_patch(
                 row, brief, cv, offer_text, repair_context=repair_context
@@ -604,6 +661,11 @@ class CandidatePipeline:
                     cv.source_blocks,
                 )
             except ValueError as exc:
+                self._annotate_latest_telemetry(
+                    "rejected",
+                    category="latex_projection_contract",
+                    reason=str(exc),
+                )
                 if attempt == 1:
                     raise
                 prompt = self._candidate_latex_cv_prompt(
@@ -614,12 +676,16 @@ class CandidatePipeline:
                     repair_context=(f"{repair_context}\n\n" if repair_context else "")
                     + "technical_only: true\n"
                     + f"semantic_contract_error: {exc}\n"
-                    + "The previous LaTeX patch changed visible wording. Return a complete "
-                    + "corrected patch whose visible text copies the ADAPTED STRUCTURED CV "
-                    + "exactly, word for word; change only LaTeX markup and line wrapping.\n"
+                    + "The previous LaTeX patch violated the projection contract. Return a "
+                    + "complete corrected patch whose visible text copies the ADAPTED "
+                    + "STRUCTURED CV exactly, word for word. Preserve each block's "
+                    + "required_layout_commands and required_environments exactly; change "
+                    + "only safe inline typography and line wrapping.\n"
                     + f"rejected_latex_patch:\n{patch.model_dump_json(indent=2)}",
                 )
                 continue
+            if attempt:
+                self._annotate_latest_telemetry("accepted_after_projection_repair")
             return replace(cv, latex_patch=patch)
         raise RuntimeError("unreachable LaTeX semantic validation state")
 

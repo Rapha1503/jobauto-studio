@@ -27,6 +27,7 @@ from jobauto.models import ApplicationRow, CandidateLetterDraft
 from jobauto.source_preserving_cv import (
     LatexBlockReplacement,
     LatexCvPatch,
+    _require_safe_structure,
     latex_cv_prompt_blocks,
     merge_latex_cv_patch,
     render_source_preserving_cv,
@@ -324,6 +325,29 @@ def test_source_preserving_patch_rejects_changed_section_header(tmp_path: Path) 
 
     with pytest.raises(ValueError, match="(?:command structure|section header) changed"):
         validate_latex_cv_patch(snapshot, patch, semantic.provenance, semantic.document)
+
+
+def test_faithful_block_allows_equivalent_inline_glyph_typography(tmp_path: Path) -> None:
+    source, snapshot = _source_snapshot(tmp_path)
+    mapping = snapshot.cv_mapping
+    assert mapping is not None
+    block = next(item for item in mapping.blocks if item.block_id == "experience")
+    original = source[block.start_byte : block.end_byte].decode("utf-8")
+    replacement = original.replace("\\,", " ").replace("\\texteuro{}", "€")
+
+    _require_safe_structure(original, replacement, block)
+
+
+def test_faithful_block_still_rejects_removed_list_structure(tmp_path: Path) -> None:
+    source, snapshot = _source_snapshot(tmp_path)
+    mapping = snapshot.cv_mapping
+    assert mapping is not None
+    block = next(item for item in mapping.blocks if item.block_id == "experience")
+    original = source[block.start_byte : block.end_byte].decode("utf-8")
+    replacement = original.replace("\\item", "", 1)
+
+    with pytest.raises(ValueError, match="command structure changed"):
+        _require_safe_structure(original, replacement, block)
 
 
 def test_source_preserving_patch_rejects_claim_added_only_during_latex_projection(
@@ -645,7 +669,20 @@ class _SourcePreservingLlm:
                 ]
             )
         if response_model is LatexCvPatch:
-            return _summary_latex_patch()
+            patch = _summary_latex_patch()
+            patch.replacements.append(
+                LatexBlockReplacement(
+                    block_id="skills",
+                    source_ids=["skills.section"],
+                    latex=(
+                        "\\cvsection{Compétences}\n"
+                        "\\textbf{Data Engineering} : Python\\\\\n"
+                        "\\textbf{Cloud} : BigQuery\\\\\n"
+                        "\\textbf{Analytics} : Data quality\n"
+                    ),
+                )
+            )
+            return patch
         if response_model is CandidateLetterDraft:
             return CandidateLetterDraft(
                 greeting="Madame, Monsieur,",

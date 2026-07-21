@@ -14,6 +14,7 @@ from jobauto.candidate_pipeline import (
     _application_brief_repair_view,
     _brief_repair_requires_full_offer,
     _letter_argument_excerpts_are_grounded,
+    _materialize_planned_skills,
 )
 from jobauto.candidate_snapshot import CandidateProfileRepository
 from jobauto.codex_client import GenerationPhase
@@ -418,6 +419,30 @@ def _brief() -> ApplicationBrief:
     )
 
 
+def test_reviewed_skill_plan_is_materialized_without_writer_reinterpretation() -> None:
+    snapshot = _snapshot()
+    patch = CvAdaptationPatch(
+        changes=[
+            CvFieldChange(
+                source_id="skills.0.items",
+                value=["Writer-selected skill"],
+                fact_ids=["identity.current"],
+            )
+        ]
+    )
+
+    materialized = _materialize_planned_skills(patch, _brief(), snapshot)
+
+    assert materialized.skills is not None
+    assert materialized.skills.groups == {
+        "Data Engineering": ["Python"],
+        "Cloud": ["BigQuery"],
+        "Analytics": ["Data quality"],
+    }
+    assert all(not change.source_id.startswith("skills.") for change in materialized.changes)
+    assert "identity.current" in materialized.skills.fact_ids
+
+
 def test_prewrite_semantic_review_gets_one_targeted_repair_before_final_documents(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -655,7 +680,10 @@ def test_candidate_writers_return_snapshot_bound_patch_letter_and_review(
     )
 
     assert package.cv.document.summary.startswith("Data engineer focused on reliable energy")
-    assert package.cv.provenance == {"summary.text": ("identity.current",)}
+    assert dict(package.cv.provenance) == {
+        "summary.text": ("identity.current",),
+        "skills.section": ("identity.current",),
+    }
     assert package.letter.closing.endswith("Alex Morgan")
     assert review.approved is True
     assert [model for model, _phase in llm.calls] == [

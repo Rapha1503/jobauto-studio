@@ -19,8 +19,8 @@ an individual job seeker's recurring workflow.
 - [x] screenshots or short clips of the real workflow.
 
 Use [`DEVPOST_DESCRIPTION.md`](DEVPOST_DESCRIPTION.md) as the ready-to-paste
-English description. Replace its two remaining placeholders after the video and
-`/feedback` ID exist.
+English description. Replace its remaining `/feedback` Session ID placeholder
+before submission.
 
 The repository may instead be private only if it is shared with both addresses
 listed in the official rules. The planned public repository with an MIT license
@@ -85,6 +85,10 @@ uv run jobauto audit-release dist\jobauto-0.1.0.tar.gz
 ```
 
 Also install the wheel in a fresh virtual environment and run `jobauto studio --no-open-browser` before recording the final demo.
+
+Last verified on July 21, 2026: the wheel installed into a new temporary virtual
+environment and both `/setup` and `/demo` returned HTTP 200 without importing
+the source checkout.
 
 The judge test path is: clone the repository, run the Quick start, click
 `Explore the checked demo`, compare the packaged source and tailored PDFs, open
